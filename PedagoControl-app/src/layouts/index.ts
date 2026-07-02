@@ -1,0 +1,5 @@
+export { AuthShell } from './AuthShell'
+export { DirectorLayout } from './DirectorLayout'
+export { ManagementLayout } from './ManagementLayout'
+export { PrefectLayout } from './PrefectLayout'
+export { TeacherLayout } from './TeacherLayout'
