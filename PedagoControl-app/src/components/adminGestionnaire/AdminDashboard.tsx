@@ -5,16 +5,16 @@ export function AdminDashboard() {
   return (
     <>
       <KpiGrid items={[
-        { icon: 'book', value: '120', label: 'Programmes crÃ©Ã©s', tone: 'blue' },
-        { icon: 'checkCircle', value: '97', label: "En cours d'exÃ©cution", tone: 'green' },
-        { icon: 'shield', value: '15', label: 'TerminÃ©s', tone: 'purple' },
+        { icon: 'book', value: '120', label: 'Programmes créés', tone: 'blue' },
+        { icon: 'checkCircle', value: '97', label: "En cours d'exécution", tone: 'green' },
+        { icon: 'shield', value: '15', label: 'Terminés', tone: 'purple' },
         { icon: 'clock', value: '8', label: 'En retard', tone: 'orange' },
         { icon: 'alert', value: '5', label: 'Alertes critiques', tone: 'red' },
-        { icon: 'chart', value: '67%', label: "Taux global d'exÃ©cution", tone: 'blue' },
+        { icon: 'chart', value: '67%', label: "Taux global d'exécution", tone: 'blue' },
       ]} />
       <section className="dashboard-grid">
-        <Card title="Vue dâ€™ensemble de l'exÃ©cution" className="wide-card"><Donut value={67} /><Legend rows={[['En avance', 25, 'green'], ['Conforme', 42, 'blue'], ['En retard', 22, 'orange'], ['Critique', 11, 'red']]} /><ClassroomMini /></Card>
-        <Card title="Avancement par section"><ProgressRows rows={[['HumanitÃ©s', 78], ['Scientifique', 65], ['Commerciale', 72], ['PÃ©dagogie GÃ©nÃ©rale', 81]]} /><LinkRow to="/directeur/suivi-avancement">Voir le dÃ©tail par section</LinkRow></Card>
+        <Card title="Vue d’ensemble de l'exécution" className="wide-card"><Donut value={67} /><Legend rows={[['En avance', 25, 'green'], ['Conforme', 42, 'blue'], ['En retard', 22, 'orange'], ['Critique', 11, 'red']]} /><ClassroomMini /></Card>
+        <Card title="Avancement par section"><ProgressRows rows={[['Humanités', 78], ['Scientifique', 65], ['Commerciale', 72], ['Pédagogie Générale', 81]]} /><LinkRow to="/directeur/suivi-avancement">Voir le détail par section</LinkRow></Card>
         <Card title="Situation des enseignants"><Donut value={69} center="32" label="Total" /><Legend rows={[['En avance', 38, 'green'], ['Conformes', 31, 'blue'], ['En retard', 22, 'orange'], ['Critiques', 9, 'red']]} /><LinkRow to="/directeur/enseignants">Voir tous les enseignants</LinkRow></Card>
         <AlertCard />
         <Card title="Top 5 enseignants en retard" className="table-card span-2"><DelayTable /></Card>

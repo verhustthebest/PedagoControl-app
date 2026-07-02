@@ -134,7 +134,7 @@ function AuthShell({ children, footerVariant = 'default' }: { children: ReactNod
     <main className="auth-page">
       <section className="auth-card" aria-label="PEDAGO CONTROL">
         <aside className="presentation-visual">
-          <img src={presentationPanel} alt="PrÃ©sentation PEDAGO CONTROL" />
+          <img src={presentationPanel} alt="Présentation PEDAGO CONTROL" />
         </aside>
         <section className="auth-panel">{children}</section>
       </section>
@@ -145,9 +145,9 @@ function AuthShell({ children, footerVariant = 'default' }: { children: ReactNod
 
 function PresentationScreen() {
   return (
-    <main className="startup-page" aria-label="PrÃ©sentation PEDAGO CONTROL">
+    <main className="startup-page" aria-label="Présentation PEDAGO CONTROL">
       <section className="startup-frame">
-        <img src={startupMockup} alt="PEDAGO CONTROL - ContrÃ´lez lâ€™exÃ©cution rÃ©elle des programmes scolaires" />
+        <img src={startupMockup} alt="PEDAGO CONTROL - Contrôlez l’exécution réelle des programmes scolaires" />
         <Link className="startup-login-hotspot" to="/login">
           <span>Se connecter</span>
         </Link>
@@ -170,7 +170,7 @@ function LoginScreen() {
     const account = demoAccounts.find((item) => item.username === username.trim().toLowerCase() && item.password === password)
 
     if (!account) {
-      setError('Identifiants de dÃ©monstration incorrects.')
+      setError('Identifiants de démonstration incorrects.')
       return
     }
 
@@ -184,15 +184,15 @@ function LoginScreen() {
       <section className="brand-block">
         <img src={brandLogo} alt="PEDAGO CONTROL - Plateforme intelligente" />
         <div className="promise-row" aria-label="Promesse de la plateforme">
-          <span className="promise promise-blue"><Icon name="eye" /> ContrÃ´lez.</span>
+          <span className="promise promise-blue"><Icon name="eye" /> Contrôlez.</span>
           <span className="promise promise-gold"><Icon name="trend" /> Suivez.</span>
-          <span className="promise promise-red"><Icon name="target" /> RÃ©ussissez.</span>
+          <span className="promise promise-red"><Icon name="target" /> Réussissez.</span>
         </div>
-        <p className="tagline">Plateforme intelligente de suivi de lâ€™exÃ©cution<br />des programmes scolaires</p>
+        <p className="tagline">Plateforme intelligente de suivi de l’exécution<br />des programmes scolaires</p>
       </section>
 
       <form className="login-box login-form" onSubmit={handleSubmit}>
-        <h1><Icon name="user" /> Connexion Ã  votre compte</h1>
+        <h1><Icon name="user" /> Connexion à votre compte</h1>
         <label>
           <span>Nom d'utilisateur</span>
           <div className="field"><Icon name="person" /><input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Entrez votre nom d'utilisateur" autoComplete="username" /></div>
@@ -204,11 +204,11 @@ function LoginScreen() {
         {error && <p className="login-error">{error}</p>}
         <div className="form-row">
           <label className="remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>Se souvenir de moi</span></label>
-          <button type="button" className="link-button">Mot de passe oubliÃ© ?</button>
+          <button type="button" className="link-button">Mot de passe oublié ?</button>
         </div>
         <button className="primary-action" type="submit"><Icon name="login" /> Se connecter</button>
-        <div className="demo-credentials" aria-label="Identifiants de dÃ©monstration">
-          <strong>AccÃ¨s dÃ©mo</strong>
+        <div className="demo-credentials" aria-label="Identifiants de démonstration">
+          <strong>Accès démo</strong>
           {demoAccounts.map((account) => (
             <button type="button" key={account.username} onClick={() => { setUsername(account.username); setPassword(account.password); setError('') }}>
               <span>{account.role}</span>
@@ -377,7 +377,7 @@ function ClientSchools() {
         </div>
         <div className="schools-pagination">
           <span>Affichage 1 a 8 sur 48 ecoles</span>
-          <div><button type="button">â€¹</button><button type="button" className="active">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button">...</button><button type="button">6</button><button type="button">â€º</button></div>
+          <div><button type="button">‹</button><button type="button" className="active">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button">...</button><button type="button">6</button><button type="button">›</button></div>
           <label>Elements par page<select><option>10</option><option>20</option><option>50</option></select></label>
         </div>
       </section>
@@ -726,7 +726,7 @@ function ManagementSendHistory() {
       { icon: 'checkCircle', value: '64', label: 'Confirmations', detail: 'Receptions valides', tone: 'green' },
       { icon: 'alert', value: '5', label: 'Echecs', detail: 'A investiguer', tone: 'red' },
       { icon: 'file', value: '17', label: 'Corrections', detail: 'Versions renvoyees', tone: 'orange' },
-      { icon: 'shield', value: '100%', label: 'TraÃ§abilite', detail: 'Journal complet', tone: 'purple' },
+      { icon: 'shield', value: '100%', label: 'Traçabilite', detail: 'Journal complet', tone: 'purple' },
     ]}
     filters={['Type', 'Utilisateur', 'Ecole', 'Periode']}
     columns={['Date', 'Heure', 'Action', 'Programme', 'Ecole', 'Utilisateur', 'Canal', 'Statut']}
@@ -882,10 +882,10 @@ function DirectorLayout({ title, subtitle, crumb, children, compactFilters = fal
           <button className="hamburger" type="button" aria-label="Menu"><Icon name="menu" /></button>
           <div>
             <h1>{title}</h1>
-            {subtitle ? <p>{subtitle}</p> : <p>Accueil <span>â€º</span> {crumb}</p>}
+            {subtitle ? <p>{subtitle}</p> : <p>Accueil <span>›</span> {crumb}</p>}
           </div>
           <div className={`period-filters${compactFilters ? ' period-filters-compact' : ''}`}>
-            <FilterBox icon="calendar" label="AnnÃ©e scolaire" value="2024 - 2025" />
+            <FilterBox icon="calendar" label="Année scolaire" value="2024 - 2025" />
             {!compactFilters && <FilterBox label="Trimestre" value="1er Trimestre" />}
             {!compactFilters && <FilterBox label="Mois actuel" value="Septembre" />}
             <button className="notification" type="button"><Icon name="bell" /><span>7</span></button>
@@ -914,10 +914,10 @@ function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="sidebar-arc"><span /><strong>â˜…</strong></div>
+      <div className="sidebar-arc"><span /><strong>★</strong></div>
       <div className="sidebar-illustration"><div className="teacher-scene">Chapitre 2<br />Les Fractions</div></div>
       <LogoutButton />
-      <div className="school-card"><Avatar name="Institut Excellence" crest /><div><strong>Institut Excellence</strong><span>Kinshasa - RDC</span><em>Lâ€™excellence aujourdâ€™hui,<br />le leadership demain.</em></div><Icon name="chevron" /></div>
+      <div className="school-card"><Avatar name="Institut Excellence" crest /><div><strong>Institut Excellence</strong><span>Kinshasa - RDC</span><em>L’excellence aujourd’hui,<br />le leadership demain.</em></div><Icon name="chevron" /></div>
     </aside>
   )
 }
@@ -1258,14 +1258,14 @@ function ProgressTracking() {
   return (
     <>
       <KpiGrid items={[
-        { icon: 'chart', value: '67%', label: "Taux global d'exÃ©cution", tone: 'blue', delta: '+5% vs mois dernier' },
+        { icon: 'chart', value: '67%', label: "Taux global d'exécution", tone: 'blue', delta: '+5% vs mois dernier' },
         { icon: 'book', value: '97', label: 'Programmes en cours', tone: 'green', delta: '+3 vs mois dernier' },
         { icon: 'clock', value: '8', label: 'Programmes en retard', tone: 'orange', delta: '-2 vs mois dernier' },
         { icon: 'alert', value: '5', label: 'Alertes critiques', tone: 'red' },
       ]} side={<StudentBanner />} />
       <section className="two-col">
-        <Card title="Avancement des programmes par matiÃ¨re" className="table-card main-table">
-          <Filters labels={['Classe', 'MatiÃ¨re', 'Statut']} search="Rechercher une matiÃ¨re..." />
+        <Card title="Avancement des programmes par matière" className="table-card main-table">
+          <Filters labels={['Classe', 'Matière', 'Statut']} search="Rechercher une matière..." />
           <SubjectTable />
         </Card>
         <aside className="right-column">
@@ -1274,9 +1274,9 @@ function ProgressTracking() {
         </aside>
       </section>
       <section className="bottom-grid">
-        <Card title="Ã‰volution du taux d'exÃ©cution"><LineTrend /></Card>
-        <Card title="Top 5 des matiÃ¨res (meilleur taux)"><RankList rows={['Ã‰ducation Civique 83%', 'Histoire-GÃ©ographie 78%', 'MathÃ©matiques 71%', 'SVT 71%', 'FranÃ§ais 65%']} good /></Card>
-        <Card title="MatiÃ¨res Ã  amÃ©liorer"><RankList rows={['Anglais 50%', 'Physique-Chimie 56%', 'FranÃ§ais 65%', 'MathÃ©matiques 71%', 'SVT 71%']} /></Card>
+        <Card title="Évolution du taux d'exécution"><LineTrend /></Card>
+        <Card title="Top 5 des matières (meilleur taux)"><RankList rows={['Éducation Civique 83%', 'Histoire-Géographie 78%', 'Mathématiques 71%', 'SVT 71%', 'Français 65%']} good /></Card>
+        <Card title="Matières à améliorer"><RankList rows={['Anglais 50%', 'Physique-Chimie 56%', 'Français 65%', 'Mathématiques 71%', 'SVT 71%']} /></Card>
         <InfoPanel />
       </section>
       <PromoBand />
@@ -1290,23 +1290,23 @@ function EvaluationControl() {
       <section className="content-with-side">
         <div>
           <KpiGrid items={[
-            { icon: 'clipboard', value: '128', label: 'Ã‰valuations programmÃ©es', tone: 'blue', delta: '+12 vs mois dernier' },
-            { icon: 'checkCircle', value: '96', label: 'Ã‰valuations rÃ©alisÃ©es', tone: 'green', delta: '+20 vs mois dernier' },
-            { icon: 'clock', value: '15', label: 'Ã‰valuations en retard', tone: 'orange', delta: '-5 vs mois dernier' },
-            { icon: 'chart', value: '75%', label: 'Taux de rÃ©alisation', tone: 'purple', delta: '+8% vs mois dernier' },
+            { icon: 'clipboard', value: '128', label: 'Évaluations programmées', tone: 'blue', delta: '+12 vs mois dernier' },
+            { icon: 'checkCircle', value: '96', label: 'Évaluations réalisées', tone: 'green', delta: '+20 vs mois dernier' },
+            { icon: 'clock', value: '15', label: 'Évaluations en retard', tone: 'orange', delta: '-5 vs mois dernier' },
+            { icon: 'chart', value: '75%', label: 'Taux de réalisation', tone: 'purple', delta: '+8% vs mois dernier' },
           ]} />
           <Card className="table-card">
-            <div className="toolbar-row"><Filters labels={['Classe', 'MatiÃ¨re', "Type d'Ã©valuation", 'PÃ©riode']} search="Rechercher une Ã©valuation..." /><button className="blue-button"><Icon name="plus" /> Nouvelle Ã©valuation</button></div>
+            <div className="toolbar-row"><Filters labels={['Classe', 'Matière', "Type d'évaluation", 'Période']} search="Rechercher une évaluation..." /><button className="blue-button"><Icon name="plus" /> Nouvelle évaluation</button></div>
             <EvaluationTable />
           </Card>
           <section className="bottom-grid eval-bottom">
-            <Card title="Top 5 matiÃ¨res les plus rÃ©guliÃ¨res"><RankList rows={['Histoire-GÃ©ographie 89%', 'Informatique 83%', 'MathÃ©matiques 78%', 'FranÃ§ais 76%', 'SVT 74%']} good /></Card>
+            <Card title="Top 5 matières les plus régulières"><RankList rows={['Histoire-Géographie 89%', 'Informatique 83%', 'Mathématiques 78%', 'Français 76%', 'SVT 74%']} good /></Card>
             <Card title="Top 5 enseignants respectant le calendrier"><RankList rows={['Mme. Rachel Banza 93%', 'M. Jean Kabasele 90%', 'Mme. Grace Mbuyi 88%', 'M. David Mukendi 84%', 'M. Junior Mbala 80%']} good /></Card>
-            <Card title="RÃ©partition des statuts"><Donut value={75} center="128" label="Ã‰valuations" /><Legend rows={[['RÃ©alisÃ©es', 75, 'green'], ['Ã€ venir', 13, 'orange'], ['En retard', 12, 'red'], ['AnnulÃ©es', 0, 'gray']]} /></Card>
+            <Card title="Répartition des statuts"><Donut value={75} center="128" label="Évaluations" /><Legend rows={[['Réalisées', 75, 'green'], ['À venir', 13, 'orange'], ['En retard', 12, 'red'], ['Annulées', 0, 'gray']]} /></Card>
           </section>
         </div>
         <aside className="right-column">
-          <AlertCard title="Alertes d'Ã©valuations" />
+          <AlertCard title="Alertes d'évaluations" />
           <CalendarCard />
           <InfoPanel />
         </aside>
@@ -1320,16 +1320,16 @@ function Reports() {
     <section className="content-with-side">
       <div>
         <KpiGrid items={[
-          { icon: 'file', value: '34', label: 'Rapports gÃ©nÃ©rÃ©s ce mois', tone: 'blue', delta: '+12 vs mois dernier' },
-          { icon: 'chart', value: '128', label: 'Rapports annuels', tone: 'green', delta: '+8 vs annÃ©e prÃ©cÃ©dente' },
-          { icon: 'pie', value: '48', label: 'Rapports trimestriels', tone: 'purple', delta: '+6 vs trimestre prÃ©cÃ©dent' },
+          { icon: 'file', value: '34', label: 'Rapports générés ce mois', tone: 'blue', delta: '+12 vs mois dernier' },
+          { icon: 'chart', value: '128', label: 'Rapports annuels', tone: 'green', delta: '+8 vs année précédente' },
+          { icon: 'pie', value: '48', label: 'Rapports trimestriels', tone: 'purple', delta: '+6 vs trimestre précédent' },
           { icon: 'clock', value: '7', label: 'Rapports en attente', tone: 'orange', delta: '-3 vs hier' },
         ]} />
-        <Card><Filters labels={['AnnÃ©e scolaire', 'Trimestre', 'Mois', 'Enseignant', 'Classe', 'MatiÃ¨re']} action="Filtrer" /></Card>
+        <Card><Filters labels={['Année scolaire', 'Trimestre', 'Mois', 'Enseignant', 'Classe', 'Matière']} action="Filtrer" /></Card>
         <Card title="Types de rapports disponibles" className="table-card reports-table"><ReportTable /></Card>
       </div>
       <aside className="right-column">
-        <Card title="Ã‰volution du taux d'exÃ©cution global"><LineTrend /><div className="note-box"><Icon name="info" /> Le taux d'exÃ©cution global a augmentÃ© de 4% par rapport au mois dernier.</div></Card>
+        <Card title="Évolution du taux d'exécution global"><LineTrend /><div className="note-box"><Icon name="info" /> Le taux d'exécution global a augmenté de 4% par rapport au mois dernier.</div></Card>
         <RecentReports />
         <QuotePanel />
       </aside>
@@ -1352,7 +1352,7 @@ function KpiCard({ icon, value, label, tone, delta }: { icon: string; value: str
       <div className="kpi-head"><span><Icon name={icon} /></span><strong>{value}</strong></div>
       <p>{label}</p>
       <div className="kpi-line" />
-      <Link to="/directeur/suivi-avancement">{delta || 'Voir dÃ©tails'} <Icon name={delta?.startsWith('-') ? 'down' : 'arrow'} /></Link>
+      <Link to="/directeur/suivi-avancement">{delta || 'Voir détails'} <Icon name={delta?.startsWith('-') ? 'down' : 'arrow'} /></Link>
     </article>
   )
 }
@@ -1366,27 +1366,27 @@ function AlertCard({ title = 'Alertes critiques' }: { title?: string }) {
 }
 
 function DelayTable() {
-  return <table><thead><tr><th>#</th><th>Enseignant</th><th>MatiÃ¨re</th><th>Classe</th><th>Retard</th><th>Statut</th></tr></thead><tbody>{subjects.slice(0, 5).map((item, index) => <tr key={item.name}><td>{index + 1}</td><td>{item.teacher}</td><td>{item.name}</td><td>{item.className}</td><td>{item.delay}</td><td><Badge status={index === 0 ? 'Critique' : 'En retard'} /></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>#</th><th>Enseignant</th><th>Matière</th><th>Classe</th><th>Retard</th><th>Statut</th></tr></thead><tbody>{subjects.slice(0, 5).map((item, index) => <tr key={item.name}><td>{index + 1}</td><td>{item.teacher}</td><td>{item.name}</td><td>{item.className}</td><td>{item.delay}</td><td><Badge status={index === 0 ? 'Critique' : 'En retard'} /></td></tr>)}</tbody></table>
 }
 
 function SubjectTable() {
-  return <table><thead><tr><th>MatiÃ¨re</th><th>Programmes en cours</th><th>Chapitres totaux</th><th>Chapitres rÃ©alisÃ©s</th><th>Taux d'exÃ©cution</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{subjects.map((item) => <tr key={item.name}><td><SubjectIcon tone={item.color} />{item.name}</td><td>{item.programs}</td><td>{item.total}</td><td>{item.done}</td><td><MiniBar value={item.rate} tone={item.status} /> {item.rate}%</td><td><Badge status={item.status} /></td><td><button className="icon-button"><Icon name="eye" /></button></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Matière</th><th>Programmes en cours</th><th>Chapitres totaux</th><th>Chapitres réalisés</th><th>Taux d'exécution</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{subjects.map((item) => <tr key={item.name}><td><SubjectIcon tone={item.color} />{item.name}</td><td>{item.programs}</td><td>{item.total}</td><td>{item.done}</td><td><MiniBar value={item.rate} tone={item.status} /> {item.rate}%</td><td><Badge status={item.status} /></td><td><button className="icon-button"><Icon name="eye" /></button></td></tr>)}</tbody></table>
 }
 
 function EvaluationTable() {
-  return <table><thead><tr><th>MatiÃ¨re</th><th>Classe</th><th>Enseignant</th><th>Ã‰valuation</th><th>Type</th><th>Date prÃ©vue</th><th>Date rÃ©alisÃ©e</th><th>Statut</th><th>Notes publiÃ©es</th><th>Actions</th></tr></thead><tbody>{evaluations.map((item) => <tr key={`${item.subject}-${item.className}`}><td><SubjectIcon tone="blue" />{item.subject}</td><td>{item.className}</td><td><Avatar name={item.teacher} small />{item.teacher}</td><td>{item.type === 'Interrogation' ? 'Interrogation orale' : item.type}</td><td><Badge status={item.type} /></td><td>{item.planned}</td><td>{item.done}</td><td><Badge status={item.status} /></td><td><span className={item.notes ? 'ok-dot' : 'bad-dot'}>{item.notes ? 'âœ“' : 'Ã—'}</span></td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button"><Icon name="more" /></button></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Matière</th><th>Classe</th><th>Enseignant</th><th>Évaluation</th><th>Type</th><th>Date prévue</th><th>Date réalisée</th><th>Statut</th><th>Notes publiées</th><th>Actions</th></tr></thead><tbody>{evaluations.map((item) => <tr key={`${item.subject}-${item.className}`}><td><SubjectIcon tone="blue" />{item.subject}</td><td>{item.className}</td><td><Avatar name={item.teacher} small />{item.teacher}</td><td>{item.type === 'Interrogation' ? 'Interrogation orale' : item.type}</td><td><Badge status={item.type} /></td><td>{item.planned}</td><td>{item.done}</td><td><Badge status={item.status} /></td><td><span className={item.notes ? 'ok-dot' : 'bad-dot'}>{item.notes ? '✓' : '×'}</span></td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button"><Icon name="more" /></button></td></tr>)}</tbody></table>
 }
 
 function ReportTable() {
-  return <table><thead><tr><th>Type de rapport</th><th>Description</th><th>DonnÃ©es incluses</th><th>PÃ©riode</th><th>DerniÃ¨re gÃ©nÃ©ration</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.title}><td><SubjectIcon tone={report.color} />{report.title}</td><td>{report.desc}</td><td>{report.data.split('|').map((line) => <span className="data-line" key={line}>â€¢ {line}</span>)}</td><td><Badge status={report.period} /></td><td>{report.date}</td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button red"><Icon name="pdf" /></button><button className="icon-button green"><Icon name="excel" /></button><button className="icon-button purple"><Icon name="print" /></button></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Type de rapport</th><th>Description</th><th>Données incluses</th><th>Période</th><th>Dernière génération</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.title}><td><SubjectIcon tone={report.color} />{report.title}</td><td>{report.desc}</td><td>{report.data.split('|').map((line) => <span className="data-line" key={line}>• {line}</span>)}</td><td><Badge status={report.period} /></td><td>{report.date}</td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button red"><Icon name="pdf" /></button><button className="icon-button green"><Icon name="excel" /></button><button className="icon-button purple"><Icon name="print" /></button></td></tr>)}</tbody></table>
 }
 
 function BarChart() {
-  return <div className="bar-chart">{[['1Ã¨re', 80], ['2Ã¨me', 72], ['3Ã¨me', 65], ['4Ã¨me', 58], ['5Ã¨me', 62], ['6Ã¨me', 75]].map(([label, value]) => <div key={label}><strong>{value}%</strong><span style={{ height: `${Number(value) * 1.75}px` }} /><em>{label}</em></div>)}</div>
+  return <div className="bar-chart">{[['1ère', 80], ['2ème', 72], ['3ème', 65], ['4ème', 58], ['5ème', 62], ['6ème', 75]].map(([label, value]) => <div key={label}><strong>{value}%</strong><span style={{ height: `${Number(value) * 1.75}px` }} /><em>{label}</em></div>)}</div>
 }
 
 function LineTrend() {
-  return <div className="line-trend">{[52, 56, 59, 62, 63, 67].map((value, index) => <div key={index}><span>{value}%</span><b style={{ height: `${value}%` }} /></div>)}<em>Avr.</em><em>Mai</em><em>Juin</em><em>Juil.</em><em>AoÃ»t</em><em>Sept.</em></div>
+  return <div className="line-trend">{[52, 56, 59, 62, 63, 67].map((value, index) => <div key={index}><span>{value}%</span><b style={{ height: `${value}%` }} /></div>)}<em>Avr.</em><em>Mai</em><em>Juin</em><em>Juil.</em><em>Août</em><em>Sept.</em></div>
 }
 
 function RankList({ rows, good = false }: { rows: string[]; good?: boolean }) {
@@ -1395,39 +1395,39 @@ function RankList({ rows, good = false }: { rows: string[]; good?: boolean }) {
 
 function CalendarCard() {
   const days = Array.from({ length: 35 }, (_, index) => index + 1)
-  return <Card title="Calendrier des Ã©valuations" className="calendar-card"><div className="calendar-legend"><span className="blue" />ContrÃ´le mensuel <span className="purple" />Interrogation <span className="orange" />Examen trimestriel</div><h3>Septembre 2024</h3><div className="calendar-grid">{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => <b key={day}>{day}</b>)}{days.map((day) => <span key={day} className={day === 5 ? 'selected' : day % 7 === 2 ? 'marked' : ''}>{day <= 30 ? day : day - 30}</span>)}</div><LinkRow to="/directeur/calendrier">Voir tout le calendrier</LinkRow></Card>
+  return <Card title="Calendrier des évaluations" className="calendar-card"><div className="calendar-legend"><span className="blue" />Contrôle mensuel <span className="purple" />Interrogation <span className="orange" />Examen trimestriel</div><h3>Septembre 2024</h3><div className="calendar-grid">{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => <b key={day}>{day}</b>)}{days.map((day) => <span key={day} className={day === 5 ? 'selected' : day % 7 === 2 ? 'marked' : ''}>{day <= 30 ? day : day - 30}</span>)}</div><LinkRow to="/directeur/calendrier">Voir tout le calendrier</LinkRow></Card>
 }
 
 function RecentReports() {
-  return <Card title="Rapports rÃ©cents">{reports.map((report, index) => <div className="recent-row" key={report.title}><Icon name="file" /><p><strong>{report.title}</strong><span>GÃ©nÃ©rÃ© le {report.date}</span></p><Badge status={index % 2 ? 'Excel' : 'PDF'} /><button className="icon-button"><Icon name="more" /></button></div>)}</Card>
+  return <Card title="Rapports récents">{reports.map((report, index) => <div className="recent-row" key={report.title}><Icon name="file" /><p><strong>{report.title}</strong><span>Généré le {report.date}</span></p><Badge status={index % 2 ? 'Excel' : 'PDF'} /><button className="icon-button"><Icon name="more" /></button></div>)}</Card>
 }
 
 function RightStack() {
-  return <aside className="right-stack"><Card title="Calendrier pÃ©dagogique"><EventRows /></Card><Card title="ActivitÃ© rÃ©cente"><ActivityRows /></Card></aside>
+  return <aside className="right-stack"><Card title="Calendrier pédagogique"><EventRows /></Card><Card title="Activité récente"><ActivityRows /></Card></aside>
 }
 
 function EventRows() {
-  return <>{[['25 SEPT', 'ContrÃ´le mensuel des programmes', "Aujourd'hui"], ['15 OCT', 'Inspection interne', '15 Oct. 2024'], ['02 DÃ‰C', 'RÃ©union pÃ©dagogique', '02 DÃ©c. 2024'], ['20 DÃ‰C', 'Ã‰valuation trimestrielle', '20 DÃ©c. 2024']].map(([date, title, time]) => <div className="event-row" key={title}><span>{date}</span><strong>{title}</strong><time>{time}</time></div>)}</>
+  return <>{[['25 SEPT', 'Contrôle mensuel des programmes', "Aujourd'hui"], ['15 OCT', 'Inspection interne', '15 Oct. 2024'], ['02 DÉC', 'Réunion pédagogique', '02 Déc. 2024'], ['20 DÉC', 'Évaluation trimestrielle', '20 Déc. 2024']].map(([date, title, time]) => <div className="event-row" key={title}><span>{date}</span><strong>{title}</strong><time>{time}</time></div>)}</>
 }
 
 function ActivityRows() {
-  return <>{['M. Jean Kabasele a terminÃ© le chapitre 3 de MathÃ©matiques - 5Ã¨me', 'Mme. Grace Mbuyi a justifiÃ© un retard en FranÃ§ais - 3Ã¨me', 'Nouveau programme ajoutÃ© : Chimie - 4Ã¨me', 'Ã‰valuation mensuelle planifiÃ©e le 25 Sept. 2024'].map((text, index) => <div className="activity-row" key={text}><Icon name={index % 2 ? 'checkCircle' : 'calendar'} /><span>{text}</span><time>Il y a {index ? `${index} h` : '30 min'}</time></div>)}</>
+  return <>{['M. Jean Kabasele a terminé le chapitre 3 de Mathématiques - 5ème', 'Mme. Grace Mbuyi a justifié un retard en Français - 3ème', 'Nouveau programme ajouté : Chimie - 4ème', 'Évaluation mensuelle planifiée le 25 Sept. 2024'].map((text, index) => <div className="activity-row" key={text}><Icon name={index % 2 ? 'checkCircle' : 'calendar'} /><span>{text}</span><time>Il y a {index ? `${index} h` : '30 min'}</time></div>)}</>
 }
 
 function StudentBanner() {
-  return <article className="student-banner"><strong>Chaque jour,</strong><span>on avance vers lâ€™excellence !</span><div className="students-visual" /></article>
+  return <article className="student-banner"><strong>Chaque jour,</strong><span>on avance vers l’excellence !</span><div className="students-visual" /></article>
 }
 
 function PromoBand() {
-  return <section className="promo-band"><div className="book-stack" /><p><strong>Notre objectif : une Ã©ducation de qualitÃ© pour un avenir meilleur.</strong><span>Avec PEDAGO CONTROL, suivez, contrÃ´lez et amÃ©liorez lâ€™exÃ©cution des programmes scolaires en toute simplicitÃ©.</span></p><div className="flag-wave">â˜…</div></section>
+  return <section className="promo-band"><div className="book-stack" /><p><strong>Notre objectif : une éducation de qualité pour un avenir meilleur.</strong><span>Avec PEDAGO CONTROL, suivez, contrôlez et améliorez l’exécution des programmes scolaires en toute simplicité.</span></p><div className="flag-wave">★</div></section>
 }
 
 function InfoPanel() {
-  return <Card className="info-panel"><h2><Icon name="info" /> Bon Ã  savoir</h2><p>Un suivi rÃ©gulier permet dâ€™anticiper les retards et de garantir la rÃ©ussite de tous les Ã©lÃ¨ves.</p><div className="students-visual small" /></Card>
+  return <Card className="info-panel"><h2><Icon name="info" /> Bon à savoir</h2><p>Un suivi régulier permet d’anticiper les retards et de garantir la réussite de tous les élèves.</p><div className="students-visual small" /></Card>
 }
 
 function QuotePanel() {
-  return <Card className="quote-panel"><strong>â€œ</strong><p>Une bonne dÃ©cision repose sur de bonnes donnÃ©es pÃ©dagogiques.</p><div className="target-mark"><Icon name="target" /> Analysez. DÃ©cidez. AmÃ©liorez.</div></Card>
+  return <Card className="quote-panel"><strong>“</strong><p>Une bonne décision repose sur de bonnes données pédagogiques.</p><div className="target-mark"><Icon name="target" /> Analysez. Décidez. Améliorez.</div></Card>
 }
 
 function ClassroomMini() {
@@ -1459,7 +1459,7 @@ function PrefectLayout({ title, subtitle, crumb, children }: { title: string; su
           <button className="hamburger" type="button" aria-label="Menu"><Icon name="menu" /></button>
           <div>
             <h1>{title}</h1>
-            {subtitle ? <p>{subtitle}</p> : <p>Accueil <span>â€º</span> {crumb}</p>}
+            {subtitle ? <p>{subtitle}</p> : <p>Accueil <span>›</span> {crumb}</p>}
           </div>
           <div className="period-filters period-filters-compact">
             <FilterBox icon="calendar" label="Annee scolaire" value="2024 - 2025" />
@@ -1684,10 +1684,10 @@ function TeacherLayout({ title, subtitle, crumb, children }: { title: string; su
           <button className="hamburger" type="button" aria-label="Menu"><Icon name="menu" /></button>
           <div>
             <h1>{title}</h1>
-            {subtitle ? <p>{subtitle}</p> : <p>Accueil <span>â€º</span> {crumb}</p>}
+            {subtitle ? <p>{subtitle}</p> : <p>Accueil <span>›</span> {crumb}</p>}
           </div>
           <div className="period-filters period-filters-compact">
-            <FilterBox label="AnnÃ©e scolaire" value="2024 - 2025" />
+            <FilterBox label="Année scolaire" value="2024 - 2025" />
             <button className="notification" type="button"><Icon name="bell" /><span>3</span></button>
             <div className="mini-profile teacher-mini"><Avatar name="Jean Kabasele" /><div><strong>Jean Kabasele</strong><small><i /> Enseignant</small></div><Icon name="chevron" /></div>
           </div>
@@ -1703,20 +1703,20 @@ function TeacherDashboard() {
   return (
     <>
       <TeacherStats items={[
-        { icon: 'book', value: '2', label: 'Mes matiÃ¨res', detail: 'MathÃ©matiques, Physique-Chimie', tone: 'blue' },
-        { icon: 'users', value: '2', label: 'Classes', detail: '5Ã¨me A, 6Ã¨me B', tone: 'green' },
-        { icon: 'clipboard', value: 'Chapitre 5', label: 'Chapitre en cours', detail: 'Fractions (5Ã¨me A)', tone: 'purple' },
-        { icon: 'checkCircle', value: '8 / 10', label: 'Progressions validÃ©es', detail: '80% validÃ©es', tone: 'orange' },
-        { icon: 'chart', value: '87%', label: 'Taux de conformitÃ©', detail: 'TrÃ¨s bon', tone: 'cyan' },
+        { icon: 'book', value: '2', label: 'Mes matières', detail: 'Mathématiques, Physique-Chimie', tone: 'blue' },
+        { icon: 'users', value: '2', label: 'Classes', detail: '5ème A, 6ème B', tone: 'green' },
+        { icon: 'clipboard', value: 'Chapitre 5', label: 'Chapitre en cours', detail: 'Fractions (5ème A)', tone: 'purple' },
+        { icon: 'checkCircle', value: '8 / 10', label: 'Progressions validées', detail: '80% validées', tone: 'orange' },
+        { icon: 'chart', value: '87%', label: 'Taux de conformité', detail: 'Très bon', tone: 'cyan' },
       ]} />
       <section className="teacher-dashboard-grid">
         <Card title="Mes programmes" className="table-card span-2"><LinkRow to="/enseignant/mes-programmes">Voir tout</LinkRow><TeacherProgramRows /></Card>
-        <Card title="Ma progression globale"><Donut value={87} /><Legend rows={[['Chapitres rÃ©alisÃ©s', 87, 'green'], ['En cours', 13, 'orange'], ['Non commencÃ©s', 0, 'red']]} /><div className="total-row"><span>Total chapitres</span><strong>23</strong></div></Card>
-        <Card title="ActivitÃ©s du jour" className="teacher-day-card"><ActivityTimeline /></Card>
-        <Card title="Cahier de textes - DerniÃ¨res sÃ©ances" className="table-card span-2"><LinkRow to="/enseignant/cahier-texte">Voir tout</LinkRow><TeacherRecentTextBook /></Card>
-        <Card title="Ã‰valuations Ã  venir"><MiniList rows={['ContrÃ´le MathÃ©matiques|5Ã¨me A|15/05/2024', 'Interrogation Physique-Chimie|6Ã¨me B|16/05/2024', 'Test MathÃ©matiques|6Ã¨me B|20/05/2024']} icon="clipboard" /></Card>
-        <aside className="teacher-side-stack"><Card title="Messages rÃ©cents"><MiniList rows={['PrÃ©fet des Ã‰tudes|Validation de votre progression du chapitre 4|Nouveau', 'Directeur des Ã‰tudes|RÃ©union pÃ©dagogique le 10 Mai 2024|01/05/2024', 'Administration|Merci de mettre Ã  jour vos cahiers|30/04/2024']} icon="message" /></Card><Card title="Documents rÃ©cents"><MiniList rows={['Support - Fractions.pdf|02/05/2024', 'Exercices - Nombres dÃ©cimaux.docx|02/05/2024', 'Correction - Devoir 4.pdf|30/04/2024']} icon="file" /></Card></aside>
-        <Card title="Mes classes" className="span-2"><div className="class-cards"><TeacherClassCard name="5Ã¨me A" count="38 Ã©lÃ¨ves" next="03/05/2024 Ã  07:30" subject="MathÃ©matiques" /><TeacherClassCard name="6Ã¨me B" count="36 Ã©lÃ¨ves" next="03/05/2024 Ã  09:00" subject="MathÃ©matiques" /></div></Card>
+        <Card title="Ma progression globale"><Donut value={87} /><Legend rows={[['Chapitres réalisés', 87, 'green'], ['En cours', 13, 'orange'], ['Non commencés', 0, 'red']]} /><div className="total-row"><span>Total chapitres</span><strong>23</strong></div></Card>
+        <Card title="Activités du jour" className="teacher-day-card"><ActivityTimeline /></Card>
+        <Card title="Cahier de textes - Dernières séances" className="table-card span-2"><LinkRow to="/enseignant/cahier-texte">Voir tout</LinkRow><TeacherRecentTextBook /></Card>
+        <Card title="Évaluations à venir"><MiniList rows={['Contrôle Mathématiques|5ème A|15/05/2024', 'Interrogation Physique-Chimie|6ème B|16/05/2024', 'Test Mathématiques|6ème B|20/05/2024']} icon="clipboard" /></Card>
+        <aside className="teacher-side-stack"><Card title="Messages récents"><MiniList rows={['Préfet des Études|Validation de votre progression du chapitre 4|Nouveau', 'Directeur des Études|Réunion pédagogique le 10 Mai 2024|01/05/2024', 'Administration|Merci de mettre à jour vos cahiers|30/04/2024']} icon="message" /></Card><Card title="Documents récents"><MiniList rows={['Support - Fractions.pdf|02/05/2024', 'Exercices - Nombres décimaux.docx|02/05/2024', 'Correction - Devoir 4.pdf|30/04/2024']} icon="file" /></Card></aside>
+        <Card title="Mes classes" className="span-2"><div className="class-cards"><TeacherClassCard name="5ème A" count="38 élèves" next="03/05/2024 à 07:30" subject="Mathématiques" /><TeacherClassCard name="6ème B" count="36 élèves" next="03/05/2024 à 09:00" subject="Mathématiques" /></div></Card>
       </section>
     </>
   )
@@ -1726,21 +1726,21 @@ function TeacherPrograms() {
   return (
     <>
       <TeacherStats items={[
-        { icon: 'book', value: '4', label: 'Programmes attribuÃ©s', detail: 'Toutes matiÃ¨res confondues', tone: 'blue' },
-        { icon: 'checkCircle', value: '17 / 25', label: 'Chapitres rÃ©alisÃ©s', detail: '68% de chapitres terminÃ©s', tone: 'green' },
-        { icon: 'clock', value: '6 / 25', label: 'Chapitres restants', detail: 'Ã€ enseigner', tone: 'orange' },
+        { icon: 'book', value: '4', label: 'Programmes attribués', detail: 'Toutes matières confondues', tone: 'blue' },
+        { icon: 'checkCircle', value: '17 / 25', label: 'Chapitres réalisés', detail: '68% de chapitres terminés', tone: 'green' },
+        { icon: 'clock', value: '6 / 25', label: 'Chapitres restants', detail: 'À enseigner', tone: 'orange' },
         { icon: 'chart', value: '68%', label: "Taux d'avancement global", detail: 'Bonne progression', tone: 'purple' },
-        { icon: 'calendar', value: 'Mai 2024', label: 'PÃ©riode en cours', detail: '3Ã¨me pÃ©riode', tone: 'cyan' },
+        { icon: 'calendar', value: 'Mai 2024', label: 'Période en cours', detail: '3ème période', tone: 'cyan' },
       ]} />
       <div className="teacher-published-banner"><Icon name="checkCircle" /> Repartition annuelle publiee : Mathematiques - 5eme A, 18 chapitres, 36 semaines ouvrables, disponible pour la progression.</div>
       <section className="teacher-two-col">
-        <Card title="DÃ©tail de mes programmes" className="table-card">
-          <Filters labels={['Classe', 'MatiÃ¨re']} action="Actualiser" />
+        <Card title="Détail de mes programmes" className="table-card">
+          <Filters labels={['Classe', 'Matière']} action="Actualiser" />
           <ProgramAccordion />
         </Card>
         <aside className="right-column">
-          <Card title="RÃ©sumÃ© du programme sÃ©lectionnÃ©"><ProgramSummary /></Card>
-          <Card title="Calendrier prÃ©visionnel (5Ã¨me A)" className="table-card"><PlanningTable /></Card>
+          <Card title="Résumé du programme sélectionné"><ProgramSummary /></Card>
+          <Card title="Calendrier prévisionnel (5ème A)" className="table-card"><PlanningTable /></Card>
           <InfoPanel />
         </aside>
       </section>
@@ -1755,24 +1755,24 @@ function TeacherProgress() {
   function submitProgress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setHistory((current) => [
-      { date: '03/05/2024', subject: 'MathÃ©matiques', className: '5Ã¨me A', chapter: 'Ch. 4 / 4.2 : Addition et soustraction des fractions', status: 'En attente' },
+      { date: '03/05/2024', subject: 'Mathématiques', className: '5ème A', chapter: 'Ch. 4 / 4.2 : Addition et soustraction des fractions', status: 'En attente' },
       ...current,
     ])
-    setMessage('Progression envoyÃ©e au PrÃ©fet pour validation')
+    setMessage('Progression envoyée au Préfet pour validation')
   }
 
   return (
     <>
       <TeacherStats items={[
-        { icon: 'book', value: '4', label: 'Programmes attribuÃ©s', detail: 'Toutes matiÃ¨res confondues', tone: 'blue' },
+        { icon: 'book', value: '4', label: 'Programmes attribués', detail: 'Toutes matières confondues', tone: 'blue' },
         { icon: 'checkCircle', value: '17', label: 'Chapitres soumis', detail: 'Ce trimestre', tone: 'green' },
-        { icon: 'clock', value: '12', label: 'En attente de validation', detail: 'Par le PrÃ©fet des Ã‰tudes', tone: 'orange' },
-        { icon: 'shield', value: '5', label: 'ValidÃ©s', detail: 'Ce trimestre', tone: 'purple' },
+        { icon: 'clock', value: '12', label: 'En attente de validation', detail: 'Par le Préfet des Études', tone: 'orange' },
+        { icon: 'shield', value: '5', label: 'Validés', detail: 'Ce trimestre', tone: 'purple' },
         { icon: 'chart', value: '70%', label: "Taux d'avancement global", detail: 'Bonne progression', tone: 'cyan' },
       ]} />
       {message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}
       <section className="teacher-two-col progress-layout">
-        <Card title="1. DÃ©clarer une leÃ§on / chapitre rÃ©alisÃ©">
+        <Card title="1. Déclarer une leçon / chapitre réalisé">
           <TeacherProgressForm onSubmit={submitProgress} />
         </Card>
         <Card title="2. Historique de mes progressions" className="table-card">
@@ -1790,29 +1790,29 @@ function TeacherTextBook() {
   return (
     <>
       <TeacherStats items={[
-        { icon: 'calendar', value: '12', label: 'SÃ©ances ce mois', detail: 'Cahiers soumis', tone: 'blue' },
-        { icon: 'checkCircle', value: '10', label: 'SÃ©ances validÃ©es', detail: 'Ce mois-ci', tone: 'green' },
+        { icon: 'calendar', value: '12', label: 'Séances ce mois', detail: 'Cahiers soumis', tone: 'blue' },
+        { icon: 'checkCircle', value: '10', label: 'Séances validées', detail: 'Ce mois-ci', tone: 'green' },
         { icon: 'clock', value: '2', label: 'En attente de validation', detail: 'Ce mois-ci', tone: 'orange' },
-        { icon: 'alert', value: '0', label: 'Corrections demandÃ©es', detail: 'Ce mois-ci', tone: 'red' },
-        { icon: 'book', value: '96%', label: 'Taux de conformitÃ©', detail: 'Bonne rÃ©gularitÃ©', tone: 'purple' },
+        { icon: 'alert', value: '0', label: 'Corrections demandées', detail: 'Ce mois-ci', tone: 'red' },
+        { icon: 'book', value: '96%', label: 'Taux de conformité', detail: 'Bonne régularité', tone: 'purple' },
       ]} />
       <section className="teacher-two-col">
         <div>
-          <Card title="Nouvelle sÃ©ance de cours">
+          <Card title="Nouvelle séance de cours">
             <form className="textbook-form">
-              <div className="form-grid four"><label>Date *<input type="date" defaultValue="2024-05-03" /></label><label>Heure *<select><option>07:30 - 08:30</option></select></label><label>Classe *<select><option>5Ã¨me A</option></select></label><label>MatiÃ¨re *<select><option>MathÃ©matiques</option></select></label></div>
-              <label>Sujet / Contenu enseignÃ© *<textarea defaultValue={"Chapitre 4 : Fractions\nDÃ©finition d'une fraction. Lecture et Ã©criture d'une fraction.\nFractions propres et impropres. Simplification."} /></label>
-              <div className="form-grid two"><label>Exercices rÃ©alisÃ©s en classe<textarea defaultValue={"Exercices 1 Ã  5 page 46 du manuel.\nCorrection collective."} /></label><label>Devoir Ã  domicile<textarea defaultValue={"Exercices 6 Ã  8 page 47.\nApprendre la leÃ§on."} /></label></div>
-              <fieldset className="inline-radios"><legend>PrÃ©sence du cours *</legend><label><input type="radio" name="presence" defaultChecked /> Cours dispensÃ©</label><label><input type="radio" name="presence" /> Cours reportÃ©</label><label><input type="radio" name="presence" /> Cours annulÃ©</label></fieldset>
+              <div className="form-grid four"><label>Date *<input type="date" defaultValue="2024-05-03" /></label><label>Heure *<select><option>07:30 - 08:30</option></select></label><label>Classe *<select><option>5ème A</option></select></label><label>Matière *<select><option>Mathématiques</option></select></label></div>
+              <label>Sujet / Contenu enseigné *<textarea defaultValue={"Chapitre 4 : Fractions\nDéfinition d'une fraction. Lecture et écriture d'une fraction.\nFractions propres et impropres. Simplification."} /></label>
+              <div className="form-grid two"><label>Exercices réalisés en classe<textarea defaultValue={"Exercices 1 à 5 page 46 du manuel.\nCorrection collective."} /></label><label>Devoir à domicile<textarea defaultValue={"Exercices 6 à 8 page 47.\nApprendre la leçon."} /></label></div>
+              <fieldset className="inline-radios"><legend>Présence du cours *</legend><label><input type="radio" name="presence" defaultChecked /> Cours dispensé</label><label><input type="radio" name="presence" /> Cours reporté</label><label><input type="radio" name="presence" /> Cours annulé</label></fieldset>
               <div className="attachment-row"><button type="button" className="secondary-button"><Icon name="file" /> Ajouter une photo</button><button type="button" className="secondary-button"><Icon name="file" /> Ajouter un fichier</button></div>
-              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="button" className="blue-button"><Icon name="arrow" /> Soumettre au PrÃ©fet des Ã‰tudes</button></div>
+              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="button" className="blue-button"><Icon name="arrow" /> Soumettre au Préfet des Études</button></div>
             </form>
           </Card>
-          <div className="note-box teacher-note"><Icon name="info" /> Pensez Ã  enregistrer vos sÃ©ances chaque jour. Cela permet un meilleur suivi de l'exÃ©cution des programmes.</div>
+          <div className="note-box teacher-note"><Icon name="info" /> Pensez à enregistrer vos séances chaque jour. Cela permet un meilleur suivi de l'exécution des programmes.</div>
         </div>
         <aside className="right-column textbook-side">
-          <Card title="Historique des sÃ©ances" className="table-card"><TextBookHistoryTable /></Card>
-          <Card title="ContrÃ´le automatique"><div className="control-box"><span>Chapitre attendu aujourdâ€™hui : <b>Chapitre 4 : Fractions</b></span><span>Chapitre dÃ©clarÃ© : <b>Chapitre 4 : Fractions</b></span><strong><Icon name="checkCircle" /> Conforme</strong><p>Vous Ãªtes Ã  jour selon le programme prÃ©vu.</p></div></Card>
+          <Card title="Historique des séances" className="table-card"><TextBookHistoryTable /></Card>
+          <Card title="Contrôle automatique"><div className="control-box"><span>Chapitre attendu aujourd’hui : <b>Chapitre 4 : Fractions</b></span><span>Chapitre déclaré : <b>Chapitre 4 : Fractions</b></span><strong><Icon name="checkCircle" /> Conforme</strong><p>Vous êtes à jour selon le programme prévu.</p></div></Card>
           <Card title="Calendrier de cette semaine"><WeekGrid /></Card>
         </aside>
       </section>
@@ -1821,7 +1821,7 @@ function TeacherTextBook() {
 }
 
 function TextBookHistoryTable() {
-  return <table><thead><tr><th>Date</th><th>Classe</th><th>MatiÃ¨re</th><th>Sujet</th><th>Statut</th><th>Action</th></tr></thead><tbody>{textBookRows.map((row) => <tr key={`${row[0]}-${row[1]}-${row[4]}`}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td><Badge status={row[4]} /></td><td><button className="icon-button"><Icon name="eye" /></button></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Date</th><th>Classe</th><th>Matière</th><th>Sujet</th><th>Statut</th><th>Action</th></tr></thead><tbody>{textBookRows.map((row) => <tr key={`${row[0]}-${row[1]}-${row[4]}`}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td><Badge status={row[4]} /></td><td><button className="icon-button"><Icon name="eye" /></button></td></tr>)}</tbody></table>
 }
 
 function LogoutButton() {
@@ -1830,7 +1830,7 @@ function LogoutButton() {
     window.location.assign('/demarrage')
   }
 
-  return <button className="logout-card" type="button" onClick={handleLogout}><Icon name="login" /> DÃ©connexion <Icon name="chevron" /></button>
+  return <button className="logout-card" type="button" onClick={handleLogout}><Icon name="login" /> Déconnexion <Icon name="chevron" /></button>
 }
 
 function TeacherLogoutButton() {
@@ -1843,7 +1843,7 @@ function TeacherLogoutButton() {
 }
 
 function DirectorFooter() {
-  return <footer className="director-footer"><span>PEDAGO CONTROL - Pilotage pÃ©dagogique intelligent pour une Ã©ducation de qualitÃ© en RDC.</span><span>Â© 2024 PEDAGO CONTROL. Tous droits rÃ©servÃ©s.</span></footer>
+  return <footer className="director-footer"><span>PEDAGO CONTROL - Pilotage pédagogique intelligent pour une éducation de qualité en RDC.</span><span>© 2024 PEDAGO CONTROL. Tous droits réservés.</span></footer>
 }
 
 export {

@@ -1,3 +1,3 @@
 export function PlanningTable() {
-  return <table><thead><tr><th>PÃ©riode</th><th>PÃ©riode</th><th>Chapitres prÃ©vus</th></tr></thead><tbody>{[['PÃ©riode 1', 'Sept. - Oct.', 'Chap. 1 Ã  3'], ['PÃ©riode 2', 'Nov. - DÃ©c.', 'Chap. 4 Ã  6'], ['PÃ©riode 3', 'Janv. - FÃ©vr.', 'Chap. 7 Ã  8'], ['PÃ©riode 4', 'Mars - Juin', 'Chap. 9 Ã  10']].map((row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Période</th><th>Période</th><th>Chapitres prévus</th></tr></thead><tbody>{[['Période 1', 'Sept. - Oct.', 'Chap. 1 à 3'], ['Période 2', 'Nov. - Déc.', 'Chap. 4 à 6'], ['Période 3', 'Janv. - Févr.', 'Chap. 7 à 8'], ['Période 4', 'Mars - Juin', 'Chap. 9 à 10']].map((row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>)}</tbody></table>
 }

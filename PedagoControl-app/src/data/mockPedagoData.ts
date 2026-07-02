@@ -11,15 +11,15 @@ export const demoAccounts = [
 export const navItems = [
   { to: '/directeur', icon: 'home', label: 'Tableau de bord' },
   { to: '/directeur/programmes', icon: 'book', label: 'Programmes scolaires' },
-  { to: '/directeur/repartition', icon: 'calendar', label: 'RÃ©partition annuelle' },
+  { to: '/directeur/repartition', icon: 'calendar', label: 'Répartition annuelle' },
   { to: '/directeur/enseignants', icon: 'users', label: 'Enseignants' },
   { to: '/directeur/classes', icon: 'network', label: 'Classes & Cours' },
   { to: '/directeur/suivi-avancement', icon: 'trend', label: "Suivi d'avancement" },
-  { to: '/directeur/evaluations-controles', icon: 'checkCircle', label: 'Ã‰valuations & ContrÃ´les' },
+  { to: '/directeur/evaluations-controles', icon: 'checkCircle', label: 'Évaluations & Contrôles' },
   { to: '/directeur/rapports', icon: 'file', label: 'Rapports' },
   { to: '/directeur/calendrier', icon: 'calendar', label: 'Calendrier' },
   { to: '/directeur/messages', icon: 'message', label: 'Messages', badge: '3' },
-  { to: '/directeur/parametres', icon: 'settings', label: 'ParamÃ¨tres' },
+  { to: '/directeur/parametres', icon: 'settings', label: 'Paramètres' },
 ]
 
 export const managementNavItems = [
@@ -55,41 +55,41 @@ export const clientSchools = [
 ]
 
 export const subjects = [
-  { name: 'MathÃ©matiques', color: 'blue', programs: 12, total: 48, done: 34, rate: 71, status: 'En avance', teacher: 'M. Jean Kabasele', className: '5Ã¨me A', delay: '4 chapitres' },
-  { name: 'FranÃ§ais', color: 'purple', programs: 10, total: 40, done: 26, rate: 65, status: 'Conforme', teacher: 'Mme. Grace Mbuyi', className: '3Ã¨me', delay: '3 chapitres' },
-  { name: 'Physique-Chimie', color: 'green', programs: 8, total: 32, done: 18, rate: 56, status: 'En retard', teacher: 'M. Patrick Ilunga', className: '4Ã¨me', delay: '2 chapitres' },
-  { name: 'Histoire-GÃ©o', color: 'orange', programs: 9, total: 36, done: 28, rate: 78, status: 'En avance', teacher: 'Mme. Esther Tshi', className: '2nde', delay: '1 chapitre' },
-  { name: 'Anglais', color: 'red', programs: 7, total: 28, done: 14, rate: 50, status: 'En retard', teacher: 'M. David Mukendi', className: '6Ã¨me A', delay: '1 chapitre' },
-  { name: 'SVT', color: 'green', programs: 7, total: 28, done: 20, rate: 71, status: 'Conforme', teacher: 'M. Junior Mbala', className: '5Ã¨me B', delay: 'Chapitre 11 non validÃ©' },
+  { name: 'Mathématiques', color: 'blue', programs: 12, total: 48, done: 34, rate: 71, status: 'En avance', teacher: 'M. Jean Kabasele', className: '5ème A', delay: '4 chapitres' },
+  { name: 'Français', color: 'purple', programs: 10, total: 40, done: 26, rate: 65, status: 'Conforme', teacher: 'Mme. Grace Mbuyi', className: '3ème', delay: '3 chapitres' },
+  { name: 'Physique-Chimie', color: 'green', programs: 8, total: 32, done: 18, rate: 56, status: 'En retard', teacher: 'M. Patrick Ilunga', className: '4ème', delay: '2 chapitres' },
+  { name: 'Histoire-Géo', color: 'orange', programs: 9, total: 36, done: 28, rate: 78, status: 'En avance', teacher: 'Mme. Esther Tshi', className: '2nde', delay: '1 chapitre' },
+  { name: 'Anglais', color: 'red', programs: 7, total: 28, done: 14, rate: 50, status: 'En retard', teacher: 'M. David Mukendi', className: '6ème A', delay: '1 chapitre' },
+  { name: 'SVT', color: 'green', programs: 7, total: 28, done: 20, rate: 71, status: 'Conforme', teacher: 'M. Junior Mbala', className: '5ème B', delay: 'Chapitre 11 non validé' },
   { name: 'Informatique', color: 'purple', programs: 6, total: 24, done: 20, rate: 83, status: 'En avance', teacher: 'Mme. Rachel Banza', className: '2nde A', delay: 'Aucun' },
-  { name: 'Ã‰ducation Civique', color: 'cyan', programs: 5, total: 20, done: 16, rate: 80, status: 'Conforme', teacher: 'M. Alain Lubaki', className: '6Ã¨me B', delay: 'Aucun' },
+  { name: 'Éducation Civique', color: 'cyan', programs: 5, total: 20, done: 16, rate: 80, status: 'Conforme', teacher: 'M. Alain Lubaki', className: '6ème B', delay: 'Aucun' },
 ]
 
 export const alerts = [
-  { title: 'MathÃ©matiques - 5Ã¨me', detail: 'Retard de 4 chapitres', time: "Aujourd'hui", tone: 'critical' },
-  { title: 'FranÃ§ais - 3Ã¨me', detail: 'Retard de 3 chapitres', time: 'Hier', tone: 'critical' },
-  { title: 'Physique-Chimie - 4Ã¨me', detail: 'Retard de 2 chapitres', time: 'Hier', tone: 'critical' },
+  { title: 'Mathématiques - 5ème', detail: 'Retard de 4 chapitres', time: "Aujourd'hui", tone: 'critical' },
+  { title: 'Français - 3ème', detail: 'Retard de 3 chapitres', time: 'Hier', tone: 'critical' },
+  { title: 'Physique-Chimie - 4ème', detail: 'Retard de 2 chapitres', time: 'Hier', tone: 'critical' },
   { title: 'Histoire - 2nde', detail: 'Retard de 1 chapitre', time: '2 j', tone: 'warning' },
-  { title: 'SVT - 5Ã¨me', detail: 'Chapitre 11 non validÃ©', time: '2 j', tone: 'warning' },
+  { title: 'SVT - 5ème', detail: 'Chapitre 11 non validé', time: '2 j', tone: 'warning' },
 ]
 
 export const evaluations = [
-  { subject: 'MathÃ©matiques', className: '5Ã¨me A', teacher: 'M. Jean Kabasele', type: 'ContrÃ´le mensuel', planned: '03 Sept. 2024', done: '03 Sept. 2024', status: 'RÃ©alisÃ©e', notes: true },
-  { subject: 'FranÃ§ais', className: '4Ã¨me B', teacher: 'Mme. Grace Mbuyi', type: 'Interrogation', planned: '06 Sept. 2024', done: '06 Sept. 2024', status: 'RÃ©alisÃ©e', notes: true },
-  { subject: 'Physique-Chimie', className: '3Ã¨me A', teacher: 'M. Patrick Ilunga', type: 'ContrÃ´le mensuel', planned: '05 Sept. 2024', done: '-', status: 'En retard', notes: false },
-  { subject: 'Histoire-GÃ©o', className: '2nde C', teacher: 'Mme. Esther Tshi', type: 'Examen trimestriel', planned: '04 Sept. 2024', done: '-', status: 'En retard', notes: false },
-  { subject: 'Anglais', className: '6Ã¨me A', teacher: 'M. David Mukendi', type: 'Interrogation', planned: '07 Sept. 2024', done: '07 Sept. 2024', status: 'RÃ©alisÃ©e', notes: true },
-  { subject: 'SVT', className: '5Ã¨me B', teacher: 'M. Junior Mbala', type: 'ContrÃ´le mensuel', planned: '10 Sept. 2024', done: '-', status: 'Ã€ venir', notes: false },
-  { subject: 'Informatique', className: '2nde A', teacher: 'Mme. Rachel Banza', type: 'Interrogation', planned: '12 Sept. 2024', done: '-', status: 'Ã€ venir', notes: false },
-  { subject: 'Ã‰ducation Civique', className: '6Ã¨me B', teacher: 'M. Alain Lubaki', type: "Ã‰valuation de fin d'unitÃ©", planned: '13 Sept. 2024', done: '-', status: 'Ã€ venir', notes: false },
+  { subject: 'Mathématiques', className: '5ème A', teacher: 'M. Jean Kabasele', type: 'Contrôle mensuel', planned: '03 Sept. 2024', done: '03 Sept. 2024', status: 'Réalisée', notes: true },
+  { subject: 'Français', className: '4ème B', teacher: 'Mme. Grace Mbuyi', type: 'Interrogation', planned: '06 Sept. 2024', done: '06 Sept. 2024', status: 'Réalisée', notes: true },
+  { subject: 'Physique-Chimie', className: '3ème A', teacher: 'M. Patrick Ilunga', type: 'Contrôle mensuel', planned: '05 Sept. 2024', done: '-', status: 'En retard', notes: false },
+  { subject: 'Histoire-Géo', className: '2nde C', teacher: 'Mme. Esther Tshi', type: 'Examen trimestriel', planned: '04 Sept. 2024', done: '-', status: 'En retard', notes: false },
+  { subject: 'Anglais', className: '6ème A', teacher: 'M. David Mukendi', type: 'Interrogation', planned: '07 Sept. 2024', done: '07 Sept. 2024', status: 'Réalisée', notes: true },
+  { subject: 'SVT', className: '5ème B', teacher: 'M. Junior Mbala', type: 'Contrôle mensuel', planned: '10 Sept. 2024', done: '-', status: 'À venir', notes: false },
+  { subject: 'Informatique', className: '2nde A', teacher: 'Mme. Rachel Banza', type: 'Interrogation', planned: '12 Sept. 2024', done: '-', status: 'À venir', notes: false },
+  { subject: 'Éducation Civique', className: '6ème B', teacher: 'M. Alain Lubaki', type: "Évaluation de fin d'unité", planned: '13 Sept. 2024', done: '-', status: 'À venir', notes: false },
 ]
 
 export const reports = [
-  { title: "Rapport d'exÃ©cution des programmes", desc: "Analyse dÃ©taillÃ©e de l'exÃ©cution des programmes par matiÃ¨re et par classe.", data: 'Chapitres prÃ©vus vs rÃ©alisÃ©s|Taux dâ€™exÃ©cution|Avancement par matiÃ¨re et classe', period: 'Trimestriel', date: '03 Sept. 2024 10:35', color: 'blue' },
-  { title: 'Rapport par enseignant', desc: 'Ã‰valuation de la performance des enseignants et respect du programme.', data: 'Progression par cours|Retards et chapitres manquants|Taux de conformitÃ©', period: 'Trimestriel', date: '02 Sept. 2024 16:20', color: 'green' },
-  { title: 'Rapport par classe', desc: 'Vue dâ€™ensemble de la progression des classes dans toutes les matiÃ¨res.', data: 'Nombre de matiÃ¨res|Progression moyenne|Comparaison entre classes', period: 'Mensuel', date: '01 Sept. 2024 09:15', color: 'orange' },
-  { title: 'Rapport de retard', desc: "Identification des retards dans l'exÃ©cution des programmes.", data: 'Enseignants en retard|MatiÃ¨res concernÃ©es|Nombre de chapitres manquants', period: 'Mensuel', date: '03 Sept. 2024 11:05', color: 'red' },
-  { title: "Rapport global de l'Ã©tablissement", desc: 'SynthÃ¨se globale de toutes les activitÃ©s pÃ©dagogiques de lâ€™Ã©tablissement.', data: "Taux global dâ€™exÃ©cution|Ã‰valuations rÃ©alisÃ©es|Performances gÃ©nÃ©rales", period: 'Annuel', date: '31 AoÃ»t 2024 14:40', color: 'purple' },
+  { title: "Rapport d'exécution des programmes", desc: "Analyse détaillée de l'exécution des programmes par matière et par classe.", data: 'Chapitres prévus vs réalisés|Taux d’exécution|Avancement par matière et classe', period: 'Trimestriel', date: '03 Sept. 2024 10:35', color: 'blue' },
+  { title: 'Rapport par enseignant', desc: 'Évaluation de la performance des enseignants et respect du programme.', data: 'Progression par cours|Retards et chapitres manquants|Taux de conformité', period: 'Trimestriel', date: '02 Sept. 2024 16:20', color: 'green' },
+  { title: 'Rapport par classe', desc: 'Vue d’ensemble de la progression des classes dans toutes les matières.', data: 'Nombre de matières|Progression moyenne|Comparaison entre classes', period: 'Mensuel', date: '01 Sept. 2024 09:15', color: 'orange' },
+  { title: 'Rapport de retard', desc: "Identification des retards dans l'exécution des programmes.", data: 'Enseignants en retard|Matières concernées|Nombre de chapitres manquants', period: 'Mensuel', date: '03 Sept. 2024 11:05', color: 'red' },
+  { title: "Rapport global de l'établissement", desc: 'Synthèse globale de toutes les activités pédagogiques de l’établissement.', data: "Taux global d’exécution|Évaluations réalisées|Performances générales", period: 'Annuel', date: '31 Août 2024 14:40', color: 'purple' },
 ]
 
 export const teacherNavItems = [
@@ -97,7 +97,7 @@ export const teacherNavItems = [
   { to: '/enseignant/mes-programmes', icon: 'clipboard', label: 'Mes programmes' },
   { to: '/enseignant/ma-progression', icon: 'trend', label: 'Ma progression' },
   { to: '/enseignant/cahier-texte', icon: 'calendar', label: 'Cahier de textes' },
-  { to: '/enseignant/mes-evaluations', icon: 'checkCircle', label: 'Mes Ã©valuations' },
+  { to: '/enseignant/mes-evaluations', icon: 'checkCircle', label: 'Mes évaluations' },
   { to: '/enseignant/mes-classes', icon: 'users', label: 'Mes classes' },
   { to: '/enseignant/documents', icon: 'file', label: 'Documents' },
   { to: '/enseignant/messages', icon: 'message', label: 'Messages', badge: '3' },
@@ -141,40 +141,40 @@ export const prefectCommunications = [
 ]
 
 export const teacherPrograms = [
-  { subject: 'MathÃ©matiques', className: '5Ã¨me A', chapter: 'Chapitre 5', topic: 'Fractions', done: 11, total: 18, rate: 61, color: 'blue' },
-  { subject: 'MathÃ©matiques', className: '6Ã¨me B', chapter: 'Chapitre 4', topic: 'Nombres dÃ©cimaux', done: 9, total: 16, rate: 56, color: 'blue' },
-  { subject: 'Physique-Chimie', className: '5Ã¨me A', chapter: 'Chapitre 3', topic: 'La matiÃ¨re', done: 6, total: 14, rate: 43, color: 'purple' },
-  { subject: 'Physique-Chimie', className: '6Ã¨me B', chapter: 'Chapitre 2', topic: 'Les mÃ©langes', done: 5, total: 14, rate: 36, color: 'purple' },
+  { subject: 'Mathématiques', className: '5ème A', chapter: 'Chapitre 5', topic: 'Fractions', done: 11, total: 18, rate: 61, color: 'blue' },
+  { subject: 'Mathématiques', className: '6ème B', chapter: 'Chapitre 4', topic: 'Nombres décimaux', done: 9, total: 16, rate: 56, color: 'blue' },
+  { subject: 'Physique-Chimie', className: '5ème A', chapter: 'Chapitre 3', topic: 'La matière', done: 6, total: 14, rate: 43, color: 'purple' },
+  { subject: 'Physique-Chimie', className: '6ème B', chapter: 'Chapitre 2', topic: 'Les mélanges', done: 5, total: 14, rate: 36, color: 'purple' },
 ]
 
 export const mathChapters = [
-  ['Nombres entiers et opÃ©rations', 'TerminÃ©', '10/09/2024', '08/09/2024'],
-  ['Nombres dÃ©cimaux', 'TerminÃ©', '25/09/2024', '22/09/2024'],
-  ['DivisibilitÃ©', 'TerminÃ©', '10/10/2024', '09/10/2024'],
+  ['Nombres entiers et opérations', 'Terminé', '10/09/2024', '08/09/2024'],
+  ['Nombres décimaux', 'Terminé', '25/09/2024', '22/09/2024'],
+  ['Divisibilité', 'Terminé', '10/10/2024', '09/10/2024'],
   ['Fractions', 'En cours', '25/10/2024', '-'],
-  ['Calcul littÃ©ral', 'Ã€ venir', '10/11/2024', '-'],
-  ['Ã‰quations et inÃ©quations', 'Ã€ venir', '25/11/2024', '-'],
-  ['Triangles et quadrilatÃ¨res', 'Ã€ venir', '10/12/2024', '-'],
-  ['Aires et pÃ©rimÃ¨tres', 'Ã€ venir', '25/12/2024', '-'],
-  ['Statistiques', 'Ã€ venir', '10/01/2025', '-'],
-  ['ProblÃ¨mes', 'Ã€ venir', '25/01/2025', '-'],
+  ['Calcul littéral', 'À venir', '10/11/2024', '-'],
+  ['Équations et inéquations', 'À venir', '25/11/2024', '-'],
+  ['Triangles et quadrilatères', 'À venir', '10/12/2024', '-'],
+  ['Aires et périmètres', 'À venir', '25/12/2024', '-'],
+  ['Statistiques', 'À venir', '10/01/2025', '-'],
+  ['Problèmes', 'À venir', '25/01/2025', '-'],
 ]
 
 export const initialProgressHistory = [
-  { date: '01/05/2024', subject: 'MathÃ©matiques', className: '5Ã¨me A', chapter: 'Ch. 3 / 3.2 : Nombres dÃ©cimaux', status: 'ValidÃ©' },
-  { date: '30/04/2024', subject: 'MathÃ©matiques', className: '5Ã¨me A', chapter: 'Ch. 3 / 3.1 : Lecture et Ã©criture des dÃ©cimaux', status: 'ValidÃ©' },
-  { date: '27/04/2024', subject: 'FranÃ§ais', className: '5Ã¨me A', chapter: 'Ch. 2 / 2.1 : Le texte narratif', status: 'ValidÃ©' },
-  { date: '25/04/2024', subject: 'Physique-Chimie', className: '5Ã¨me A', chapter: 'Ch. 2 / 2.3 : Les mÃ©langes', status: 'RejetÃ©' },
-  { date: '20/04/2024', subject: 'MathÃ©matiques', className: '5Ã¨me A', chapter: 'Ch. 2 / 2.1 : Fractions', status: 'ValidÃ©' },
+  { date: '01/05/2024', subject: 'Mathématiques', className: '5ème A', chapter: 'Ch. 3 / 3.2 : Nombres décimaux', status: 'Validé' },
+  { date: '30/04/2024', subject: 'Mathématiques', className: '5ème A', chapter: 'Ch. 3 / 3.1 : Lecture et écriture des décimaux', status: 'Validé' },
+  { date: '27/04/2024', subject: 'Français', className: '5ème A', chapter: 'Ch. 2 / 2.1 : Le texte narratif', status: 'Validé' },
+  { date: '25/04/2024', subject: 'Physique-Chimie', className: '5ème A', chapter: 'Ch. 2 / 2.3 : Les mélanges', status: 'Rejeté' },
+  { date: '20/04/2024', subject: 'Mathématiques', className: '5ème A', chapter: 'Ch. 2 / 2.1 : Fractions', status: 'Validé' },
 ]
 
 export const textBookRows = [
-  ['02/05/2024', '5Ã¨me A', 'MathÃ©matiques', 'Chapitre 3 : Nombres dÃ©cimaux', 'ValidÃ©'],
-  ['02/05/2024', '6Ã¨me B', 'MathÃ©matiques', 'Chapitre 2 : Nombres dÃ©cimaux', 'ValidÃ©'],
-  ['30/04/2024', '5Ã¨me A', 'MathÃ©matiques', 'Chapitre 3 : Nombres dÃ©cimaux', 'En attente'],
-  ['30/04/2024', '6Ã¨me B', 'MathÃ©matiques', 'Chapitre 2 : Nombres dÃ©cimaux', 'ValidÃ©'],
-  ['29/04/2024', '5Ã¨me A', 'MathÃ©matiques', 'Chapitre 2 : Fractions', 'ValidÃ©'],
-  ['27/04/2024', '5Ã¨me A', 'MathÃ©matiques', 'Chapitre 2 : Fractions', 'Correction demandÃ©e'],
+  ['02/05/2024', '5ème A', 'Mathématiques', 'Chapitre 3 : Nombres décimaux', 'Validé'],
+  ['02/05/2024', '6ème B', 'Mathématiques', 'Chapitre 2 : Nombres décimaux', 'Validé'],
+  ['30/04/2024', '5ème A', 'Mathématiques', 'Chapitre 3 : Nombres décimaux', 'En attente'],
+  ['30/04/2024', '6ème B', 'Mathématiques', 'Chapitre 2 : Nombres décimaux', 'Validé'],
+  ['29/04/2024', '5ème A', 'Mathématiques', 'Chapitre 2 : Fractions', 'Validé'],
+  ['27/04/2024', '5ème A', 'Mathématiques', 'Chapitre 2 : Fractions', 'Correction demandée'],
 ]
 
 export const programClasses = ['5eme A', '5eme B', '4eme A', '3eme A', '2nde C']

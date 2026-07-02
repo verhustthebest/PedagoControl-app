@@ -14,11 +14,11 @@ export function Legend({ rows }: { rows: Array<[string, number, string]> }) {
 }
 
 export function Filters({ labels, search, action }: { labels: string[]; search?: string; action?: string }) {
-  return <div className="filters">{labels.map((label, index) => <label key={label}><span>{label}</span><select><option>{index === 0 && label !== 'AnnÃ©e scolaire' ? 'Toutes' : label === 'PÃ©riode' ? 'Septembre 2024' : label === 'AnnÃ©e scolaire' ? '2024 - 2025' : index === 1 ? '1er Trimestre' : 'Tous'}</option></select></label>)}{search && <label className="search-field"><span>&nbsp;</span><input placeholder={search} /><Icon name="search" /></label>}{action && <button className="blue-button"><Icon name="filter" /> {action}</button>}</div>
+  return <div className="filters">{labels.map((label, index) => <label key={label}><span>{label}</span><select><option>{index === 0 && label !== 'Année scolaire' ? 'Toutes' : label === 'Période' ? 'Septembre 2024' : label === 'Année scolaire' ? '2024 - 2025' : index === 1 ? '1er Trimestre' : 'Tous'}</option></select></label>)}{search && <label className="search-field"><span>&nbsp;</span><input placeholder={search} /><Icon name="search" /></label>}{action && <button className="blue-button"><Icon name="filter" /> {action}</button>}</div>
 }
 
 export function Badge({ status }: { status: string }) {
-  const tone = status.includes('retard') || status === 'Critique' ? 'red' : status.includes('avance') || status.includes('RÃ©alisÃ©e') || status.includes('Mensuel') ? 'green' : status.includes('Conforme') || status.includes('ContrÃ´le') ? 'blue' : status.includes('Trimestriel') || status.includes('Interrogation') ? 'purple' : 'orange'
+  const tone = status.includes('retard') || status === 'Critique' ? 'red' : status.includes('avance') || status.includes('Réalisée') || status.includes('Mensuel') ? 'green' : status.includes('Conforme') || status.includes('Contrôle') ? 'blue' : status.includes('Trimestriel') || status.includes('Interrogation') ? 'purple' : 'orange'
   return <span className={`badge ${tone}`}>{status}</span>
 }
 
@@ -51,19 +51,19 @@ export function FilterBox({ icon, label, value }: { icon?: string; label: string
 }
 
 export function LanguageSelector() {
-  return <button className="language-button" type="button" aria-label="Changer de langue"><span className="flag">ðŸ‡¨ðŸ‡©</span>FranÃ§ais<Icon name="chevron" /></button>
+  return <button className="language-button" type="button" aria-label="Changer de langue"><span className="flag">🇨🇩</span>Français<Icon name="chevron" /></button>
 }
 
 export function SecurityNotice({ emphasizePrivacy = false }: { emphasizePrivacy?: boolean }) {
-  return <div className={`security-notice${emphasizePrivacy ? ' security-notice-emphasized' : ''}`}><Icon name="shield" /><p><strong>Vos donnÃ©es sont sÃ©curisÃ©es et protÃ©gÃ©es</strong><span>PEDAGO CONTROL respecte la confidentialitÃ© de vos informations.</span></p></div>
+  return <div className={`security-notice${emphasizePrivacy ? ' security-notice-emphasized' : ''}`}><Icon name="shield" /><p><strong>Vos données sont sécurisées et protégées</strong><span>PEDAGO CONTROL respecte la confidentialité de vos informations.</span></p></div>
 }
 
 export function Footer({ variant = 'default' }: { variant?: 'default' | 'login' }) {
   if (variant === 'login') {
-    return <footer className="auth-footer login-footer"><span>Â© 2024 PEDAGO CONTROL - Tous droits rÃ©servÃ©s</span><span className="footer-red">Altas Building Contractor Â© Copyright</span></footer>
+    return <footer className="auth-footer login-footer"><span>© 2024 PEDAGO CONTROL - Tous droits réservés</span><span className="footer-red">Altas Building Contractor © Copyright</span></footer>
   }
 
-  return <footer className="auth-footer"><span>Â© 2024 PEDAGO CONTROL - Tous droits rÃ©servÃ©s</span><span>MinistÃ¨re de lâ€™Enseignement Primaire, Secondaire et Technique</span><span>RÃ©publique DÃ©mocratique du Congo</span><span className="footer-flag">ðŸ‡¨ðŸ‡©</span></footer>
+  return <footer className="auth-footer"><span>© 2024 PEDAGO CONTROL - Tous droits réservés</span><span>Ministère de l’Enseignement Primaire, Secondaire et Technique</span><span>République Démocratique du Congo</span><span className="footer-flag">🇨🇩</span></footer>
 }
 
 export function Icon({ name }: { name: string }) {
