@@ -77,7 +77,7 @@ function App() {
         <Route path="/directeur/classes" element={<DirectorLayout title="Classes & Cours" crumb="Classes & Cours"><SchoolPrograms /></DirectorLayout>} />
         <Route path="/directeur/suivi-avancement" element={<DirectorLayout title="Suivi d'avancement" crumb="Suivi d'avancement" compactFilters><ProgressTracking /></DirectorLayout>} />
         <Route path="/directeur/evaluations-controles" element={<DirectorLayout title="Evaluations & Controles" crumb="Evaluations & Controles" compactFilters><EvaluationControl /></DirectorLayout>} />
-        <Route path="/directeur/rapports" element={<DirectorLayout title="Rapports" crumb="Rapports"><Reports /></DirectorLayout>} />
+        <Route path="/directeur/rapports" element={<DirectorLayout title="Centre de Supervision" crumb="Centre de Supervision"><Reports /></DirectorLayout>} />
         <Route path="/directeur/calendrier" element={<DirectorLayout title="Calendrier" crumb="Calendrier"><EvaluationControl /></DirectorLayout>} />
         <Route path="/directeur/messages" element={<DirectorLayout title="Messages" crumb="Messages"><Reports /></DirectorLayout>} />
         <Route path="/directeur/parametres" element={<DirectorLayout title="Parametres" crumb="Parametres"><Reports /></DirectorLayout>} />
@@ -89,7 +89,7 @@ function App() {
         <Route path="/prefet/suivi-enseignants" element={<PrefectLayout title="Suivi des enseignants" crumb="Suivi des enseignants"><PrefectTeachersFollowUp /></PrefectLayout>} />
         <Route path="/prefet/cahier-textes" element={<PrefectLayout title="Cahier de textes numerique" crumb="Cahier de textes numerique"><PrefectTextBook /></PrefectLayout>} />
         <Route path="/prefet/evaluations" element={<PrefectLayout title="Evaluations" crumb="Evaluations"><PrefectEvaluations /></PrefectLayout>} />
-        <Route path="/prefet/rapports" element={<PrefectLayout title="Rapports pedagogiques" crumb="Rapports pedagogiques"><PrefectReports /></PrefectLayout>} />
+        <Route path="/prefet/rapports" element={<PrefectLayout title="Validation des rapports quotidiens" crumb="Rapports quotidiens"><PrefectReports /></PrefectLayout>} />
         <Route path="/prefet/calendrier" element={<PrefectLayout title="Calendrier academique" crumb="Calendrier academique"><PrefectCalendar /></PrefectLayout>} />
         <Route path="/prefet/alertes" element={<PrefectLayout title="Alertes pedagogiques" crumb="Alertes pedagogiques"><PrefectAlerts /></PrefectLayout>} />
         <Route path="/prefet/messages" element={<PrefectLayout title="Messages" crumb="Messages"><PrefectMessages /></PrefectLayout>} />
@@ -99,7 +99,7 @@ function App() {
         <Route path="/enseignant" element={<TeacherLayout title="Tableau de bord Enseignant" subtitle="Bienvenue, suivez vos programmes et cahiers de textes"><TeacherDashboard /></TeacherLayout>} />
         <Route path="/enseignant/mes-programmes" element={<TeacherLayout title="Mes programmes" crumb="Mes programmes"><TeacherPrograms /></TeacherLayout>} />
         <Route path="/enseignant/ma-progression" element={<TeacherLayout title="Ma progression" crumb="Ma progression"><TeacherProgress /></TeacherLayout>} />
-        <Route path="/enseignant/cahier-texte" element={<TeacherLayout title="Cahier de textes" crumb="Cahier de textes"><TeacherTextBook /></TeacherLayout>} />
+        <Route path="/enseignant/cahier-texte" element={<TeacherLayout title="Rapport Quotidien de Cours / Pointage" crumb="Rapport quotidien"><TeacherTextBook /></TeacherLayout>} />
         <Route path="/enseignant/mes-evaluations" element={<TeacherLayout title="Mes evaluations" crumb="Mes evaluations"><TeacherEvaluations /></TeacherLayout>} />
         <Route path="/enseignant/mes-classes" element={<TeacherLayout title="Mes classes" crumb="Mes classes"><TeacherDashboard /></TeacherLayout>} />
         <Route path="/enseignant/documents" element={<TeacherLayout title="Documents" crumb="Documents"><TeacherPrograms /></TeacherLayout>} />

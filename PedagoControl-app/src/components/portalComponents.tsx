@@ -840,7 +840,7 @@ function ManagementUsers() {
 
 function ManagementNotifications() {
   return <ManagementDataScreen
-    intro="Centre des notifications Management : echeances, paiements, programmes et alertes systeme."
+    intro="Centre de Supervision Management : echeances, paiements, programmes et alertes systeme."
     kpis={[
       { icon: 'bell', value: '12', label: 'Notifications', detail: 'Non lues', tone: 'red' },
       { icon: 'clock', value: '7', label: 'Echeances', detail: '30 prochains jours', tone: 'orange' },
@@ -1320,21 +1320,52 @@ function Reports() {
     <section className="content-with-side">
       <div>
         <KpiGrid items={[
-          { icon: 'file', value: '34', label: 'Rapports générés ce mois', tone: 'blue', delta: '+12 vs mois dernier' },
-          { icon: 'chart', value: '128', label: 'Rapports annuels', tone: 'green', delta: '+8 vs année précédente' },
-          { icon: 'pie', value: '48', label: 'Rapports trimestriels', tone: 'purple', delta: '+6 vs trimestre précédent' },
-          { icon: 'clock', value: '7', label: 'Rapports en attente', tone: 'orange', delta: '-3 vs hier' },
+          { icon: 'file', value: '18', label: 'Rapports quotidiens soumis', tone: 'blue', delta: 'Vue observation' },
+          { icon: 'checkCircle', value: '12', label: 'Rapports validés', tone: 'green', delta: 'Par le Préfet' },
+          { icon: 'alert', value: '2', label: 'Rapports rejetés', tone: 'red', delta: 'Décisions Préfet' },
+          { icon: 'clock', value: '3', label: 'Corrections demandées', tone: 'orange', delta: 'À suivre' },
+          { icon: 'users', value: '34', label: 'Enseignants actifs', tone: 'purple', delta: 'Aujourd’hui' },
         ]} />
-        <Card><Filters labels={['Année scolaire', 'Trimestre', 'Mois', 'Enseignant', 'Classe', 'Matière']} action="Filtrer" /></Card>
-        <Card title="Types de rapports disponibles" className="table-card reports-table"><ReportTable /></Card>
+        <Card><Filters labels={['Date', 'Enseignant', 'Classe', 'Matière', 'Statut']} action="Filtrer" /></Card>
+        <Card title="Centre de Supervision - rapports quotidiens" className="table-card reports-table">
+          <DailyReportsSupervisionTable />
+          <div className="readonly-note"><Icon name="eye" /> Le Promoteur observe silencieusement. Les décisions restent réservées au Préfet / Directeur des Études.</div>
+        </Card>
+        <section className="supervision-grid">
+          <Card title="Actions récentes du Préfet">
+            <DecisionHistoryList />
+          </Card>
+          <Card title="Retards ou absences de rapport">
+            <div className="report-summary-list">
+              {[
+                ['Esther Tshi', '2nde C - Histoire-Géographie', 'Rapport rejeté, justification attendue'],
+                ['David Mukendi', '6ème A - Anglais', 'Rapport du 06/07 non reçu à 12:30'],
+                ['Junior Mbala', '5ème B - SVT', 'Correction demandée depuis hier'],
+              ].map(([name, meta, detail]) => <article key={name}><Icon name="clock" /><p><strong>{name}</strong><span>{meta}</span><em>{detail}</em></p></article>)}
+            </div>
+          </Card>
+        </section>
       </div>
       <aside className="right-column">
-        <Card title="Évolution du taux d'exécution global"><LineTrend /><div className="note-box"><Icon name="info" /> Le taux d'exécution global a augmenté de 4% par rapport au mois dernier.</div></Card>
-        <RecentReports />
-        <QuotePanel />
+        <Card title="Alertes pédagogiques importantes"><PrefectAlertList /></Card>
+        <Card title="Synthèse des statuts"><Donut value={67} label="Validés" /><Legend rows={[['Soumis', 17, 'blue'], ['Validés', 67, 'green'], ['Rejetés', 8, 'red'], ['Corrections', 8, 'orange']]} /></Card>
+        <Card title="Activité pédagogique"><LineTrend /><div className="note-box"><Icon name="info" /> Supervision consolidée des rapports quotidiens avant connexion backend.</div></Card>
       </aside>
     </section>
   )
+}
+
+function DailyReportsSupervisionTable() {
+  return <table><thead><tr><th>Date</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre / sous-chapitre</th><th>Périodes</th><th>Résumé</th><th>Statut</th><th>Observation Préfet</th></tr></thead><tbody>{dailyCourseReports.map((report) => <tr key={report.id}><td>{report.date}</td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.periods}</td><td>{report.summary}</td><td><ReportStatusBadge status={report.status} /></td><td>{report.prefectObservation}</td></tr>)}</tbody></table>
+}
+
+function ReportStatusBadge({ status }: { status: string }) {
+  const tone = status.includes('Rejet') ? 'red' : status.includes('Valid') ? 'green' : status.includes('Soumis') ? 'blue' : status.includes('Correction') ? 'purple' : 'orange'
+  return <span className={`badge ${tone}`}>{status}</span>
+}
+
+function DecisionHistoryList() {
+  return <div className="report-summary-list decision-history">{dailyCourseReports.map((report) => <article key={`decision-${report.id}`}><Icon name={report.decision === 'Validé' ? 'checkCircle' : report.decision === 'Rejeté' ? 'alert' : 'message'} /><p><strong>{report.decision}</strong><span>{report.teacher} - {report.subject} - {report.className}</span><em>{report.prefectObservation}</em></p><time>{report.date}</time></article>)}</div>
 }
 
 function KpiGrid({ items, side }: { items: Array<{ icon: string; value: string; label: string; tone: string; delta?: string }>; side?: ReactNode }) {
@@ -1377,6 +1408,85 @@ function EvaluationTable() {
   return <table><thead><tr><th>Matière</th><th>Classe</th><th>Enseignant</th><th>Évaluation</th><th>Type</th><th>Date prévue</th><th>Date réalisée</th><th>Statut</th><th>Notes publiées</th><th>Actions</th></tr></thead><tbody>{evaluations.map((item) => <tr key={`${item.subject}-${item.className}`}><td><SubjectIcon tone="blue" />{item.subject}</td><td>{item.className}</td><td><Avatar name={item.teacher} small />{item.teacher}</td><td>{item.type === 'Interrogation' ? 'Interrogation orale' : item.type}</td><td><Badge status={item.type} /></td><td>{item.planned}</td><td>{item.done}</td><td><Badge status={item.status} /></td><td><span className={item.notes ? 'ok-dot' : 'bad-dot'}>{item.notes ? '✓' : '×'}</span></td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button"><Icon name="more" /></button></td></tr>)}</tbody></table>
 }
 
+const dailyCourseReports = [
+  {
+    id: 'RQC-001',
+    date: '06/07/2026',
+    teacher: 'Jean Kabasele',
+    className: '5ème A',
+    subject: 'Mathématiques',
+    program: 'Répartition annuelle publiée - 3ème période',
+    chapter: 'Chapitre 4 : Fractions',
+    subChapter: '4.2 Addition et soustraction des fractions',
+    periods: 2,
+    summary: 'Mise au même dénominateur, exemples guidés et exercices d’application.',
+    objectives: 'Additionner deux fractions de dénominateurs différents.',
+    exercises: 'Exercices 1 à 6 page 45',
+    homework: 'Exercices 7 à 10 page 46',
+    observations: 'Classe active, deux élèves à accompagner en remédiation.',
+    status: 'Soumis',
+    prefectObservation: 'À valider après vérification du cahier de textes.',
+    decision: 'En attente',
+  },
+  {
+    id: 'RQC-002',
+    date: '06/07/2026',
+    teacher: 'Grace Mbuyi',
+    className: '4ème B',
+    subject: 'Français',
+    program: 'Programme reçu du Management',
+    chapter: 'Chapitre 2 : Texte narratif',
+    subChapter: '2.3 Schéma narratif',
+    periods: 1,
+    summary: 'Identification des étapes du récit à partir d’un extrait lu en classe.',
+    objectives: 'Reconnaître situation initiale, élément perturbateur et dénouement.',
+    exercises: 'Analyse du texte support, questions 1 à 4',
+    homework: 'Rédiger un court récit de 12 lignes',
+    observations: 'Objectifs atteints, devoir remis pour jeudi.',
+    status: 'Validé',
+    prefectObservation: 'Conforme au programme prévu.',
+    decision: 'Validé',
+  },
+  {
+    id: 'RQC-003',
+    date: '05/07/2026',
+    teacher: 'Patrick Ilunga',
+    className: '3ème A',
+    subject: 'Physique-Chimie',
+    program: 'Répartition annuelle publiée - 3ème période',
+    chapter: 'Chapitre 3 : La matière',
+    subChapter: '3.1 États physiques',
+    periods: 1,
+    summary: 'Rappel des états physiques et classification d’exemples.',
+    objectives: 'Décrire les trois états physiques de la matière.',
+    exercises: 'Tableau de classification au tableau',
+    homework: 'Apprendre la synthèse et compléter le tableau',
+    observations: 'Le sous-chapitre attendu était 3.2, correction demandée.',
+    status: 'Correction demandée',
+    prefectObservation: 'Préciser la raison du décalage avec le sous-chapitre attendu.',
+    decision: 'Correction demandée',
+  },
+  {
+    id: 'RQC-004',
+    date: '05/07/2026',
+    teacher: 'Esther Tshi',
+    className: '2nde C',
+    subject: 'Histoire-Géographie',
+    program: 'Programme reçu du Management',
+    chapter: 'Chapitre 5 : Afrique centrale',
+    subChapter: '5.1 États et capitales',
+    periods: 0,
+    summary: 'Rapport incomplet, séance non justifiée.',
+    objectives: 'Non renseigné',
+    exercises: 'Non renseigné',
+    homework: 'Non renseigné',
+    observations: 'Absence de rapport complet après rappel.',
+    status: 'Rejeté',
+    prefectObservation: 'Rapport rejeté, justification obligatoire.',
+    decision: 'Rejeté',
+  },
+]
+
 function ReportTable() {
   return <table><thead><tr><th>Type de rapport</th><th>Description</th><th>Données incluses</th><th>Période</th><th>Dernière génération</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.title}><td><SubjectIcon tone={report.color} />{report.title}</td><td>{report.desc}</td><td>{report.data.split('|').map((line) => <span className="data-line" key={line}>• {line}</span>)}</td><td><Badge status={report.period} /></td><td>{report.date}</td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button red"><Icon name="pdf" /></button><button className="icon-button green"><Icon name="excel" /></button><button className="icon-button purple"><Icon name="print" /></button></td></tr>)}</tbody></table>
 }
@@ -1396,10 +1506,6 @@ function RankList({ rows, good = false }: { rows: string[]; good?: boolean }) {
 function CalendarCard() {
   const days = Array.from({ length: 35 }, (_, index) => index + 1)
   return <Card title="Calendrier des évaluations" className="calendar-card"><div className="calendar-legend"><span className="blue" />Contrôle mensuel <span className="purple" />Interrogation <span className="orange" />Examen trimestriel</div><h3>Septembre 2024</h3><div className="calendar-grid">{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => <b key={day}>{day}</b>)}{days.map((day) => <span key={day} className={day === 5 ? 'selected' : day % 7 === 2 ? 'marked' : ''}>{day <= 30 ? day : day - 30}</span>)}</div><LinkRow to="/directeur/calendrier">Voir tout le calendrier</LinkRow></Card>
-}
-
-function RecentReports() {
-  return <Card title="Rapports récents">{reports.map((report, index) => <div className="recent-row" key={report.title}><Icon name="file" /><p><strong>{report.title}</strong><span>Généré le {report.date}</span></p><Badge status={index % 2 ? 'Excel' : 'PDF'} /><button className="icon-button"><Icon name="more" /></button></div>)}</Card>
 }
 
 function RightStack() {
@@ -1424,10 +1530,6 @@ function PromoBand() {
 
 function InfoPanel() {
   return <Card className="info-panel"><h2><Icon name="info" /> Bon à savoir</h2><p>Un suivi régulier permet d’anticiper les retards et de garantir la réussite de tous les élèves.</p><div className="students-visual small" /></Card>
-}
-
-function QuotePanel() {
-  return <Card className="quote-panel"><strong>“</strong><p>Une bonne décision repose sur de bonnes données pédagogiques.</p><div className="target-mark"><Icon name="target" /> Analysez. Décidez. Améliorez.</div></Card>
 }
 
 function ClassroomMini() {
@@ -1599,27 +1701,44 @@ function PrefectEvaluations() {
 }
 
 function PrefectReports() {
+  const [observation, setObservation] = useState('Conforme au programme prévu. Validation recommandée.')
+
   return (
     <>
       <TeacherStats items={[
-        { icon: 'file', value: '12', label: 'Rapports generes', detail: 'Mois courant', tone: 'blue' },
-        { icon: 'chart', value: '76%', label: 'Execution globale', detail: 'Programmes', tone: 'green' },
-        { icon: 'alert', value: '5', label: 'Retards majeurs', detail: 'A signaler', tone: 'red' },
-        { icon: 'users', value: '34', label: 'Enseignants', detail: 'Suivis', tone: 'purple' },
-        { icon: 'clock', value: 'Vendredi', label: 'Prochaine synthese', detail: 'Direction', tone: 'orange' },
+        { icon: 'file', value: '18', label: 'Rapports reçus', detail: 'Aujourd’hui', tone: 'blue' },
+        { icon: 'clock', value: '4', label: 'En attente', detail: 'À décider', tone: 'orange' },
+        { icon: 'checkCircle', value: '12', label: 'Validés', detail: 'Par le Préfet', tone: 'green' },
+        { icon: 'alert', value: '2', label: 'Rejetés', detail: 'Justification requise', tone: 'red' },
+        { icon: 'message', value: '3', label: 'Corrections', detail: 'Demandées', tone: 'purple' },
       ]} />
       <section className="prefect-report-grid">
-        <Card title="Rapports pedagogiques" className="table-card">
-          <div className="toolbar-row"><Filters labels={['Periode', 'Classe', 'Matiere']} search="Rechercher rapport..." /><button className="blue-button" type="button"><Icon name="file" /> Generer rapport</button></div>
-          <ReportTable />
+        <Card title="Rapports reçus des enseignants" className="table-card">
+          <div className="toolbar-row"><Filters labels={['Date', 'Classe', 'Matiere', 'Statut']} search="Rechercher un rapport..." /><button className="secondary-button" type="button"><Icon name="excel" /> Exporter</button></div>
+          <PrefectDailyValidationTable />
         </Card>
         <aside className="right-column">
-          <Card title="Synthese actuelle"><Donut value={76} label="Global" /><Legend rows={[['Validations', 86, 'green'], ['Retards', 24, 'orange'], ['Rejets', 8, 'red']]} /></Card>
-          <Card title="Rapports rapides"><PrefectActionStrip compact /></Card>
+          <Card title="Observation du Préfet">
+            <form className="prefect-observation-form">
+              <label>Rapport sélectionné<select><option>RQC-001 - Jean Kabasele - 5ème A</option><option>RQC-003 - Patrick Ilunga - 3ème A</option></select></label>
+              <label>Observation<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label>
+              <div className="prefect-decision-actions">
+                <button className="blue-button" type="button"><Icon name="checkCircle" /> Valider</button>
+                <button className="secondary-button danger-action" type="button"><Icon name="alert" /> Rejeter</button>
+                <button className="secondary-button" type="button"><Icon name="message" /> Demander correction</button>
+              </div>
+            </form>
+          </Card>
+          <Card title="Historique des décisions"><DecisionHistoryList /></Card>
+          <Card title="Synthèse actuelle"><Donut value={67} label="Validés" /><Legend rows={[['Validés', 67, 'green'], ['Soumis', 17, 'blue'], ['Corrections', 8, 'orange'], ['Rejets', 8, 'red']]} /></Card>
         </aside>
       </section>
     </>
   )
+}
+
+function PrefectDailyValidationTable() {
+  return <table><thead><tr><th>Rapport</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre / sous-chapitre</th><th>Résumé du cours</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{dailyCourseReports.map((report, index) => <tr key={report.id} className={index === 0 ? 'prefect-selected-row' : ''}><td>{report.id}<span className="data-line">{report.date}</span></td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.summary}</td><td><ReportStatusBadge status={report.status} /></td><td><div className="validation-actions"><button className="icon-button green" title="Valider"><Icon name="checkCircle" /></button><button className="icon-button red" title="Rejeter"><Icon name="alert" /></button><button className="icon-button purple" title="Demander correction"><Icon name="message" /></button></div></td></tr>)}</tbody></table>
 }
 
 function PrefectCalendar() {
@@ -1787,37 +1906,57 @@ function TeacherProgress() {
 }
 
 function TeacherTextBook() {
+  const [message, setMessage] = useState('')
+
+  function submitDailyReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage('Rapport quotidien soumis au Préfet / Directeur des Études')
+  }
+
   return (
     <>
       <TeacherStats items={[
-        { icon: 'calendar', value: '12', label: 'Séances ce mois', detail: 'Cahiers soumis', tone: 'blue' },
-        { icon: 'checkCircle', value: '10', label: 'Séances validées', detail: 'Ce mois-ci', tone: 'green' },
-        { icon: 'clock', value: '2', label: 'En attente de validation', detail: 'Ce mois-ci', tone: 'orange' },
-        { icon: 'alert', value: '0', label: 'Corrections demandées', detail: 'Ce mois-ci', tone: 'red' },
-        { icon: 'book', value: '96%', label: 'Taux de conformité', detail: 'Bonne régularité', tone: 'purple' },
+        { icon: 'calendar', value: '06/07/2026', label: 'Date du jour', detail: 'Rapport à soumettre', tone: 'blue' },
+        { icon: 'book', value: 'Fractions', label: 'Programme reçu', detail: '5ème A - Mathématiques', tone: 'purple' },
+        { icon: 'clock', value: '2', label: 'Périodes réalisées', detail: 'Cours du matin', tone: 'orange' },
+        { icon: 'checkCircle', value: '1', label: 'Rapports validés', detail: 'Cette semaine', tone: 'green' },
+        { icon: 'alert', value: '1', label: 'Correction demandée', detail: 'À régulariser', tone: 'red' },
       ]} />
+      {message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}
       <section className="teacher-two-col">
         <div>
-          <Card title="Nouvelle séance de cours">
-            <form className="textbook-form">
-              <div className="form-grid four"><label>Date *<input type="date" defaultValue="2024-05-03" /></label><label>Heure *<select><option>07:30 - 08:30</option></select></label><label>Classe *<select><option>5ème A</option></select></label><label>Matière *<select><option>Mathématiques</option></select></label></div>
-              <label>Sujet / Contenu enseigné *<textarea defaultValue={"Chapitre 4 : Fractions\nDéfinition d'une fraction. Lecture et écriture d'une fraction.\nFractions propres et impropres. Simplification."} /></label>
-              <div className="form-grid two"><label>Exercices réalisés en classe<textarea defaultValue={"Exercices 1 à 5 page 46 du manuel.\nCorrection collective."} /></label><label>Devoir à domicile<textarea defaultValue={"Exercices 6 à 8 page 47.\nApprendre la leçon."} /></label></div>
-              <fieldset className="inline-radios"><legend>Présence du cours *</legend><label><input type="radio" name="presence" defaultChecked /> Cours dispensé</label><label><input type="radio" name="presence" /> Cours reporté</label><label><input type="radio" name="presence" /> Cours annulé</label></fieldset>
-              <div className="attachment-row"><button type="button" className="secondary-button"><Icon name="file" /> Ajouter une photo</button><button type="button" className="secondary-button"><Icon name="file" /> Ajouter un fichier</button></div>
-              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="button" className="blue-button"><Icon name="arrow" /> Soumettre au Préfet des Études</button></div>
+          <Card title="Rapport Quotidien de Cours / Pointage">
+            <form className="textbook-form" onSubmit={submitDailyReport}>
+              <div className="form-grid two"><label>Programme reçu<input defaultValue="Répartition annuelle publiée - Mathématiques 5ème A" readOnly /></label><label>Date du jour<input type="date" defaultValue="2026-07-06" /></label></div>
+              <div className="form-grid three"><label>Classe<select><option>5ème A</option><option>6ème B</option></select></label><label>Matière<select><option>Mathématiques</option><option>Physique-Chimie</option></select></label><label>Nombre de périodes réalisées<input type="number" min="0" defaultValue="2" /></label></div>
+              <div className="form-grid two"><label>Chapitre prévu<input defaultValue="Chapitre 4 : Fractions" /></label><label>Sous-chapitre prévu<input defaultValue="4.2 Addition et soustraction des fractions" /></label></div>
+              <label>Résumé du cours enseigné<textarea defaultValue="Mise au même dénominateur, exemples guidés, exercices d’application et correction collective." /></label>
+              <div className="form-grid two"><label>Objectifs atteints<textarea defaultValue="Les élèves additionnent deux fractions de dénominateurs différents et expliquent les étapes." /></label><label>Observations<textarea defaultValue="Classe active. Deux élèves nécessitent une remédiation ciblée lors du prochain cours." /></label></div>
+              <div className="form-grid two"><label>Exercices donnés<textarea defaultValue="Exercices 1 à 6 page 45 du manuel." /></label><label>Devoirs donnés<textarea defaultValue="Exercices 7 à 10 page 46. Apprendre la règle d’addition." /></label></div>
+              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="submit" className="blue-button"><Icon name="arrow" /> Soumettre le rapport</button></div>
             </form>
           </Card>
-          <div className="note-box teacher-note"><Icon name="info" /> Pensez à enregistrer vos séances chaque jour. Cela permet un meilleur suivi de l'exécution des programmes.</div>
+          <div className="note-box teacher-note"><Icon name="info" /> Le rapport quotidien sert au pointage pédagogique et à la validation du Préfet / Directeur des Études.</div>
         </div>
         <aside className="right-column textbook-side">
-          <Card title="Historique des séances" className="table-card"><TextBookHistoryTable /></Card>
-          <Card title="Contrôle automatique"><div className="control-box"><span>Chapitre attendu aujourd’hui : <b>Chapitre 4 : Fractions</b></span><span>Chapitre déclaré : <b>Chapitre 4 : Fractions</b></span><strong><Icon name="checkCircle" /> Conforme</strong><p>Vous êtes à jour selon le programme prévu.</p></div></Card>
+          <Card title="Historique de mes rapports" className="table-card"><TeacherDailyReportHistory /></Card>
+          <Card title="Programme attendu"><div className="control-box"><span>Chapitre prévu : <b>Chapitre 4 : Fractions</b></span><span>Sous-chapitre prévu : <b>4.2 Addition et soustraction</b></span><strong><Icon name="checkCircle" /> Conforme</strong><p>Le rapport du jour correspond au programme reçu.</p></div></Card>
           <Card title="Calendrier de cette semaine"><WeekGrid /></Card>
         </aside>
       </section>
     </>
   )
+}
+
+function TeacherDailyReportHistory() {
+  const rows = [
+    dailyCourseReports[0],
+    { ...dailyCourseReports[1], id: 'RQC-005', teacher: 'Jean Kabasele', subject: 'Mathématiques', className: '5ème A', status: 'Validé', date: '04/07/2026' },
+    { ...dailyCourseReports[2], id: 'RQC-006', teacher: 'Jean Kabasele', subject: 'Mathématiques', className: '6ème B', status: 'Correction demandée', date: '03/07/2026' },
+    { ...dailyCourseReports[3], id: 'RQC-007', teacher: 'Jean Kabasele', subject: 'Mathématiques', className: '5ème A', status: 'Rejeté', date: '02/07/2026' },
+  ]
+
+  return <table><thead><tr><th>Date</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Périodes</th><th>Statut</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{row.date}</td><td>{row.className}</td><td>{row.subject}</td><td>{row.chapter}</td><td>{row.periods}</td><td><ReportStatusBadge status={row.status} /></td></tr>)}</tbody></table>
 }
 
 function TextBookHistoryTable() {
