@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const lesson_report_controller_1 = require("../controllers/lesson-report.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+router.get('/teacher/reports/today', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.teacherReportsToday);
+router.post('/teacher/reports', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.submitTeacherReport);
+router.get('/prefet/reports/pending', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.prefetReportsPending);
+router.patch('/prefet/reports/:id/decision', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.decidePrefetReport);
+router.get('/supervision/reports', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.supervisionReports);
+exports.default = router;
