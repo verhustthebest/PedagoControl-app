@@ -4,7 +4,7 @@ import prisma from './prisma/client'
 const port = Number(process.env.PORT) || 4000
 
 const server = app.listen(port, () => {
-  console.log(`PEDAGO CONTROL API running on port ${port}`)
+  console.log(`CONTRÔLE PÉDAGOGIQUE API running on port ${port}`)
 })
 
 function shutdown() {

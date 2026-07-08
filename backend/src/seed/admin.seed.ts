@@ -11,13 +11,13 @@ async function main() {
     where: { name: 'SUPER_ADMIN' },
     update: {
       label: 'Super Administrateur',
-      description: 'Acces complet a PEDAGO CONTROL',
+      description: 'Acces complet a CONTRÔLE PÉDAGOGIQUE',
       is_active: true,
     },
     create: {
       name: 'SUPER_ADMIN',
       label: 'Super Administrateur',
-      description: 'Acces complet a PEDAGO CONTROL',
+      description: 'Acces complet a CONTRÔLE PÉDAGOGIQUE',
       is_active: true,
     },
   })
@@ -26,13 +26,13 @@ async function main() {
     where: { email: 'admin@test.com' },
     update: {
       first_name: 'Admin',
-      last_name: 'PEDAGO',
+      last_name: 'PÉDAGOGIQUE',
       password_hash: passwordHash,
       is_active: true,
     },
     create: {
       first_name: 'Admin',
-      last_name: 'PEDAGO',
+      last_name: 'PÉDAGOGIQUE',
       email: 'admin@test.com',
       password_hash: passwordHash,
       is_active: true,

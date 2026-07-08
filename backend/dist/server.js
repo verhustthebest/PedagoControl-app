@@ -7,7 +7,7 @@ const app_1 = __importDefault(require("./app"));
 const client_1 = __importDefault(require("./prisma/client"));
 const port = Number(process.env.PORT) || 4000;
 const server = app_1.default.listen(port, () => {
-    console.log(`PEDAGO CONTROL API running on port ${port}`);
+    console.log(`CONTRÔLE PÉDAGOGIQUE API running on port ${port}`);
 });
 function shutdown() {
     server.close(async () => {
