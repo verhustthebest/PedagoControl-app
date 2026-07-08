@@ -323,7 +323,7 @@ export async function decideReport(user: AuthUser, reportId: string, input: Deci
         data: {
           lesson_session_id: lessonSessionId,
           user_id: prefectUserId,
-          comment_type: 'prefect_observation',
+          comment_type: 'observation',
           comment_text: input.observation,
         },
       })
