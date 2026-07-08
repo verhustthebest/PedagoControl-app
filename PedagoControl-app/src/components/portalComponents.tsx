@@ -5,7 +5,12 @@ import brandLogo from '../assets/pedago-brand.png'
 import startupMockup from '../assets/page-de-demarrage.png'
 import presentationPanel from '../assets/presentation-panel.png'
 import { managementProgramDraft } from '../data/managementPrograms'
+import { authApi, clearToken, setToken } from '../services/api'
 import { prepareManagementProgram, sendProgramToAdminGestionnaire } from '../services/managementProgramService'
+import { messagesApi, notificationsApi } from '../services/notifications'
+import type { AppNotification } from '../services/notifications'
+import { reportsApi } from '../services/reports'
+import type { PrefectDecision, UiLessonReport } from '../services/reports'
 import '../App.css'
 import {
   Avatar,
@@ -156,26 +161,237 @@ function PresentationScreen() {
   )
 }
 
+function localDateInputValue() {
+  const date = new Date()
+  const offset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
+}
+
+function localDisplayDate() {
+  return new Intl.DateTimeFormat('fr-FR').format(new Date())
+}
+
+function getStoredUserRole() {
+  const fallback = { name: 'Utilisateur', role: 'Utilisateur' }
+  const rawUser = window.localStorage.getItem('controle_pedagogique_user')
+  const rawMock = window.localStorage.getItem('pedagoMockSession')
+
+  try {
+    if (rawUser) {
+      const user = JSON.parse(rawUser) as { first_name?: string; last_name?: string; roles?: string[] }
+      const role = user.roles?.[0] || ''
+      const label = role === 'SUPER_ADMIN' ? 'Admin / Management'
+        : role === 'ADMIN_GESTIONNAIRE' ? 'Promoteur'
+          : role === 'PREFET' ? 'Préfet / Directeur des Études'
+            : role === 'ENSEIGNANT' ? 'Enseignant'
+              : 'Utilisateur'
+      return { name: [user.first_name, user.last_name].filter(Boolean).join(' ') || label, role: label }
+    }
+
+    if (rawMock) {
+      const mock = JSON.parse(rawMock) as { role?: string; username?: string }
+      if (mock.role?.includes('Prefet')) return { name: mock.username || 'Préfecture', role: 'Préfet / Directeur des Études' }
+      if (mock.role?.includes('Enseignant')) return { name: mock.username || 'Enseignant', role: 'Enseignant' }
+      if (mock.role?.includes('Management')) return { name: mock.username || 'Management', role: 'Admin / Management' }
+      return { name: mock.username || 'Promoteur', role: 'Promoteur' }
+    }
+  } catch {
+    return fallback
+  }
+
+  return fallback
+}
+
+function formatNotificationDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string; title: string; initialCount: number; items: Array<[string, string, string, string]> }) {
+  const [unread, setUnread] = useState(initialCount)
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const usesNotificationApi = title === 'Notifications'
+  const usesMessagesApi = title === 'Messages'
+
+  async function loadNotifications() {
+    if (!usesNotificationApi && !usesMessagesApi) return
+
+    try {
+      const [list, count] = usesMessagesApi
+        ? await messagesApi.list().then((messages) => [messages, messages.filter((message) => !message.is_read).length] as const)
+        : await Promise.all([
+            notificationsApi.list(),
+            notificationsApi.unreadCount(),
+          ])
+      setNotifications(list)
+      setUnread(count)
+    } catch {
+      setNotifications([])
+      setUnread(initialCount)
+    }
+  }
+
+  useEffect(() => {
+    void loadNotifications()
+    if (!usesNotificationApi && !usesMessagesApi) return undefined
+
+    const timer = window.setInterval(() => {
+      void loadNotifications()
+    }, 20000)
+
+    return () => window.clearInterval(timer)
+  }, [usesNotificationApi, usesMessagesApi])
+
+  async function markRead(notification: AppNotification) {
+    if ((!usesNotificationApi && !usesMessagesApi) || notification.is_read) return
+
+    setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, is_read: true } : item))
+    setUnread((current) => Math.max(0, current - 1))
+
+    try {
+      await (usesMessagesApi ? messagesApi.markRead(notification.id) : notificationsApi.markRead(notification.id))
+      await loadNotifications()
+    } catch {
+      // Keep optimistic UI for demo stability.
+    }
+  }
+
+  async function markAllRead() {
+    if (!usesNotificationApi && !usesMessagesApi) {
+      setUnread(0)
+      return
+    }
+
+    setNotifications((current) => current.map((item) => ({ ...item, is_read: true })))
+    setUnread(0)
+
+    try {
+      if (usesMessagesApi) {
+        await Promise.all(notifications.filter((item) => !item.is_read).map((item) => messagesApi.markRead(item.id)))
+      } else {
+        await notificationsApi.markAllRead()
+      }
+      await loadNotifications()
+    } catch {
+      // Keep optimistic UI for demo stability.
+    }
+  }
+
+  return (
+    <details className="header-feed-dropdown" onToggle={(event) => { if (event.currentTarget.open && !usesNotificationApi && !usesMessagesApi) setUnread(0) }}>
+      <summary className="notification" aria-label={title}>
+        <Icon name={icon} />
+        {unread > 0 && <span>{unread}</span>}
+      </summary>
+      <div className="management-dropdown feed-dropdown">
+        <header><strong>{title}</strong><small>{unread} non lus</small></header>
+        {(usesNotificationApi || usesMessagesApi) && notifications.length > 0 ? notifications.map((notification) => (
+          <article key={notification.id} className={notification.is_read ? 'read' : 'unread'} onClick={() => void markRead(notification)}>
+            <span><Icon name={notification.is_read ? 'checkCircle' : 'bell'} /></span>
+            <p><strong>{notification.title}</strong><small>{notification.message}</small><em>{notification.is_read ? 'Lu' : 'Non lu'}</em></p>
+            <time>{formatNotificationDate(notification.created_at)}</time>
+          </article>
+        )) : items.map(([itemIcon, itemTitle, preview, time]) => (
+          <article key={`${title}-${itemTitle}`}>
+            <span><Icon name={itemIcon} /></span>
+            <p><strong>{itemTitle}</strong><small>{preview}</small><em>{unread ? 'Non lu' : 'Lu'}</em></p>
+            <time>{time}</time>
+          </article>
+        ))}
+        <button className="dropdown-view-all" type="button" onClick={() => void markAllRead()}>Tout marquer comme lu <Icon name="checkCircle" /></button>
+      </div>
+    </details>
+  )
+}
+
+function UserMenu({ compact = false }: { compact?: boolean }) {
+  const user = getStoredUserRole()
+
+  function logout() {
+    clearToken()
+    window.localStorage.removeItem('controle_pedagogique_user')
+    window.localStorage.removeItem('pedagoMockSession')
+    window.location.assign('/login')
+  }
+
+  return (
+    <details className={`user-menu${compact ? ' teacher-mini' : ''}`}>
+      <summary className={`mini-profile${compact ? ' teacher-mini' : ''}`}>
+        <Avatar name={user.name} />
+        <div><strong>{user.role}</strong><small><i /> En ligne</small></div>
+        <Icon name="chevron" />
+      </summary>
+      <div className="management-dropdown profile-dropdown">
+        <button type="button"><Icon name="user" /> Mon profil</button>
+        <button type="button" className="danger" onClick={logout}><Icon name="login" /> Déconnexion</button>
+      </div>
+    </details>
+  )
+}
+
+const headerNotifications: Array<[string, string, string, string]> = [
+  ['file', 'Rapport quotidien soumis', 'Un rapport attend validation.', 'Maintenant'],
+  ['checkCircle', 'Décision enregistrée', 'Statut pédagogique mis à jour.', 'Aujourd’hui'],
+  ['alert', 'Correction demandée', 'Observation disponible.', 'Hier'],
+]
+
+const headerMessages: Array<[string, string, string, string]> = [
+  ['message', 'Préfecture', 'Merci de vérifier les derniers rapports.', '10:35'],
+  ['users', 'Direction', 'Point pédagogique disponible.', 'Hier'],
+  ['file', 'Système', 'Synthèse prête pour supervision.', 'Lun.'],
+]
+
 function LoginScreen() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    void remember
+  function redirectForRoles(roles: string[]) {
+    if (roles.includes('SUPER_ADMIN')) return '/management/ecoles'
+    if (roles.includes('ADMIN_GESTIONNAIRE')) return '/directeur/rapports'
+    if (roles.includes('PREFET')) return '/prefet/rapports'
+    if (roles.includes('ENSEIGNANT')) return '/enseignant/cahier-texte'
+    return '/directeur/rapports'
+  }
 
+  function loginWithMockFallback() {
     const account = demoAccounts.find((item) => item.username === username.trim().toLowerCase() && item.password === password)
 
     if (!account) {
-      setError('Identifiants de démonstration incorrects.')
+      setError('Connexion impossible. Vérifiez vos identifiants.')
       return
     }
 
     window.localStorage.setItem('pedagoMockSession', JSON.stringify({ username: account.username, role: account.role }))
     window.location.assign(account.redirect)
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void remember
+    setError('')
+    setLoading(true)
+
+    try {
+      const session = await authApi.login(username.trim().toLowerCase(), password)
+      setToken(session.token)
+      window.localStorage.setItem('controle_pedagogique_user', JSON.stringify(session.user))
+      window.localStorage.removeItem('pedagoMockSession')
+      window.location.assign(redirectForRoles(session.roles || session.user.roles))
+    } catch (apiError) {
+      if (apiError instanceof TypeError) {
+        loginWithMockFallback()
+        return
+      }
+
+      setError(apiError instanceof Error ? apiError.message : 'Connexion échouée.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -195,18 +411,18 @@ function LoginScreen() {
         <h1><Icon name="user" /> Connexion à votre compte</h1>
         <label>
           <span>Nom d'utilisateur</span>
-          <div className="field"><Icon name="person" /><input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Entrez votre nom d'utilisateur" autoComplete="username" /></div>
+          <div className="field"><Icon name="person" /><input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Entrez votre nom d'utilisateur" autoComplete="username" disabled={loading} /></div>
         </label>
         <label>
           <span>Mot de passe</span>
-          <div className="field password-field"><Icon name="lock" /><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Entrez votre mot de passe" autoComplete="current-password" /><button type="button" className="password-toggle" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} onClick={() => setShowPassword((current) => !current)}><Icon name="eyeSoft" /></button></div>
+          <div className="field password-field"><Icon name="lock" /><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Entrez votre mot de passe" autoComplete="current-password" disabled={loading} /><button type="button" className="password-toggle" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} onClick={() => setShowPassword((current) => !current)} disabled={loading}><Icon name="eyeSoft" /></button></div>
         </label>
         {error && <p className="login-error">{error}</p>}
         <div className="form-row">
-          <label className="remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>Se souvenir de moi</span></label>
+          <label className="remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} disabled={loading} /><span>Se souvenir de moi</span></label>
           <button type="button" className="link-button">Mot de passe oublié ?</button>
         </div>
-        <button className="primary-action" type="submit"><Icon name="login" /> Se connecter</button>
+        <button className="primary-action" type="submit" disabled={loading}><Icon name="login" /> {loading ? 'Connexion...' : 'Se connecter'}</button>
         <div className="demo-credentials" aria-label="Identifiants de démonstration">
           <strong>Accès démo</strong>
           {demoAccounts.map((account) => (
@@ -239,6 +455,8 @@ function DemoAccess() {
 
 function ManagementLayout({ title, crumb, children }: { title: string; crumb?: string; children: ReactNode }) {
   function logoutToLogin() {
+    clearToken()
+    window.localStorage.removeItem('controle_pedagogique_user')
     window.localStorage.removeItem('pedagoMockSession')
     window.location.assign('/login')
   }
@@ -269,32 +487,12 @@ function ManagementLayout({ title, crumb, children }: { title: string; crumb?: s
           <button className="hamburger" type="button" aria-label="Menu"><Icon name="menu" /></button>
           <div><h1>{title}</h1>{crumb && <p>{crumb}</p>}</div>
           <div className="management-tools">
-            <ManagementHeaderDropdown
-              icon="bell"
-              count="5"
-              title="Notifications"
-              items={[
-                ['alert', 'Paiement en retard', 'EP Lumiere a un solde de 120,00 $.', 'Il y a 12 min'],
-                ['calendar', 'Souscription proche expiration', 'CS Les Elites expire dans 15 jours.', 'Aujourd hui'],
-                ['book', 'Programme confirme', 'College La Reussite a recu Mathematiques 6eme A.', 'Hier 16:20'],
-              ]}
-              viewAllTo="/management/notifications"
-            />
-            <ManagementHeaderDropdown
-              icon="message"
-              count="3"
-              title="Messages"
-              items={[
-                ['message', 'Admin College La Reussite', 'Demande de confirmation du programme envoye.', '10:35'],
-                ['users', 'Institut Vision', 'Question sur le quota enseignants.', 'Hier'],
-                ['file', 'Service comptable', 'Paiement bancaire a rapprocher.', 'Lun. 09:10'],
-              ]}
-              viewAllTo="/management/aide"
-            />
+            <HeaderFeedDropdown icon="bell" title="Notifications" initialCount={5} items={headerNotifications} />
+            <HeaderFeedDropdown icon="message" title="Messages" initialCount={3} items={headerMessages} />
             <details className="management-profile-menu">
               <summary aria-label="Ouvrir le menu profil">
-                <Avatar name="Admin Management" />
-                <span><strong>Admin Management</strong><small>Super Administrateur</small></span>
+                <Avatar name={getStoredUserRole().name} />
+                <span><strong>{getStoredUserRole().name}</strong><small>{getStoredUserRole().role}</small></span>
                 <Icon name="chevron" />
               </summary>
               <div className="management-dropdown profile-dropdown">
@@ -309,28 +507,6 @@ function ManagementLayout({ title, crumb, children }: { title: string; crumb?: s
         <div className="management-content">{children}</div>
       </section>
     </main>
-  )
-}
-
-function ManagementHeaderDropdown({ icon, count, title, items, viewAllTo }: { icon: string; count: string; title: string; items: Array<[string, string, string, string]>; viewAllTo: string }) {
-  return (
-    <details className="management-header-dropdown">
-      <summary aria-label={title}>
-        <Icon name={icon} />
-        <span>{count}</span>
-      </summary>
-      <div className="management-dropdown feed-dropdown">
-        <header><strong>{title}</strong><small>{count} non lus</small></header>
-        {items.map(([itemIcon, itemTitle, preview, time]) => (
-          <article key={`${title}-${itemTitle}`}>
-            <span><Icon name={itemIcon} /></span>
-            <p><strong>{itemTitle}</strong><small>{preview}</small></p>
-            <time>{time}</time>
-          </article>
-        ))}
-        <Link className="dropdown-view-all" to={viewAllTo}>Voir tout <Icon name="arrow" /></Link>
-      </div>
-    </details>
   )
 }
 
@@ -887,9 +1063,10 @@ function DirectorLayout({ title, subtitle, crumb, children, compactFilters = fal
           <div className={`period-filters${compactFilters ? ' period-filters-compact' : ''}`}>
             <FilterBox icon="calendar" label="Année scolaire" value="2024 - 2025" />
             {!compactFilters && <FilterBox label="Trimestre" value="1er Trimestre" />}
-            {!compactFilters && <FilterBox label="Mois actuel" value="Septembre" />}
-            <button className="notification" type="button"><Icon name="bell" /><span>7</span></button>
-            <div className="mini-profile"><Avatar name="Directeur" /><div><strong>Directeur</strong><small><i /> En ligne</small></div><Icon name="chevron" /></div>
+            {!compactFilters && <FilterBox label="Mois actuel" value={new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(new Date())} />}
+            <HeaderFeedDropdown icon="bell" title="Notifications" initialCount={7} items={headerNotifications} />
+            <HeaderFeedDropdown icon="message" title="Messages" initialCount={3} items={headerMessages} />
+            <UserMenu />
           </div>
         </header>
         <div className="director-content">{children}</div>
@@ -1316,24 +1493,58 @@ function EvaluationControl() {
 }
 
 function Reports() {
+  const [rows, setRows] = useState<UiLessonReport[]>(dailyCourseReports)
+  const [summary, setSummary] = useState({ soumis: 18, valides: 12, rejetes: 2, corrections: 3 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadReports() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const data = await reportsApi.getSupervisionReports()
+        if (!mounted) return
+        setRows(data.reports)
+        setSummary(data.summary)
+      } catch (apiError) {
+        if (!mounted) return
+        if (!(apiError instanceof TypeError)) setError('Impossible de charger les rapports.')
+        setRows(dailyCourseReports)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    void loadReports()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   return (
     <section className="content-with-side">
       <div>
         <KpiGrid items={[
-          { icon: 'file', value: '18', label: 'Rapports quotidiens soumis', tone: 'blue', delta: 'Vue observation' },
-          { icon: 'checkCircle', value: '12', label: 'Rapports validés', tone: 'green', delta: 'Par le Préfet' },
-          { icon: 'alert', value: '2', label: 'Rapports rejetés', tone: 'red', delta: 'Décisions Préfet' },
-          { icon: 'clock', value: '3', label: 'Corrections demandées', tone: 'orange', delta: 'À suivre' },
+          { icon: 'file', value: String(summary.soumis), label: 'Rapports quotidiens soumis', tone: 'blue', delta: 'Vue observation' },
+          { icon: 'checkCircle', value: String(summary.valides), label: 'Rapports validés', tone: 'green', delta: 'Par le Préfet' },
+          { icon: 'alert', value: String(summary.rejetes), label: 'Rapports rejetés', tone: 'red', delta: 'Décisions Préfet' },
+          { icon: 'clock', value: String(summary.corrections), label: 'Corrections demandées', tone: 'orange', delta: 'À suivre' },
           { icon: 'users', value: '34', label: 'Enseignants actifs', tone: 'purple', delta: 'Aujourd’hui' },
         ]} />
         <Card><Filters labels={['Date', 'Enseignant', 'Classe', 'Matière', 'Statut']} action="Filtrer" /></Card>
         <Card title="Centre de Supervision - rapports quotidiens" className="table-card reports-table">
-          <DailyReportsSupervisionTable />
+          {loading && <div className="note-box"><Icon name="clock" /> Chargement des rapports...</div>}
+          {error && <div className="login-error">{error}</div>}
+          <DailyReportsSupervisionTable reports={rows} />
           <div className="readonly-note"><Icon name="eye" /> Le Promoteur observe silencieusement. Les décisions restent réservées au Préfet / Directeur des Études.</div>
         </Card>
         <section className="supervision-grid">
           <Card title="Actions récentes du Préfet">
-            <DecisionHistoryList />
+            <DecisionHistoryList reports={rows} />
           </Card>
           <Card title="Retards ou absences de rapport">
             <div className="report-summary-list">
@@ -1355,8 +1566,8 @@ function Reports() {
   )
 }
 
-function DailyReportsSupervisionTable() {
-  return <table><thead><tr><th>Date</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre / sous-chapitre</th><th>Périodes</th><th>Résumé</th><th>Statut</th><th>Observation Préfet</th></tr></thead><tbody>{dailyCourseReports.map((report) => <tr key={report.id}><td>{report.date}</td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.periods}</td><td>{report.summary}</td><td><ReportStatusBadge status={report.status} /></td><td>{report.prefectObservation}</td></tr>)}</tbody></table>
+function DailyReportsSupervisionTable({ reports = dailyCourseReports }: { reports?: UiLessonReport[] }) {
+  return <table><thead><tr><th>Date</th><th>Enseignant</th><th>Classe</th><th>Matiere</th><th>Chapitre</th><th>Statut</th><th>Action</th><th>Observation</th></tr></thead><tbody>{reports.map((report) => <tr key={report.rawId || report.id} onClick={() => window.location.assign(`/directeur/supervision/${report.rawId || report.id}`)} className="clickable-row"><td>{report.date}</td><td><Avatar name={report.teacher} small /><button className="link-button table-link" type="button" onClick={(event) => { event.stopPropagation(); window.location.assign(`/directeur/supervision/${report.rawId || report.id}`) }}>{report.teacher}</button></td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td><ReportStatusBadge status={report.status} /></td><td>{report.decision}</td><td>{report.prefectObservation}</td></tr>)}</tbody></table>
 }
 
 function ReportStatusBadge({ status }: { status: string }) {
@@ -1364,8 +1575,8 @@ function ReportStatusBadge({ status }: { status: string }) {
   return <span className={`badge ${tone}`}>{status}</span>
 }
 
-function DecisionHistoryList() {
-  return <div className="report-summary-list decision-history">{dailyCourseReports.map((report) => <article key={`decision-${report.id}`}><Icon name={report.decision === 'Validé' ? 'checkCircle' : report.decision === 'Rejeté' ? 'alert' : 'message'} /><p><strong>{report.decision}</strong><span>{report.teacher} - {report.subject} - {report.className}</span><em>{report.prefectObservation}</em></p><time>{report.date}</time></article>)}</div>
+function DecisionHistoryList({ reports = dailyCourseReports }: { reports?: UiLessonReport[] }) {
+  return <div className="report-summary-list decision-history">{reports.map((report) => <article key={`decision-${report.id}`}><Icon name={report.decision === 'Validé' ? 'checkCircle' : report.decision === 'Rejeté' ? 'alert' : 'message'} /><p><strong>{report.decision}</strong><span>{report.teacher} - {report.subject} - {report.className}</span><em>{report.prefectObservation}</em></p><time>{report.date}</time></article>)}</div>
 }
 
 function KpiGrid({ items, side }: { items: Array<{ icon: string; value: string; label: string; tone: string; delta?: string }>; side?: ReactNode }) {
@@ -1408,10 +1619,13 @@ function EvaluationTable() {
   return <table><thead><tr><th>Matière</th><th>Classe</th><th>Enseignant</th><th>Évaluation</th><th>Type</th><th>Date prévue</th><th>Date réalisée</th><th>Statut</th><th>Notes publiées</th><th>Actions</th></tr></thead><tbody>{evaluations.map((item) => <tr key={`${item.subject}-${item.className}`}><td><SubjectIcon tone="blue" />{item.subject}</td><td>{item.className}</td><td><Avatar name={item.teacher} small />{item.teacher}</td><td>{item.type === 'Interrogation' ? 'Interrogation orale' : item.type}</td><td><Badge status={item.type} /></td><td>{item.planned}</td><td>{item.done}</td><td><Badge status={item.status} /></td><td><span className={item.notes ? 'ok-dot' : 'bad-dot'}>{item.notes ? '✓' : '×'}</span></td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button"><Icon name="more" /></button></td></tr>)}</tbody></table>
 }
 
-const dailyCourseReports = [
+const dailyCourseReports: UiLessonReport[] = [
   {
     id: 'RQC-001',
-    date: '06/07/2026',
+    rawId: '1',
+    programDistributionId: '1',
+    teacherAssignmentId: '1',
+    date: localDisplayDate(),
     teacher: 'Jean Kabasele',
     className: '5ème A',
     subject: 'Mathématiques',
@@ -1430,7 +1644,10 @@ const dailyCourseReports = [
   },
   {
     id: 'RQC-002',
-    date: '06/07/2026',
+    rawId: '2',
+    programDistributionId: '2',
+    teacherAssignmentId: '1',
+    date: localDisplayDate(),
     teacher: 'Grace Mbuyi',
     className: '4ème B',
     subject: 'Français',
@@ -1449,7 +1666,10 @@ const dailyCourseReports = [
   },
   {
     id: 'RQC-003',
-    date: '05/07/2026',
+    rawId: '3',
+    programDistributionId: '3',
+    teacherAssignmentId: '1',
+    date: localDisplayDate(),
     teacher: 'Patrick Ilunga',
     className: '3ème A',
     subject: 'Physique-Chimie',
@@ -1468,7 +1688,10 @@ const dailyCourseReports = [
   },
   {
     id: 'RQC-004',
-    date: '05/07/2026',
+    rawId: '4',
+    programDistributionId: '4',
+    teacherAssignmentId: '1',
+    date: localDisplayDate(),
     teacher: 'Esther Tshi',
     className: '2nde C',
     subject: 'Histoire-Géographie',
@@ -1565,8 +1788,9 @@ function PrefectLayout({ title, subtitle, crumb, children }: { title: string; su
           </div>
           <div className="period-filters period-filters-compact">
             <FilterBox icon="calendar" label="Annee scolaire" value="2024 - 2025" />
-            <button className="notification" type="button"><Icon name="bell" /><span>5</span></button>
-            <div className="mini-profile teacher-mini"><Avatar name="Prefet" /><div><strong>Prefet</strong><small><i /> En ligne</small></div><Icon name="chevron" /></div>
+            <HeaderFeedDropdown icon="bell" title="Notifications" initialCount={5} items={headerNotifications} />
+            <HeaderFeedDropdown icon="message" title="Messages" initialCount={2} items={headerMessages} />
+            <UserMenu compact />
           </div>
         </header>
         <div className="director-content teacher-content">{children}</div>
@@ -1587,7 +1811,7 @@ function PrefectDashboard() {
         { icon: 'chart', value: '76%', label: 'Execution globale', detail: '+4% ce mois', tone: 'cyan' },
       ]} />
       <section className="prefect-grid">
-        <Card title="Lecons soumises aujourd hui" className="table-card span-2"><PrefectLessonTable /></Card>
+        <Card title="Lecons soumises aujourd hui" className="table-card span-2"><TodayReportsTable /></Card>
         <Card title="Controle des programmes"><Donut value={76} /><Legend rows={[['Conformes', 64, 'green'], ['En retard', 24, 'orange'], ['Critiques', 12, 'red']]} /></Card>
         <Card title="Alertes prioritaires"><PrefectAlertList compact /></Card>
         <Card title="Calendrier academique" className="span-2"><EventRows /></Card>
@@ -1597,10 +1821,43 @@ function PrefectDashboard() {
   )
 }
 
+function TodayReportsTable() {
+  const [rows, setRows] = useState<UiLessonReport[]>(dailyCourseReports.filter((report) => report.date === localDisplayDate()))
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadToday() {
+      try {
+        const data = await reportsApi.getPendingPrefectReports()
+        const today = localDisplayDate()
+        setRows(data.filter((report) => report.date === today))
+      } catch {
+        setRows(dailyCourseReports.filter((report) => report.date === localDisplayDate()))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadToday()
+  }, [])
+
+  if (loading) return <div className="note-box"><Icon name="clock" /> Chargement...</div>
+  if (!rows.length) return <div className="note-box"><Icon name="info" /> Aucun rapport soumis aujourd hui.</div>
+
+  return <table><thead><tr><th>Enseignant</th><th>Classe</th><th>Matiere</th><th>Chapitre</th><th>Date</th><th>Statut</th></tr></thead><tbody>{rows.map((report) => <tr key={report.rawId}><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td>{report.chapter}</td><td>{report.date}</td><td><ReportStatusBadge status={report.status} /></td></tr>)}</tbody></table>
+}
+
 function PrefectValidations() {
   const [rows, setRows] = useState(prefectLessonSubmissions)
   const [selectedId, setSelectedId] = useState(prefectLessonSubmissions[0].id)
   const [notice, setNotice] = useState('')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('Tous')
+  const filteredRows = rows.filter((row) => {
+    const matchesSearch = `${row.teacher} ${row.subject} ${row.className} ${row.chapter}`.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === 'Tous' || row.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
   const selected = rows.find((row) => row.id === selectedId) || rows[0]
 
   function decide(status: 'Valide' | 'Rejete') {
@@ -1621,8 +1878,13 @@ function PrefectValidations() {
       {notice && <div className="success-toast"><Icon name="checkCircle" /> {notice}</div>}
       <section className="prefect-review-layout">
         <Card title="Lecons soumises par les enseignants" className="table-card">
-          <div className="toolbar-row"><Filters labels={['Classe', 'Matiere', 'Statut']} search="Rechercher une lecon..." /></div>
-          <PrefectLessonTable rows={rows} selectedId={selected.id} onSelect={setSelectedId} />
+          <div className="toolbar-row">
+            <div className="filters">
+              <label><span>Statut</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>Tous</option><option>En attente</option><option>Valide</option><option>Rejete</option></select></label>
+              <label className="search-field"><span>Recherche</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une progression..." /><Icon name="search" /></label>
+            </div>
+          </div>
+          <PrefectLessonProgressionTable rows={filteredRows} selectedId={selected.id} onSelect={setSelectedId} />
         </Card>
         <Card title="Controle pedagogique detaille">
           <article className="prefect-review-card">
@@ -1653,6 +1915,10 @@ function PrefectValidations() {
       </section>
     </>
   )
+}
+
+function PrefectLessonProgressionTable({ rows, selectedId, onSelect }: { rows: typeof prefectLessonSubmissions; selectedId: number; onSelect: (id: number) => void }) {
+  return <table><thead><tr><th>Enseignant</th><th>Classe</th><th>Matiere</th><th>Chapitre</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className={row.id === selectedId ? 'prefect-selected-row' : ''} onClick={() => onSelect(row.id)}><td><Avatar name={row.teacher} small />{row.teacher}</td><td>{row.className}</td><td>{row.subject}</td><td><strong>{row.chapter}</strong><span className="data-line">{row.subChapter}</span></td><td>{row.date}</td><td><Badge status={row.status} /></td><td><button className="decision-button blue" type="button" onClick={(event) => { event.stopPropagation(); window.location.assign(`/prefet/progressions/${row.id}`) }}>Visualiser</button></td></tr>)}</tbody></table>
 }
 
 function PrefectProgramControl() {
@@ -1702,6 +1968,74 @@ function PrefectEvaluations() {
 
 function PrefectReports() {
   const [observation, setObservation] = useState('Conforme au programme prévu. Validation recommandée.')
+  const [reports, setReports] = useState<UiLessonReport[]>(dailyCourseReports)
+  const [selectedId, setSelectedId] = useState(dailyCourseReports[0].rawId)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [reportSearch, setReportSearch] = useState('')
+  const [reportStatus, setReportStatus] = useState('Tous')
+  const selectedReport = reports.find((report) => report.rawId === selectedId) || reports[0]
+  const filteredReports = reports.filter((report) => {
+    const matchesSearch = `${report.teacher} ${report.className} ${report.subject} ${report.chapter} ${report.status}`.toLowerCase().includes(reportSearch.toLowerCase())
+    const matchesStatus = reportStatus === 'Tous' || report.status === reportStatus
+    return matchesSearch && matchesStatus
+  })
+
+  function exportReports() {
+    const header = ['id', 'date', 'enseignant', 'classe', 'matiere', 'chapitre', 'statut', 'observation']
+    const rows = filteredReports.map((report) => [report.id, report.date, report.teacher, report.className, report.subject, report.chapter, report.status, report.prefectObservation])
+    const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'rapports-prefet.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function loadReports() {
+    setLoading(true)
+    setError('')
+
+    try {
+      const data = await reportsApi.getPendingPrefectReports()
+      setReports(data.length ? data : dailyCourseReports)
+      setSelectedId((current) => data.find((report) => report.rawId === current)?.rawId || data[0]?.rawId || dailyCourseReports[0].rawId)
+    } catch (apiError) {
+      if (!(apiError instanceof TypeError)) setError('Impossible de charger les rapports.')
+      setReports(dailyCourseReports)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadReports()
+  }, [])
+
+  async function decideReport(decision: PrefectDecision, reportId = selectedReport?.rawId) {
+    const targetReport = reports.find((report) => report.rawId === reportId) || selectedReport
+    if (!targetReport) return
+    setLoading(true)
+    setError('')
+    setNotice('')
+
+    try {
+      await reportsApi.decidePrefectReport(targetReport.rawId, decision, observation)
+      setNotice('Décision enregistrée.')
+      await loadReports()
+    } catch (apiError) {
+      if (apiError instanceof TypeError) {
+        setReports((current) => current.map((report) => report.rawId === targetReport.rawId ? { ...report, status: decision === 'validated' ? 'Valide' : decision === 'rejected' ? 'Rejete' : 'Correction demandee', decision: decision === 'validated' ? 'Valide' : decision === 'rejected' ? 'Rejete' : 'Correction demandee', prefectObservation: observation } : report))
+        setNotice('Décision enregistrée en mode démo.')
+      } else {
+        setError('Impossible d’enregistrer la décision.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -1712,24 +2046,49 @@ function PrefectReports() {
         { icon: 'alert', value: '2', label: 'Rejetés', detail: 'Justification requise', tone: 'red' },
         { icon: 'message', value: '3', label: 'Corrections', detail: 'Demandées', tone: 'purple' },
       ]} />
+      {notice && <div className="success-toast"><Icon name="checkCircle" /> {notice}</div>}
       <section className="prefect-report-grid">
         <Card title="Rapports reçus des enseignants" className="table-card">
-          <div className="toolbar-row"><Filters labels={['Date', 'Classe', 'Matiere', 'Statut']} search="Rechercher un rapport..." /><button className="secondary-button" type="button"><Icon name="excel" /> Exporter</button></div>
-          <PrefectDailyValidationTable />
+          <div className="toolbar-row">
+            <div className="filters">
+              <label><span>Statut</span><select value={reportStatus} onChange={(event) => setReportStatus(event.target.value)}><option>Tous</option><option>Soumis</option><option>Valide</option><option>Rejete</option><option>Correction demandee</option></select></label>
+              <label className="search-field"><span>Recherche</span><input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher un rapport..." /><Icon name="search" /></label>
+            </div>
+            <button className="secondary-button" type="button" onClick={exportReports}><Icon name="excel" /> Exporter</button>
+          </div>
+          {loading && <div className="note-box"><Icon name="clock" /> Chargement des rapports...</div>}
+          {error && <div className="login-error">{error}</div>}
+          <PrefectDailyValidationTable reports={filteredReports} selectedId={selectedId} onSelect={setSelectedId} onDecision={(reportId, decision) => { setSelectedId(reportId); void decideReport(decision, reportId) }} />
         </Card>
         <aside className="right-column">
+          <Card title="Détail du rapport">
+            {selectedReport && <article className="report-detail-card">
+              <header><Avatar name={selectedReport.teacher} /><div><strong>{selectedReport.teacher}</strong><span>{selectedReport.className} - {selectedReport.subject}</span></div><ReportStatusBadge status={selectedReport.status} /></header>
+              <dl>
+                <dt>Chapitre</dt><dd>{selectedReport.chapter}</dd>
+                <dt>Sous-chapitre</dt><dd>{selectedReport.subChapter}</dd>
+                <dt>Date</dt><dd>{selectedReport.date}</dd>
+                <dt>Périodes</dt><dd>{selectedReport.periods}</dd>
+                <dt>Résumé</dt><dd>{selectedReport.summary}</dd>
+                <dt>Objectifs</dt><dd>{selectedReport.objectives || 'Non renseigné'}</dd>
+                <dt>Exercices</dt><dd>{selectedReport.exercises || 'Non renseigné'}</dd>
+                <dt>Devoirs</dt><dd>{selectedReport.homework || 'Non renseigné'}</dd>
+                <dt>Observations</dt><dd>{selectedReport.observations || 'Aucune'}</dd>
+              </dl>
+            </article>}
+          </Card>
           <Card title="Observation du Préfet">
             <form className="prefect-observation-form">
-              <label>Rapport sélectionné<select><option>RQC-001 - Jean Kabasele - 5ème A</option><option>RQC-003 - Patrick Ilunga - 3ème A</option></select></label>
+              <label>Rapport sélectionné<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>{reports.map((report) => <option key={report.rawId} value={report.rawId}>{report.id} - {report.teacher} - {report.className}</option>)}</select></label>
               <label>Observation<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label>
-              <div className="prefect-decision-actions">
-                <button className="blue-button" type="button"><Icon name="checkCircle" /> Valider</button>
-                <button className="secondary-button danger-action" type="button"><Icon name="alert" /> Rejeter</button>
-                <button className="secondary-button" type="button"><Icon name="message" /> Demander correction</button>
+              <div className="prefect-decision-actions visible-actions">
+                <button className="decision-button green" type="button" disabled={loading} onClick={() => void decideReport('validated')}><Icon name="checkCircle" /> Valider</button>
+                <button className="decision-button blue" type="button" disabled={loading} onClick={() => void decideReport('correction_requested')}><Icon name="message" /> Demander correction</button>
+                <button className="decision-button red" type="button" disabled={loading} onClick={() => void decideReport('rejected')}><Icon name="alert" /> Rejeter</button>
               </div>
             </form>
           </Card>
-          <Card title="Historique des décisions"><DecisionHistoryList /></Card>
+          <Card title="Historique des décisions"><DecisionHistoryList reports={reports} /></Card>
           <Card title="Synthèse actuelle"><Donut value={67} label="Validés" /><Legend rows={[['Validés', 67, 'green'], ['Soumis', 17, 'blue'], ['Corrections', 8, 'orange'], ['Rejets', 8, 'red']]} /></Card>
         </aside>
       </section>
@@ -1737,8 +2096,70 @@ function PrefectReports() {
   )
 }
 
-function PrefectDailyValidationTable() {
-  return <table><thead><tr><th>Rapport</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre / sous-chapitre</th><th>Résumé du cours</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{dailyCourseReports.map((report, index) => <tr key={report.id} className={index === 0 ? 'prefect-selected-row' : ''}><td>{report.id}<span className="data-line">{report.date}</span></td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.summary}</td><td><ReportStatusBadge status={report.status} /></td><td><div className="validation-actions"><button className="icon-button green" title="Valider"><Icon name="checkCircle" /></button><button className="icon-button red" title="Rejeter"><Icon name="alert" /></button><button className="icon-button purple" title="Demander correction"><Icon name="message" /></button></div></td></tr>)}</tbody></table>
+function PrefectDailyValidationTable({ reports = dailyCourseReports, selectedId, onSelect, onDecision }: { reports?: UiLessonReport[]; selectedId?: string; onSelect?: (id: string) => void; onDecision?: (id: string, decision: PrefectDecision) => void }) {
+  return <table><thead><tr><th>Rapport</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Date soumission</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.id} className={report.rawId === selectedId ? 'prefect-selected-row' : ''} onClick={() => { onSelect?.(report.rawId); window.location.assign(`/prefet/rapports/${report.rawId}`) }}><td>{report.id}</td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.date}</td><td><ReportStatusBadge status={report.status} /></td><td><div className="validation-actions visible-actions"><button className="decision-button green" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'validated') }}>Valider</button><button className="decision-button blue" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'correction_requested') }}>Correction</button><button className="decision-button red" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'rejected') }}>Rejeter</button></div></td></tr>)}</tbody></table>
+}
+
+function ReportDetailBlock({ report }: { report: UiLessonReport }) {
+  return <article className="report-detail-card"><header><Avatar name={report.teacher} /><div><strong>{report.teacher}</strong><span>{report.className} - {report.subject}</span></div><ReportStatusBadge status={report.status} /></header><dl><dt>Chapitre</dt><dd>{report.chapter}</dd><dt>Sous-chapitre</dt><dd>{report.subChapter}</dd><dt>Date</dt><dd>{report.date}</dd><dt>Périodes</dt><dd>{report.periods}</dd><dt>Résumé</dt><dd>{report.summary}</dd><dt>Objectifs</dt><dd>{report.objectives || 'Non renseigné'}</dd><dt>Exercices</dt><dd>{report.exercises || 'Non renseigné'}</dd><dt>Devoirs</dt><dd>{report.homework || 'Non renseigné'}</dd><dt>Observations</dt><dd>{report.observations || 'Aucune'}</dd><dt>Action Préfet</dt><dd>{report.decision}</dd><dt>Observation Préfet</dt><dd>{report.prefectObservation}</dd></dl></article>
+}
+
+function PrefectReportDetail() {
+  const reportId = window.location.pathname.split('/').pop() || ''
+  const [report, setReport] = useState<UiLessonReport | null>(null)
+  const [observation, setObservation] = useState('Observation du Préfet.')
+  const [message, setMessage] = useState('')
+
+  async function load() {
+    try {
+      const supervision = await reportsApi.getSupervisionReports()
+      setReport(supervision.reports.find((item) => item.rawId === reportId) || dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+    } catch {
+      setReport(dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+    }
+  }
+
+  useEffect(() => { void load() }, [reportId])
+
+  async function decide(decision: PrefectDecision) {
+    if (!report) return
+    try {
+      await reportsApi.decidePrefectReport(report.rawId, decision, observation)
+      setMessage('Décision enregistrée.')
+      await load()
+    } catch {
+      setMessage('Décision enregistrée en mode démo.')
+    }
+  }
+
+  return <section className="prefect-report-grid"><Card title="Détail du rapport" className="span-2">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Chargement...</div>}</Card><Card title="Actions"><form className="prefect-observation-form"><label>Observation<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label><div className="visible-actions"><button className="decision-button green" type="button" onClick={() => void decide('validated')}>Valider</button><button className="decision-button blue" type="button" onClick={() => void decide('correction_requested')}>Demander correction</button><button className="decision-button red" type="button" onClick={() => void decide('rejected')}>Rejeter</button></div></form>{message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}</Card></section>
+}
+
+function SupervisionDetail() {
+  const reportId = window.location.pathname.split('/').pop() || ''
+  const [report, setReport] = useState<UiLessonReport | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const supervision = await reportsApi.getSupervisionReports()
+        setReport(supervision.reports.find((item) => item.rawId === reportId) || dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+      } catch {
+        setReport(dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+      }
+    }
+
+    void load()
+  }, [reportId])
+
+  return <section className="content-with-side"><div><Card title="Détail supervision du rapport">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Chargement...</div>}</Card></div><aside className="right-column"><Card title="Action récente"><DecisionHistoryList reports={report ? [report] : dailyCourseReports.slice(0, 1)} /></Card></aside></section>
+}
+
+function PrefectProgressionDetail() {
+  const progressionId = window.location.pathname.split('/').pop() || ''
+  const progression = prefectLessonSubmissions.find((item) => String(item.id) === progressionId) || prefectLessonSubmissions[0]
+
+  return <section className="prefect-report-grid"><Card title="Détail progression" className="span-2"><article className="report-detail-card"><header><Avatar name={progression.teacher} /><div><strong>{progression.teacher}</strong><span>{progression.className} - {progression.subject}</span></div><Badge status={progression.status} /></header><dl><dt>Chapitre</dt><dd>{progression.chapter}</dd><dt>Sous-chapitre</dt><dd>{progression.subChapter}</dd><dt>Date</dt><dd>{progression.date}</dd><dt>Périodes</dt><dd>{progression.time}</dd><dt>Statut</dt><dd>{progression.status}</dd><dt>Observations</dt><dd>{progression.content}</dd></dl></article></Card></section>
 }
 
 function PrefectCalendar() {
@@ -1750,7 +2171,35 @@ function PrefectAlerts() {
 }
 
 function PrefectMessages() {
-  return <section className="prefect-message-layout"><Card title="Boite de reception"><PrefectMessageFeed detailed /></Card><Card title="Nouveau message"><form className="textbook-form"><label>Destinataire<select><option>Enseignants en retard</option><option>Tous les enseignants</option><option>Direction</option></select></label><label>Objet<input defaultValue="Observation pedagogique" /></label><label>Message<textarea placeholder="Ecrire un message..." /></label><button className="blue-button" type="button"><Icon name="message" /> Envoyer</button></form></Card></section>
+  const [recipient, setRecipient] = useState('Tous les enseignants')
+  const [subject, setSubject] = useState('Observation pedagogique')
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  async function sendMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setNotice('')
+    setError('')
+    setSending(true)
+
+    try {
+      await messagesApi.broadcast({
+        recipient: recipient === 'Tous les enseignants' ? 'all_teachers' : 'teachers',
+        title: subject,
+        message: message || subject,
+      })
+      setNotice('Message envoyé aux enseignants.')
+      setMessage('')
+    } catch {
+      setError('API indisponible. Le message reste en mode démo.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return <section className="prefect-message-layout"><Card title="Boite de reception"><PrefectMessageFeed detailed /></Card><Card title="Nouveau message"><form className="textbook-form" onSubmit={sendMessage}><label>Destinataire<select value={recipient} onChange={(event) => setRecipient(event.target.value)}><option>Enseignants en retard</option><option>Tous les enseignants</option><option>Direction</option></select></label><label>Objet<input value={subject} onChange={(event) => setSubject(event.target.value)} /></label><label>Message<textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrire un message..." /></label>{notice && <div className="note-box"><Icon name="checkCircle" /> {notice}</div>}{error && <div className="login-error">{error}</div>}<button className="blue-button" type="submit" disabled={sending}><Icon name="message" /> {sending ? 'Envoi...' : 'Envoyer'}</button></form></Card></section>
 }
 
 function PrefectSettings() {
@@ -1807,8 +2256,9 @@ function TeacherLayout({ title, subtitle, crumb, children }: { title: string; su
           </div>
           <div className="period-filters period-filters-compact">
             <FilterBox label="Année scolaire" value="2024 - 2025" />
-            <button className="notification" type="button"><Icon name="bell" /><span>3</span></button>
-            <div className="mini-profile teacher-mini"><Avatar name="Jean Kabasele" /><div><strong>Jean Kabasele</strong><small><i /> Enseignant</small></div><Icon name="chevron" /></div>
+            <HeaderFeedDropdown icon="bell" title="Notifications" initialCount={3} items={headerNotifications} />
+            <HeaderFeedDropdown icon="message" title="Messages" initialCount={2} items={headerMessages} />
+            <UserMenu compact />
           </div>
         </header>
         <div className="director-content teacher-content">{children}</div>
@@ -1907,10 +2357,75 @@ function TeacherProgress() {
 
 function TeacherTextBook() {
   const [message, setMessage] = useState('')
+  const [reports, setReports] = useState<UiLessonReport[]>(dailyCourseReports)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  function submitDailyReport(event: FormEvent<HTMLFormElement>) {
+  async function loadTeacherReports() {
+    setLoading(true)
+    setError('')
+
+    try {
+      const data = await reportsApi.getTeacherReports()
+      setReports(data.length ? data : dailyCourseReports)
+    } catch (apiError) {
+      if (!(apiError instanceof TypeError)) setError('Impossible de charger vos rapports.')
+      setReports(dailyCourseReports)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadTeacherReports()
+  }, [])
+
+  async function submitDailyReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setMessage('Rapport quotidien soumis au Préfet / Directeur des Études')
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    const reference = reports[0]
+    setLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      await reportsApi.createTeacherReport({
+        program_distribution_id: reference.programDistributionId,
+        teacher_assignment_id: reference.teacherAssignmentId,
+        actual_date: String(formData.get('actual_date') || new Date().toISOString().slice(0, 10)),
+        actual_periods: Number(formData.get('actual_periods') || 1),
+        lesson_summary: String(formData.get('lesson_summary') || ''),
+        objectives_achieved: String(formData.get('objectives_achieved') || ''),
+        exercises_given: String(formData.get('exercises_given') || ''),
+        homework_given: String(formData.get('homework_given') || ''),
+        observations: String(formData.get('observations') || ''),
+      })
+      setMessage('Rapport quotidien soumis au Préfet / Directeur des Études')
+      await loadTeacherReports()
+    } catch (apiError) {
+      if (apiError instanceof TypeError) {
+        setReports((current) => [{
+          ...dailyCourseReports[0],
+          id: `RQC-${Date.now().toString().slice(-3)}`,
+          rawId: Date.now().toString(),
+          date: new Intl.DateTimeFormat('fr-FR').format(new Date(String(formData.get('actual_date') || new Date()))),
+          periods: Number(formData.get('actual_periods') || 1),
+          summary: String(formData.get('lesson_summary') || ''),
+          objectives: String(formData.get('objectives_achieved') || ''),
+          exercises: String(formData.get('exercises_given') || ''),
+          homework: String(formData.get('homework_given') || ''),
+          observations: String(formData.get('observations') || ''),
+          status: 'Soumis',
+          decision: 'En attente',
+        }, ...current])
+        setMessage('Rapport quotidien soumis en mode démo.')
+      } else {
+        setError('Impossible de soumettre le rapport.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -1923,23 +2438,24 @@ function TeacherTextBook() {
         { icon: 'alert', value: '1', label: 'Correction demandée', detail: 'À régulariser', tone: 'red' },
       ]} />
       {message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}
+      {error && <div className="login-error">{error}</div>}
       <section className="teacher-two-col">
         <div>
           <Card title="Rapport Quotidien de Cours / Pointage">
             <form className="textbook-form" onSubmit={submitDailyReport}>
-              <div className="form-grid two"><label>Programme reçu<input defaultValue="Répartition annuelle publiée - Mathématiques 5ème A" readOnly /></label><label>Date du jour<input type="date" defaultValue="2026-07-06" /></label></div>
-              <div className="form-grid three"><label>Classe<select><option>5ème A</option><option>6ème B</option></select></label><label>Matière<select><option>Mathématiques</option><option>Physique-Chimie</option></select></label><label>Nombre de périodes réalisées<input type="number" min="0" defaultValue="2" /></label></div>
+              <div className="form-grid two"><label>Programme reçu<input defaultValue={reports[0]?.program || 'Répartition annuelle publiée - Mathématiques 5ème A'} readOnly /></label><label>Date du jour<input name="actual_date" type="date" defaultValue={localDateInputValue()} /></label></div>
+              <div className="form-grid three"><label>Classe<select><option>5ème A</option><option>6ème B</option></select></label><label>Matière<select><option>Mathématiques</option><option>Physique-Chimie</option></select></label><label>Nombre de périodes réalisées<input name="actual_periods" type="number" min="0" defaultValue="2" /></label></div>
               <div className="form-grid two"><label>Chapitre prévu<input defaultValue="Chapitre 4 : Fractions" /></label><label>Sous-chapitre prévu<input defaultValue="4.2 Addition et soustraction des fractions" /></label></div>
-              <label>Résumé du cours enseigné<textarea defaultValue="Mise au même dénominateur, exemples guidés, exercices d’application et correction collective." /></label>
-              <div className="form-grid two"><label>Objectifs atteints<textarea defaultValue="Les élèves additionnent deux fractions de dénominateurs différents et expliquent les étapes." /></label><label>Observations<textarea defaultValue="Classe active. Deux élèves nécessitent une remédiation ciblée lors du prochain cours." /></label></div>
-              <div className="form-grid two"><label>Exercices donnés<textarea defaultValue="Exercices 1 à 6 page 45 du manuel." /></label><label>Devoirs donnés<textarea defaultValue="Exercices 7 à 10 page 46. Apprendre la règle d’addition." /></label></div>
-              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="submit" className="blue-button"><Icon name="arrow" /> Soumettre le rapport</button></div>
+              <label>Résumé du cours enseigné<textarea name="lesson_summary" defaultValue="Mise au même dénominateur, exemples guidés, exercices d’application et correction collective." /></label>
+              <div className="form-grid two"><label>Objectifs atteints<textarea name="objectives_achieved" defaultValue="Les élèves additionnent deux fractions de dénominateurs différents et expliquent les étapes." /></label><label>Observations<textarea name="observations" defaultValue="Classe active. Deux élèves nécessitent une remédiation ciblée lors du prochain cours." /></label></div>
+              <div className="form-grid two"><label>Exercices donnés<textarea name="exercises_given" defaultValue="Exercices 1 à 6 page 45 du manuel." /></label><label>Devoirs donnés<textarea name="homework_given" defaultValue="Exercices 7 à 10 page 46. Apprendre la règle d’addition." /></label></div>
+              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="submit" className="blue-button" disabled={loading}><Icon name="arrow" /> {loading ? 'Chargement...' : 'Soumettre le rapport'}</button></div>
             </form>
           </Card>
           <div className="note-box teacher-note"><Icon name="info" /> Le rapport quotidien sert au pointage pédagogique et à la validation du Préfet / Directeur des Études.</div>
         </div>
         <aside className="right-column textbook-side">
-          <Card title="Historique de mes rapports" className="table-card"><TeacherDailyReportHistory /></Card>
+          <Card title="Historique de mes rapports" className="table-card">{loading && <div className="note-box"><Icon name="clock" /> Chargement...</div>}<TeacherDailyReportHistory rows={reports} /></Card>
           <Card title="Programme attendu"><div className="control-box"><span>Chapitre prévu : <b>Chapitre 4 : Fractions</b></span><span>Sous-chapitre prévu : <b>4.2 Addition et soustraction</b></span><strong><Icon name="checkCircle" /> Conforme</strong><p>Le rapport du jour correspond au programme reçu.</p></div></Card>
           <Card title="Calendrier de cette semaine"><WeekGrid /></Card>
         </aside>
@@ -1948,14 +2464,7 @@ function TeacherTextBook() {
   )
 }
 
-function TeacherDailyReportHistory() {
-  const rows = [
-    dailyCourseReports[0],
-    { ...dailyCourseReports[1], id: 'RQC-005', teacher: 'Jean Kabasele', subject: 'Mathématiques', className: '5ème A', status: 'Validé', date: '04/07/2026' },
-    { ...dailyCourseReports[2], id: 'RQC-006', teacher: 'Jean Kabasele', subject: 'Mathématiques', className: '6ème B', status: 'Correction demandée', date: '03/07/2026' },
-    { ...dailyCourseReports[3], id: 'RQC-007', teacher: 'Jean Kabasele', subject: 'Mathématiques', className: '5ème A', status: 'Rejeté', date: '02/07/2026' },
-  ]
-
+function TeacherDailyReportHistory({ rows = dailyCourseReports }: { rows?: UiLessonReport[] }) {
   return <table><thead><tr><th>Date</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Périodes</th><th>Statut</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{row.date}</td><td>{row.className}</td><td>{row.subject}</td><td>{row.chapter}</td><td>{row.periods}</td><td><ReportStatusBadge status={row.status} /></td></tr>)}</tbody></table>
 }
 
@@ -1965,8 +2474,10 @@ function TextBookHistoryTable() {
 
 function LogoutButton() {
   function handleLogout() {
+    clearToken()
+    window.localStorage.removeItem('controle_pedagogique_user')
     window.localStorage.removeItem('pedagoMockSession')
-    window.location.assign('/demarrage')
+    window.location.assign('/login')
   }
 
   return <button className="logout-card" type="button" onClick={handleLogout}><Icon name="login" /> Déconnexion <Icon name="chevron" /></button>
@@ -1974,6 +2485,8 @@ function LogoutButton() {
 
 function TeacherLogoutButton() {
   function handleLogout() {
+    clearToken()
+    window.localStorage.removeItem('controle_pedagogique_user')
     window.localStorage.removeItem('pedagoMockSession')
     window.location.assign('/login')
   }
@@ -2026,6 +2539,7 @@ export {
   ProgressTracking,
   EvaluationControl,
   Reports,
+  SupervisionDetail,
   PrefectLayout,
   PrefectDashboard,
   PrefectValidations,
@@ -2034,6 +2548,8 @@ export {
   PrefectTextBook,
   PrefectEvaluations,
   PrefectReports,
+  PrefectReportDetail,
+  PrefectProgressionDetail,
   PrefectCalendar,
   PrefectAlerts,
   PrefectMessages,

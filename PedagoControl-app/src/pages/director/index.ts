@@ -4,5 +4,6 @@ export {
   EvaluationControl,
   ProgressTracking,
   Reports,
+  SupervisionDetail,
   SchoolPrograms,
 } from '../../components/adminGestionnaire'

@@ -1780,10 +1780,35 @@
   font-weight: 800;
 }
 
+.header-feed-dropdown,
+.user-menu {
+  position: relative;
+}
+
+.header-feed-dropdown summary,
+.user-menu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.header-feed-dropdown summary::-webkit-details-marker,
+.user-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.header-feed-dropdown .management-dropdown,
+.user-menu .management-dropdown {
+  top: calc(100% + 12px);
+}
+
 .mini-profile {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.user-menu .mini-profile {
+  border: 0;
 }
 
 .mini-profile div {
@@ -5086,6 +5111,104 @@ td {
   font-weight: 750;
 }
 
+.table-card {
+  overflow-x: auto;
+}
+
+.table-card table,
+.reports-table table {
+  min-width: 880px;
+}
+
+.school-status,
+.annual-status,
+.badge {
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.visible-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.decision-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.decision-button.green {
+  background: var(--green);
+}
+
+.decision-button.blue {
+  background: var(--blue);
+}
+
+.decision-button.red {
+  background: var(--red);
+}
+
+.report-detail-card {
+  display: grid;
+  gap: 16px;
+}
+
+.report-detail-card header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-detail-card header div {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+}
+
+.report-detail-card header span {
+  color: #536083;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.report-detail-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px 14px;
+}
+
+.report-detail-card dt {
+  color: #536083;
+  font-weight: 900;
+}
+
+.report-detail-card dd {
+  margin: 0;
+  color: var(--blue-dark);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+
+.prefect-selected-row {
+  cursor: pointer;
+}
+
 @media (max-width: 1480px) {
   .director-sidebar {
     width: 286px;
@@ -5530,8 +5653,27 @@ td {
   }
 
   .filter-box,
-  .mini-profile {
+  .mini-profile,
+  .user-menu,
+  .header-feed-dropdown {
     width: 100%;
+  }
+
+  .notification {
+    width: 100%;
+    justify-content: center;
+    display: grid;
+    place-items: center;
+    border: 1px solid #dce5f3;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .header-feed-dropdown .management-dropdown,
+  .user-menu .management-dropdown {
+    right: auto;
+    left: 0;
+    width: min(360px, calc(100vw - 24px));
   }
 
   .kpi-grid,
@@ -5695,6 +5837,19 @@ td {
 
   .week-grid {
     min-width: 620px;
+  }
+
+  .report-detail-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .visible-actions,
+  .prefect-decision-actions {
+    flex-direction: column;
+  }
+
+  .decision-button {
+    width: 100%;
   }
 
   .teacher-footer {

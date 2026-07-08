@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AccessibilityEnhancer } from './components'
 import { DirectorLayout, ManagementLayout, PrefectLayout, TeacherLayout } from './layouts'
 import { DemoAccess, LoginScreen, PresentationScreen } from './pages/auth'
-import { AnnualRepartition, Dashboard, EvaluationControl, ProgressTracking, Reports, SchoolPrograms } from './pages/director'
+import { AnnualRepartition, Dashboard, EvaluationControl, ProgressTracking, Reports, SchoolPrograms, SupervisionDetail } from './pages/director'
 import { TeacherDashboard, TeacherEvaluations, TeacherPrograms, TeacherProgress, TeacherTextBook } from './pages/enseignant'
 import {
   ClientSchools,
@@ -30,6 +30,8 @@ import {
   PrefectEvaluations,
   PrefectMessages,
   PrefectProgramControl,
+  PrefectProgressionDetail,
+  PrefectReportDetail,
   PrefectReports,
   PrefectSettings,
   PrefectTeachersFollowUp,
@@ -78,6 +80,7 @@ function App() {
         <Route path="/directeur/suivi-avancement" element={<DirectorLayout title="Suivi d'avancement" crumb="Suivi d'avancement" compactFilters><ProgressTracking /></DirectorLayout>} />
         <Route path="/directeur/evaluations-controles" element={<DirectorLayout title="Evaluations & Controles" crumb="Evaluations & Controles" compactFilters><EvaluationControl /></DirectorLayout>} />
         <Route path="/directeur/rapports" element={<DirectorLayout title="Centre de Supervision" crumb="Centre de Supervision"><Reports /></DirectorLayout>} />
+        <Route path="/directeur/supervision/:id" element={<DirectorLayout title="Détail supervision" crumb="Détail supervision"><SupervisionDetail /></DirectorLayout>} />
         <Route path="/directeur/calendrier" element={<DirectorLayout title="Calendrier" crumb="Calendrier"><EvaluationControl /></DirectorLayout>} />
         <Route path="/directeur/messages" element={<DirectorLayout title="Messages" crumb="Messages"><Reports /></DirectorLayout>} />
         <Route path="/directeur/parametres" element={<DirectorLayout title="Parametres" crumb="Parametres"><Reports /></DirectorLayout>} />
@@ -85,11 +88,13 @@ function App() {
 
         <Route path="/prefet" element={<PrefectLayout title="Dashboard Prefet" subtitle="Pilotage pedagogique et validation des activites scolaires"><PrefectDashboard /></PrefectLayout>} />
         <Route path="/prefet/validations" element={<PrefectLayout title="Validation des progressions" crumb="Validation des progressions"><PrefectValidations /></PrefectLayout>} />
+        <Route path="/prefet/progressions/:id" element={<PrefectLayout title="Détail progression" crumb="Détail progression"><PrefectProgressionDetail /></PrefectLayout>} />
         <Route path="/prefet/controle-programmes" element={<PrefectLayout title="Controle des programmes" crumb="Controle des programmes"><PrefectProgramControl /></PrefectLayout>} />
         <Route path="/prefet/suivi-enseignants" element={<PrefectLayout title="Suivi des enseignants" crumb="Suivi des enseignants"><PrefectTeachersFollowUp /></PrefectLayout>} />
         <Route path="/prefet/cahier-textes" element={<PrefectLayout title="Cahier de textes numerique" crumb="Cahier de textes numerique"><PrefectTextBook /></PrefectLayout>} />
         <Route path="/prefet/evaluations" element={<PrefectLayout title="Evaluations" crumb="Evaluations"><PrefectEvaluations /></PrefectLayout>} />
         <Route path="/prefet/rapports" element={<PrefectLayout title="Validation des rapports quotidiens" crumb="Rapports quotidiens"><PrefectReports /></PrefectLayout>} />
+        <Route path="/prefet/rapports/:id" element={<PrefectLayout title="Détail rapport quotidien" crumb="Détail rapport"><PrefectReportDetail /></PrefectLayout>} />
         <Route path="/prefet/calendrier" element={<PrefectLayout title="Calendrier academique" crumb="Calendrier academique"><PrefectCalendar /></PrefectLayout>} />
         <Route path="/prefet/alertes" element={<PrefectLayout title="Alertes pedagogiques" crumb="Alertes pedagogiques"><PrefectAlerts /></PrefectLayout>} />
         <Route path="/prefet/messages" element={<PrefectLayout title="Messages" crumb="Messages"><PrefectMessages /></PrefectLayout>} />
