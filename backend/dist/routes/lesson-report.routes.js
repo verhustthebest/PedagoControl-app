@@ -4,6 +4,7 @@ const express_1 = require("express");
 const lesson_report_controller_1 = require("../controllers/lesson-report.controller");
 const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
+router.get('/teacher/reports', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.teacherReports);
 router.get('/teacher/reports/today', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.teacherReportsToday);
 router.post('/teacher/reports', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.submitTeacherReport);
 router.get('/prefet/reports/pending', auth_middleware_1.authenticateBearerToken, lesson_report_controller_1.prefetReportsPending);

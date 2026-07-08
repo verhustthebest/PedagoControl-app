@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.teacherReports = teacherReports;
 exports.teacherReportsToday = teacherReportsToday;
 exports.submitTeacherReport = submitTeacherReport;
 exports.prefetReportsPending = prefetReportsPending;
@@ -12,6 +13,19 @@ function requireUser(request, response) {
         return null;
     }
     return request.user;
+}
+async function teacherReports(request, response) {
+    const user = requireUser(request, response);
+    if (!user)
+        return;
+    try {
+        const reports = await (0, lesson_report_service_1.getTeacherReports)(user);
+        return response.json({ reports });
+    }
+    catch (error) {
+        console.error('Unable to fetch teacher reports', error);
+        return response.status(500).json({ message: 'Unable to fetch teacher reports' });
+    }
 }
 async function teacherReportsToday(request, response) {
     const user = requireUser(request, response);
@@ -68,7 +82,7 @@ async function decidePrefetReport(request, response) {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to decide report';
-        const status = message.includes('decision must') ? 400 : 500;
+        const status = message.includes('decision must') ? 400 : message.includes('not found') ? 404 : 500;
         console.error('Unable to decide report', error);
         return response.status(status).json({ message });
     }

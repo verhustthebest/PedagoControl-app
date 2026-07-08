@@ -167,6 +167,18 @@ export async function getTeacherReportsToday(user: AuthUser) {
   return serialize(reports)
 }
 
+export async function getTeacherReports(user: AuthUser) {
+  const reports = await prisma.lesson_sessions.findMany({
+    where: {
+      teacher_user_id: toBigInt(user.id),
+    },
+    include: reportInclude,
+    orderBy: { submitted_at: 'desc' },
+  })
+
+  return serialize(reports)
+}
+
 export async function createTeacherReport(user: AuthUser, input: CreateLessonReportInput) {
   if (!input.program_distribution_id || !input.teacher_assignment_id || !input.lesson_summary) {
     throw new Error('program_distribution_id, teacher_assignment_id and lesson_summary are required')
@@ -186,6 +198,19 @@ export async function createTeacherReport(user: AuthUser, input: CreateLessonRep
 
   if (!assignment) {
     throw new Error('Active teacher assignment not found for current user')
+  }
+
+  const distribution = await prisma.program_distribution.findFirst({
+    where: {
+      id: programDistributionId,
+      annual_programs: {
+        academic_year_subject_id: assignment.academic_year_subject_id,
+      },
+    },
+  })
+
+  if (!distribution) {
+    throw new Error('Program distribution not found for this teacher assignment')
   }
 
   const report = await prisma.lesson_sessions.create({
@@ -264,14 +289,24 @@ export async function decideReport(user: AuthUser, reportId: string, input: Deci
   const prefectUserId = toBigInt(user.id)
   const lessonSessionId = toBigInt(reportId)
 
+  const existingReport = await prisma.lesson_sessions.findFirst({
+    where: {
+      id: lessonSessionId,
+      ...schoolScope(user),
+    },
+  })
+
+  if (!existingReport) {
+    throw new Error('Report not found')
+  }
+
   const report = await prisma.$transaction(async (transaction) => {
-    const updatedReport = await transaction.lesson_sessions.update({
+    await transaction.lesson_sessions.update({
       where: { id: lessonSessionId },
       data: {
         lesson_status: input.decision,
         updated_at: new Date(),
       },
-      include: reportInclude,
     })
 
     await transaction.lesson_validations.create({
@@ -294,7 +329,10 @@ export async function decideReport(user: AuthUser, reportId: string, input: Deci
       })
     }
 
-    return updatedReport
+    return transaction.lesson_sessions.findUniqueOrThrow({
+      where: { id: lessonSessionId },
+      include: reportInclude,
+    })
   })
 
   await createActivityLog({

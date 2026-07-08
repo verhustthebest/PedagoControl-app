@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isLessonDecision = isLessonDecision;
 exports.getTeacherReportsToday = getTeacherReportsToday;
+exports.getTeacherReports = getTeacherReports;
 exports.createTeacherReport = createTeacherReport;
 exports.getPendingReports = getPendingReports;
 exports.decideReport = decideReport;
@@ -125,6 +126,16 @@ async function getTeacherReportsToday(user) {
     });
     return serialize(reports);
 }
+async function getTeacherReports(user) {
+    const reports = await client_1.default.lesson_sessions.findMany({
+        where: {
+            teacher_user_id: toBigInt(user.id),
+        },
+        include: reportInclude,
+        orderBy: { submitted_at: 'desc' },
+    });
+    return serialize(reports);
+}
 async function createTeacherReport(user, input) {
     if (!input.program_distribution_id || !input.teacher_assignment_id || !input.lesson_summary) {
         throw new Error('program_distribution_id, teacher_assignment_id and lesson_summary are required');
@@ -141,6 +152,17 @@ async function createTeacherReport(user, input) {
     });
     if (!assignment) {
         throw new Error('Active teacher assignment not found for current user');
+    }
+    const distribution = await client_1.default.program_distribution.findFirst({
+        where: {
+            id: programDistributionId,
+            annual_programs: {
+                academic_year_subject_id: assignment.academic_year_subject_id,
+            },
+        },
+    });
+    if (!distribution) {
+        throw new Error('Program distribution not found for this teacher assignment');
     }
     const report = await client_1.default.lesson_sessions.create({
         data: {
@@ -209,14 +231,22 @@ async function decideReport(user, reportId, input) {
     }
     const prefectUserId = toBigInt(user.id);
     const lessonSessionId = toBigInt(reportId);
+    const existingReport = await client_1.default.lesson_sessions.findFirst({
+        where: {
+            id: lessonSessionId,
+            ...schoolScope(user),
+        },
+    });
+    if (!existingReport) {
+        throw new Error('Report not found');
+    }
     const report = await client_1.default.$transaction(async (transaction) => {
-        const updatedReport = await transaction.lesson_sessions.update({
+        await transaction.lesson_sessions.update({
             where: { id: lessonSessionId },
             data: {
                 lesson_status: input.decision,
                 updated_at: new Date(),
             },
-            include: reportInclude,
         });
         await transaction.lesson_validations.create({
             data: {
@@ -236,7 +266,10 @@ async function decideReport(user, reportId, input) {
                 },
             });
         }
-        return updatedReport;
+        return transaction.lesson_sessions.findUniqueOrThrow({
+            where: { id: lessonSessionId },
+            include: reportInclude,
+        });
     });
     await createActivityLog({
         schoolId: user.school_id,

@@ -4,12 +4,14 @@ import {
   prefetReportsPending,
   submitTeacherReport,
   supervisionReports,
+  teacherReports,
   teacherReportsToday,
 } from '../controllers/lesson-report.controller'
 import { authenticateBearerToken } from '../middleware/auth.middleware'
 
 const router = Router()
 
+router.get('/teacher/reports', authenticateBearerToken, teacherReports)
 router.get('/teacher/reports/today', authenticateBearerToken, teacherReportsToday)
 router.post('/teacher/reports', authenticateBearerToken, submitTeacherReport)
 router.get('/prefet/reports/pending', authenticateBearerToken, prefetReportsPending)

@@ -5,6 +5,7 @@ import {
   decideReport,
   getPendingReports,
   getSupervisionReports,
+  getTeacherReports,
   getTeacherReportsToday,
 } from '../services/lesson-report.service'
 
@@ -15,6 +16,19 @@ function requireUser(request: AuthenticatedRequest, response: Response) {
   }
 
   return request.user
+}
+
+export async function teacherReports(request: AuthenticatedRequest, response: Response) {
+  const user = requireUser(request, response)
+  if (!user) return
+
+  try {
+    const reports = await getTeacherReports(user)
+    return response.json({ reports })
+  } catch (error) {
+    console.error('Unable to fetch teacher reports', error)
+    return response.status(500).json({ message: 'Unable to fetch teacher reports' })
+  }
 }
 
 export async function teacherReportsToday(request: AuthenticatedRequest, response: Response) {
@@ -73,7 +87,7 @@ export async function decidePrefetReport(request: AuthenticatedRequest, response
     return response.json({ report })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to decide report'
-    const status = message.includes('decision must') ? 400 : 500
+    const status = message.includes('decision must') ? 400 : message.includes('not found') ? 404 : 500
     console.error('Unable to decide report', error)
     return response.status(status).json({ message })
   }
