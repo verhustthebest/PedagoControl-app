@@ -99,6 +99,24 @@ async function createNotifications(params: {
   })
 }
 
+function reportNotificationContext(report: {
+  actual_date: Date
+  users?: { first_name: string; last_name: string; email: string }
+  teacher_assignments?: {
+    academic_year_subjects?: {
+      subjects?: { name: string }
+      academic_year_classes?: { school_classes?: { name: string; parallel: string | null } }
+    }
+  }
+}) {
+  const teacher = [report.users?.first_name, report.users?.last_name].filter(Boolean).join(' ') || report.users?.email || 'Enseignant'
+  const schoolClass = report.teacher_assignments?.academic_year_subjects?.academic_year_classes?.school_classes
+  const className = [schoolClass?.name, schoolClass?.parallel].filter(Boolean).join(' ') || 'Classe'
+  const subject = report.teacher_assignments?.academic_year_subjects?.subjects?.name || 'Matiere'
+  const date = report.actual_date.toISOString().slice(0, 10)
+  return `${teacher} - ${className} - ${subject} - ${date}`
+}
+
 async function createActivityLog(params: {
   schoolId: string | null
   userId: bigint
@@ -133,7 +151,20 @@ const reportInclude = {
       school_id: true,
     },
   },
-  teacher_assignments: true,
+  teacher_assignments: {
+    include: {
+      academic_year_subjects: {
+        include: {
+          subjects: true,
+          academic_year_classes: {
+            include: {
+              school_classes: true,
+            },
+          },
+        },
+      },
+    },
+  },
   program_distribution: {
     include: {
       program_chapters: true,
@@ -251,7 +282,7 @@ export async function createTeacherReport(user: AuthUser, input: CreateLessonRep
       recipients: prefets,
       senderId: teacherUserId,
       title: 'Nouveau rapport quotidien',
-      message: `Un rapport de cours a ete soumis par ${user.first_name} ${user.last_name}.`,
+      message: reportNotificationContext(report),
       notificationType: 'lesson_report_submitted',
       referenceId: report.id,
     }),
@@ -259,7 +290,7 @@ export async function createTeacherReport(user: AuthUser, input: CreateLessonRep
       recipients: promoters,
       senderId: teacherUserId,
       title: 'Supervision silencieuse',
-      message: `Rapport quotidien soumis par ${user.first_name} ${user.last_name}.`,
+      message: reportNotificationContext(report),
       notificationType: 'silent_supervision_report_submitted',
       referenceId: report.id,
     }),
@@ -351,7 +382,7 @@ export async function decideReport(user: AuthUser, reportId: string, input: Deci
       recipients: [{ id: report.teacher_user_id }],
       senderId: prefectUserId,
       title: 'Decision sur votre rapport',
-      message: `Votre rapport quotidien est marque: ${input.decision}.`,
+      message: `${input.decision} - ${reportNotificationContext(report)}`,
       notificationType: 'lesson_report_decision',
       referenceId: report.id,
     }),
@@ -359,7 +390,7 @@ export async function decideReport(user: AuthUser, reportId: string, input: Deci
       recipients: promoters,
       senderId: prefectUserId,
       title: 'Supervision silencieuse',
-      message: `Decision ${input.decision} sur un rapport quotidien.`,
+      message: `${input.decision} - ${reportNotificationContext(report)}`,
       notificationType: 'silent_supervision_report_decision',
       referenceId: report.id,
     }),
