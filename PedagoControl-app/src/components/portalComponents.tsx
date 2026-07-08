@@ -132,9 +132,9 @@ function AccessibilityEnhancer() {
 function AuthShell({ children, footerVariant = 'default' }: { children: ReactNode; footerVariant?: 'default' | 'login' }) {
   return (
     <main className="auth-page">
-      <section className="auth-card" aria-label="PEDAGO CONTROL">
+      <section className="auth-card" aria-label="CONTRÔLE PÉDAGOGIQUE">
         <aside className="presentation-visual">
-          <img src={presentationPanel} alt="Présentation PEDAGO CONTROL" />
+          <img src={presentationPanel} alt="Présentation CONTRÔLE PÉDAGOGIQUE" />
         </aside>
         <section className="auth-panel">{children}</section>
       </section>
@@ -145,9 +145,9 @@ function AuthShell({ children, footerVariant = 'default' }: { children: ReactNod
 
 function PresentationScreen() {
   return (
-    <main className="startup-page" aria-label="Présentation PEDAGO CONTROL">
+    <main className="startup-page" aria-label="Présentation CONTRÔLE PÉDAGOGIQUE">
       <section className="startup-frame">
-        <img src={startupMockup} alt="PEDAGO CONTROL - Contrôlez l’exécution réelle des programmes scolaires" />
+        <img src={startupMockup} alt="CONTRÔLE PÉDAGOGIQUE - Contrôlez l’exécution réelle des programmes scolaires" />
         <Link className="startup-login-hotspot" to="/login">
           <span>Se connecter</span>
         </Link>
@@ -182,7 +182,7 @@ function LoginScreen() {
     <AuthShell footerVariant="login">
       <LanguageSelector />
       <section className="brand-block">
-        <img src={brandLogo} alt="PEDAGO CONTROL - Plateforme intelligente" />
+        <img src={brandLogo} alt="CONTRÔLE PÉDAGOGIQUE - Plateforme intelligente" />
         <div className="promise-row" aria-label="Promesse de la plateforme">
           <span className="promise promise-blue"><Icon name="eye" /> Contrôlez.</span>
           <span className="promise promise-gold"><Icon name="trend" /> Suivez.</span>
@@ -228,7 +228,7 @@ function DemoAccess() {
     <AuthShell footerVariant="login">
       <LanguageSelector />
       <section className="brand-block demo-state">
-        <img src={brandLogo} alt="PEDAGO CONTROL - Plateforme intelligente" />
+        <img src={brandLogo} alt="CONTRÔLE PÉDAGOGIQUE - Plateforme intelligente" />
         <div className="login-box demo-box">
           <Link className="primary-action" to="/directeur">Commencer</Link>
         </div>
@@ -248,8 +248,8 @@ function ManagementLayout({ title, crumb, children }: { title: string; crumb?: s
       <aside className="management-sidebar">
         <Link className="management-brand" to="/management/ecoles">
           <span className="brand-shield"><Icon name="book" /></span>
-          <strong>PEDAGO</strong>
-          <b>CONTROLE</b>
+          <strong>CONTRÔLE</strong>
+          <b>PÉDAGOGIQUE</b>
         </Link>
         <span className="management-menu-label">Compte Management</span>
         <nav className="management-nav">
@@ -340,7 +340,7 @@ function ClientSchools() {
       <div className="schools-hero">
         <div>
           <h2>Ecoles clientes</h2>
-          <p>Gerez les ecoles abonnees a PEDAGO CONTROL</p>
+          <p>Gerez les ecoles abonnees a CONTRÔLE PÉDAGOGIQUE</p>
         </div>
         <Link className="blue-button" to="/management/ecoles/nouvelle"><Icon name="plus" /> Nouvelle ecole</Link>
       </div>
@@ -903,7 +903,7 @@ function Sidebar() {
   return (
     <aside className="director-sidebar">
       <Link className="director-brand" to="/directeur">
-        <img src={brandLogo} alt="PEDAGO CONTROL" />
+        <img src={brandLogo} alt="CONTRÔLE PÉDAGOGIQUE" />
       </Link>
       <nav className="director-nav">
         {navItems.map((item) => (
@@ -1525,7 +1525,7 @@ function StudentBanner() {
 }
 
 function PromoBand() {
-  return <section className="promo-band"><div className="book-stack" /><p><strong>Notre objectif : une éducation de qualité pour un avenir meilleur.</strong><span>Avec PEDAGO CONTROL, suivez, contrôlez et améliorez l’exécution des programmes scolaires en toute simplicité.</span></p><div className="flag-wave">★</div></section>
+  return <section className="promo-band"><div className="book-stack" /><p><strong>Notre objectif : une éducation de qualité pour un avenir meilleur.</strong><span>Avec CONTRÔLE PÉDAGOGIQUE, suivez, contrôlez et améliorez l’exécution des programmes scolaires en toute simplicité.</span></p><div className="flag-wave">★</div></section>
 }
 
 function InfoPanel() {
@@ -1541,7 +1541,7 @@ function PrefectLayout({ title, subtitle, crumb, children }: { title: string; su
     <main className="director-shell prefect-shell">
       <aside className="director-sidebar prefect-sidebar">
         <Link className="director-brand teacher-brand" to="/prefet">
-          <img src={brandLogo} alt="PEDAGO CONTROL" />
+          <img src={brandLogo} alt="CONTRÔLE PÉDAGOGIQUE" />
           <span>Prefet des Etudes</span>
         </Link>
         <div className="teacher-profile"><Avatar name="Prefet Etudes" /><div><strong>M. Kalala</strong><span>Prefet des Etudes</span><small><i /> En ligne</small></div></div>
@@ -1780,7 +1780,7 @@ function TeacherLayout({ title, subtitle, crumb, children }: { title: string; su
     <main className="director-shell teacher-shell">
       <aside className="director-sidebar teacher-sidebar">
         <Link className="director-brand teacher-brand" to="/enseignant">
-          <img src={brandLogo} alt="PEDAGO CONTROL" />
+          <img src={brandLogo} alt="CONTRÔLE PÉDAGOGIQUE" />
           <span>Portail Enseignant</span>
         </Link>
         <div className="teacher-profile">
@@ -1982,7 +1982,7 @@ function TeacherLogoutButton() {
 }
 
 function DirectorFooter() {
-  return <footer className="director-footer"><span>PEDAGO CONTROL - Pilotage pédagogique intelligent pour une éducation de qualité en RDC.</span><span>© 2024 PEDAGO CONTROL. Tous droits réservés.</span></footer>
+  return <footer className="director-footer"><span>CONTRÔLE PÉDAGOGIQUE - Pilotage pédagogique intelligent pour une éducation de qualité en RDC.</span><span>© 2024 CONTRÔLE PÉDAGOGIQUE. Tous droits réservés.</span></footer>
 }
 
 export {

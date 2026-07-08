@@ -55,15 +55,15 @@ export function LanguageSelector() {
 }
 
 export function SecurityNotice({ emphasizePrivacy = false }: { emphasizePrivacy?: boolean }) {
-  return <div className={`security-notice${emphasizePrivacy ? ' security-notice-emphasized' : ''}`}><Icon name="shield" /><p><strong>Vos données sont sécurisées et protégées</strong><span>PEDAGO CONTROL respecte la confidentialité de vos informations.</span></p></div>
+  return <div className={`security-notice${emphasizePrivacy ? ' security-notice-emphasized' : ''}`}><Icon name="shield" /><p><strong>Vos données sont sécurisées et protégées</strong><span>CONTRÔLE PÉDAGOGIQUE respecte la confidentialité de vos informations.</span></p></div>
 }
 
 export function Footer({ variant = 'default' }: { variant?: 'default' | 'login' }) {
   if (variant === 'login') {
-    return <footer className="auth-footer login-footer"><span>© 2024 PEDAGO CONTROL - Tous droits réservés</span><span className="footer-red">Altas Building Contractor © Copyright</span></footer>
+    return <footer className="auth-footer login-footer"><span>© 2024 CONTRÔLE PÉDAGOGIQUE - Tous droits réservés</span><span className="footer-red">Altas Building Contractor © Copyright</span></footer>
   }
 
-  return <footer className="auth-footer"><span>© 2024 PEDAGO CONTROL - Tous droits réservés</span><span>Ministère de l’Enseignement Primaire, Secondaire et Technique</span><span>République Démocratique du Congo</span><span className="footer-flag">🇨🇩</span></footer>
+  return <footer className="auth-footer"><span>© 2024 CONTRÔLE PÉDAGOGIQUE - Tous droits réservés</span><span>Ministère de l’Enseignement Primaire, Secondaire et Technique</span><span>République Démocratique du Congo</span><span className="footer-flag">🇨🇩</span></footer>
 }
 
 export function Icon({ name }: { name: string }) {
