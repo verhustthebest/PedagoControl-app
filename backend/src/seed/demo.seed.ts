@@ -11,6 +11,7 @@ const className = '5eme'
 const classParallel = 'A'
 const subjectName = 'Mathematiques'
 const roleSeeds = [
+  { name: 'SUPER_ADMIN', label: 'Super Administrateur', description: 'Administration globale de la plateforme demo' },
   { name: 'ADMIN_GESTIONNAIRE', label: 'Admin Gestionnaire', description: 'Gestion et supervision de l ecole demo' },
   { name: 'PREFET', label: 'Prefet des Etudes', description: 'Validation pedagogique des rapports demo' },
   { name: 'ENSEIGNANT', label: 'Enseignant', description: 'Soumission des rapports quotidiens demo' },
@@ -48,20 +49,20 @@ async function upsertDemoUser(params: {
   firstName: string
   lastName: string
   roleId: bigint
-  schoolId: bigint
+  schoolId?: bigint | null
   passwordHash: string
 }) {
   const user = await prisma.users.upsert({
     where: { email: params.email },
     update: {
-      school_id: params.schoolId,
+      school_id: params.schoolId ?? null,
       first_name: params.firstName,
       last_name: params.lastName,
       password_hash: params.passwordHash,
       is_active: true,
     },
     create: {
-      school_id: params.schoolId,
+      school_id: params.schoolId ?? null,
       first_name: params.firstName,
       last_name: params.lastName,
       email: params.email,
@@ -422,7 +423,7 @@ async function main() {
     where: { code: schoolCode },
     update: {
       name: 'Ecole Demo Controle Pedagogique',
-      promoter_name: 'Promoteur Demo',
+      promoter_name: 'Promoteur Principal',
       promoter_email: 'promoteur@demo.com',
       phone: '+243810000000',
       address: 'Kinshasa, RDC',
@@ -431,7 +432,7 @@ async function main() {
     create: {
       code: schoolCode,
       name: 'Ecole Demo Controle Pedagogique',
-      promoter_name: 'Promoteur Demo',
+      promoter_name: 'Promoteur Principal',
       promoter_email: 'promoteur@demo.com',
       phone: '+243810000000',
       address: 'Kinshasa, RDC',
@@ -442,25 +443,33 @@ async function main() {
   const promoter = await upsertDemoUser({
     email: 'promoteur@demo.com',
     firstName: 'Promoteur',
-    lastName: 'Demo',
+    lastName: 'Principal',
     roleId: roleByName.get('ADMIN_GESTIONNAIRE')!.id,
     schoolId: school.id,
     passwordHash,
   })
   const prefect = await upsertDemoUser({
     email: 'prefet@demo.com',
-    firstName: 'Prefet',
-    lastName: 'Demo',
+    firstName: 'M.',
+    lastName: 'Kalala',
     roleId: roleByName.get('PREFET')!.id,
     schoolId: school.id,
     passwordHash,
   })
   const teacher = await upsertDemoUser({
     email: 'enseignant@demo.com',
-    firstName: 'Enseignant',
-    lastName: 'Demo',
+    firstName: 'Jean',
+    lastName: 'Kabasele',
     roleId: roleByName.get('ENSEIGNANT')!.id,
     schoolId: school.id,
+    passwordHash,
+  })
+  await upsertDemoUser({
+    email: 'admin@test.com',
+    firstName: 'Admin',
+    lastName: 'Management',
+    roleId: roleByName.get('SUPER_ADMIN')!.id,
+    schoolId: null,
     passwordHash,
   })
 
