@@ -98,7 +98,8 @@ function statusLabel(status: ReportStatus) {
 }
 
 export function mapLessonReport(report: BackendLessonReport): UiLessonReport {
-  const teacherName = [report.users?.first_name, report.users?.last_name].filter(Boolean).join(' ') || report.users?.email || 'Enseignant'
+  const rawTeacherName = [report.users?.first_name, report.users?.last_name].filter(Boolean).join(' ')
+  const teacherName = rawTeacherName === 'Enseignant Demo' ? report.users?.email || 'Enseignant' : rawTeacherName || report.users?.email || 'Enseignant'
   const schoolClass = report.teacher_assignments?.academic_year_subjects?.academic_year_classes?.school_classes
   const subject = report.teacher_assignments?.academic_year_subjects?.subjects
   const validation = report.lesson_validations?.[report.lesson_validations.length - 1]

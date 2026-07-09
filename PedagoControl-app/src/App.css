@@ -4525,7 +4525,30 @@ td {
 
 .prefect-alert-list article,
 .prefect-delay-list article {
-  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  grid-template-columns: 38px minmax(0, 1fr) minmax(128px, auto);
+}
+
+.prefect-alert-meta {
+  min-width: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.prefect-alert-meta .badge {
+  width: auto;
+  min-width: 74px;
+  max-width: none;
+  padding-inline: 9px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  line-height: 1;
+}
+
+.prefect-alert-meta time {
+  min-width: 64px;
+  text-align: right;
 }
 
 .prefect-message-feed.detailed article {
@@ -5124,9 +5147,11 @@ td {
 .annual-status,
 .badge {
   max-width: 100%;
+  min-width: 0;
   text-align: center;
   white-space: normal;
   overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .visible-actions {
@@ -5536,6 +5561,24 @@ td {
 }
 
 @media (max-width: 820px) {
+  .prefect-alert-list article {
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .prefect-alert-meta {
+    grid-column: 2;
+    min-width: 0;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .prefect-alert-meta time {
+    min-width: auto;
+    text-align: left;
+  }
+
   .management-sidebar,
   .director-sidebar {
     grid-template-columns: 1fr;

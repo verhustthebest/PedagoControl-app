@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
+import { useRef } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import brandLogo from '../assets/pedago-brand.png'
@@ -211,6 +212,8 @@ function formatNotificationDate(value: string) {
 function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string; title: string; initialCount: number; items: Array<[string, string, string, string]> }) {
   const [unread, setUnread] = useState(initialCount)
   const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [apiFailed, setApiFailed] = useState(false)
+  const detailsRef = useRef<HTMLDetailsElement>(null)
   const usesNotificationApi = title === 'Notifications'
   const usesMessagesApi = title === 'Messages'
 
@@ -226,9 +229,11 @@ function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string
           ])
       setNotifications(list)
       setUnread(count)
+      setApiFailed(false)
     } catch {
       setNotifications([])
       setUnread(initialCount)
+      setApiFailed(true)
     }
   }
 
@@ -242,6 +247,15 @@ function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string
 
     return () => window.clearInterval(timer)
   }, [usesNotificationApi, usesMessagesApi])
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (detailsRef.current && !detailsRef.current.contains(event.target as Node)) detailsRef.current.open = false
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [])
 
   async function markRead(notification: AppNotification) {
     if ((!usesNotificationApi && !usesMessagesApi) || notification.is_read) return
@@ -279,7 +293,7 @@ function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string
   }
 
   return (
-    <details className="header-feed-dropdown" onToggle={(event) => { if (event.currentTarget.open && !usesNotificationApi && !usesMessagesApi) setUnread(0) }}>
+    <details ref={detailsRef} className="header-feed-dropdown" onToggle={(event) => { if (event.currentTarget.open && !usesNotificationApi && !usesMessagesApi) setUnread(0) }}>
       <summary className="notification" aria-label={title}>
         <Icon name={icon} />
         {unread > 0 && <span>{unread}</span>}
@@ -292,13 +306,13 @@ function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string
             <p><strong>{notification.title}</strong><small>{notification.message}</small><em>{notification.is_read ? 'Lu' : 'Non lu'}</em></p>
             <time>{formatNotificationDate(notification.created_at)}</time>
           </article>
-        )) : items.map(([itemIcon, itemTitle, preview, time]) => (
+        )) : apiFailed ? items.map(([itemIcon, itemTitle, preview, time]) => (
           <article key={`${title}-${itemTitle}`}>
             <span><Icon name={itemIcon} /></span>
             <p><strong>{itemTitle}</strong><small>{preview}</small><em>{unread ? 'Non lu' : 'Lu'}</em></p>
             <time>{time}</time>
           </article>
-        ))}
+        )) : <article><span><Icon name="info" /></span><p><strong>Aucun élément</strong><small>Aucune donnée récente.</small><em>Lu</em></p><time>-</time></article>}
         <button className="dropdown-view-all" type="button" onClick={() => void markAllRead()}>Tout marquer comme lu <Icon name="checkCircle" /></button>
       </div>
     </details>
@@ -307,6 +321,16 @@ function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string
 
 function UserMenu({ compact = false }: { compact?: boolean }) {
   const user = getStoredUserRole()
+  const detailsRef = useRef<HTMLDetailsElement>(null)
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (detailsRef.current && !detailsRef.current.contains(event.target as Node)) detailsRef.current.open = false
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [])
 
   function logout() {
     clearToken()
@@ -316,7 +340,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <details className={`user-menu${compact ? ' teacher-mini' : ''}`}>
+    <details ref={detailsRef} className={`user-menu${compact ? ' teacher-mini' : ''}`}>
       <summary className={`mini-profile${compact ? ' teacher-mini' : ''}`}>
         <Avatar name={user.name} />
         <div><strong>{user.role}</strong><small><i /> En ligne</small></div>
@@ -489,19 +513,7 @@ function ManagementLayout({ title, crumb, children }: { title: string; crumb?: s
           <div className="management-tools">
             <HeaderFeedDropdown icon="bell" title="Notifications" initialCount={5} items={headerNotifications} />
             <HeaderFeedDropdown icon="message" title="Messages" initialCount={3} items={headerMessages} />
-            <details className="management-profile-menu">
-              <summary aria-label="Ouvrir le menu profil">
-                <Avatar name={getStoredUserRole().name} />
-                <span><strong>{getStoredUserRole().name}</strong><small>{getStoredUserRole().role}</small></span>
-                <Icon name="chevron" />
-              </summary>
-              <div className="management-dropdown profile-dropdown">
-                <button type="button"><Icon name="user" /> Mon profil</button>
-                <button type="button"><Icon name="file" /> Modifier la photo</button>
-                <Link to="/management/parametres"><Icon name="settings" /> Parametres du compte</Link>
-                <button type="button" className="danger" onClick={logoutToLogin}><Icon name="login" /> Deconnexion</button>
-              </div>
-            </details>
+            <UserMenu />
           </div>
         </header>
         <div className="management-content">{children}</div>
@@ -1493,8 +1505,8 @@ function EvaluationControl() {
 }
 
 function Reports() {
-  const [rows, setRows] = useState<UiLessonReport[]>(dailyCourseReports)
-  const [summary, setSummary] = useState({ soumis: 18, valides: 12, rejetes: 2, corrections: 3 })
+  const [rows, setRows] = useState<UiLessonReport[]>([])
+  const [summary, setSummary] = useState({ soumis: 0, valides: 0, rejetes: 0, corrections: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -1508,12 +1520,12 @@ function Reports() {
       try {
         const data = await reportsApi.getSupervisionReports()
         if (!mounted) return
-        setRows(data.reports)
+        setRows(Array.from(new Map(data.reports.map((report) => [report.rawId, report])).values()))
         setSummary(data.summary)
       } catch (apiError) {
         if (!mounted) return
-        if (!(apiError instanceof TypeError)) setError('Impossible de charger les rapports.')
-        setRows(dailyCourseReports)
+        setError(apiError instanceof TypeError ? 'Connexion backend indisponible.' : 'Impossible de charger les rapports.')
+        setRows([])
       } finally {
         if (mounted) setLoading(false)
       }
@@ -1539,7 +1551,7 @@ function Reports() {
         <Card title="Centre de Supervision - rapports quotidiens" className="table-card reports-table">
           {loading && <div className="note-box"><Icon name="clock" /> Chargement des rapports...</div>}
           {error && <div className="login-error">{error}</div>}
-          <DailyReportsSupervisionTable reports={rows} />
+          {!loading && !rows.length ? <div className="note-box"><Icon name="info" /> Aucun rapport réel disponible.</div> : <DailyReportsSupervisionTable reports={rows} />}
           <div className="readonly-note"><Icon name="eye" /> Le Promoteur observe silencieusement. Les décisions restent réservées au Préfet / Directeur des Études.</div>
         </Card>
         <section className="supervision-grid">
@@ -1566,7 +1578,7 @@ function Reports() {
   )
 }
 
-function DailyReportsSupervisionTable({ reports = dailyCourseReports }: { reports?: UiLessonReport[] }) {
+function DailyReportsSupervisionTable({ reports = [] }: { reports?: UiLessonReport[] }) {
   return <table><thead><tr><th>Date</th><th>Enseignant</th><th>Classe</th><th>Matiere</th><th>Chapitre</th><th>Statut</th><th>Action</th><th>Observation</th></tr></thead><tbody>{reports.map((report) => <tr key={report.rawId || report.id} onClick={() => window.location.assign(`/directeur/supervision/${report.rawId || report.id}`)} className="clickable-row"><td>{report.date}</td><td><Avatar name={report.teacher} small /><button className="link-button table-link" type="button" onClick={(event) => { event.stopPropagation(); window.location.assign(`/directeur/supervision/${report.rawId || report.id}`) }}>{report.teacher}</button></td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td><ReportStatusBadge status={report.status} /></td><td>{report.decision}</td><td>{report.prefectObservation}</td></tr>)}</tbody></table>
 }
 
@@ -1575,7 +1587,7 @@ function ReportStatusBadge({ status }: { status: string }) {
   return <span className={`badge ${tone}`}>{status}</span>
 }
 
-function DecisionHistoryList({ reports = dailyCourseReports }: { reports?: UiLessonReport[] }) {
+function DecisionHistoryList({ reports = [] }: { reports?: UiLessonReport[] }) {
   return <div className="report-summary-list decision-history">{reports.map((report) => <article key={`decision-${report.id}`}><Icon name={report.decision === 'Validé' ? 'checkCircle' : report.decision === 'Rejeté' ? 'alert' : 'message'} /><p><strong>{report.decision}</strong><span>{report.teacher} - {report.subject} - {report.className}</span><em>{report.prefectObservation}</em></p><time>{report.date}</time></article>)}</div>
 }
 
@@ -1618,97 +1630,6 @@ function SubjectTable() {
 function EvaluationTable() {
   return <table><thead><tr><th>Matière</th><th>Classe</th><th>Enseignant</th><th>Évaluation</th><th>Type</th><th>Date prévue</th><th>Date réalisée</th><th>Statut</th><th>Notes publiées</th><th>Actions</th></tr></thead><tbody>{evaluations.map((item) => <tr key={`${item.subject}-${item.className}`}><td><SubjectIcon tone="blue" />{item.subject}</td><td>{item.className}</td><td><Avatar name={item.teacher} small />{item.teacher}</td><td>{item.type === 'Interrogation' ? 'Interrogation orale' : item.type}</td><td><Badge status={item.type} /></td><td>{item.planned}</td><td>{item.done}</td><td><Badge status={item.status} /></td><td><span className={item.notes ? 'ok-dot' : 'bad-dot'}>{item.notes ? '✓' : '×'}</span></td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button"><Icon name="more" /></button></td></tr>)}</tbody></table>
 }
-
-const dailyCourseReports: UiLessonReport[] = [
-  {
-    id: 'RQC-001',
-    rawId: '1',
-    programDistributionId: '1',
-    teacherAssignmentId: '1',
-    date: localDisplayDate(),
-    teacher: 'Jean Kabasele',
-    className: '5ème A',
-    subject: 'Mathématiques',
-    program: 'Répartition annuelle publiée - 3ème période',
-    chapter: 'Chapitre 4 : Fractions',
-    subChapter: '4.2 Addition et soustraction des fractions',
-    periods: 2,
-    summary: 'Mise au même dénominateur, exemples guidés et exercices d’application.',
-    objectives: 'Additionner deux fractions de dénominateurs différents.',
-    exercises: 'Exercices 1 à 6 page 45',
-    homework: 'Exercices 7 à 10 page 46',
-    observations: 'Classe active, deux élèves à accompagner en remédiation.',
-    status: 'Soumis',
-    prefectObservation: 'À valider après vérification du cahier de textes.',
-    decision: 'En attente',
-  },
-  {
-    id: 'RQC-002',
-    rawId: '2',
-    programDistributionId: '2',
-    teacherAssignmentId: '1',
-    date: localDisplayDate(),
-    teacher: 'Grace Mbuyi',
-    className: '4ème B',
-    subject: 'Français',
-    program: 'Programme reçu du Management',
-    chapter: 'Chapitre 2 : Texte narratif',
-    subChapter: '2.3 Schéma narratif',
-    periods: 1,
-    summary: 'Identification des étapes du récit à partir d’un extrait lu en classe.',
-    objectives: 'Reconnaître situation initiale, élément perturbateur et dénouement.',
-    exercises: 'Analyse du texte support, questions 1 à 4',
-    homework: 'Rédiger un court récit de 12 lignes',
-    observations: 'Objectifs atteints, devoir remis pour jeudi.',
-    status: 'Validé',
-    prefectObservation: 'Conforme au programme prévu.',
-    decision: 'Validé',
-  },
-  {
-    id: 'RQC-003',
-    rawId: '3',
-    programDistributionId: '3',
-    teacherAssignmentId: '1',
-    date: localDisplayDate(),
-    teacher: 'Patrick Ilunga',
-    className: '3ème A',
-    subject: 'Physique-Chimie',
-    program: 'Répartition annuelle publiée - 3ème période',
-    chapter: 'Chapitre 3 : La matière',
-    subChapter: '3.1 États physiques',
-    periods: 1,
-    summary: 'Rappel des états physiques et classification d’exemples.',
-    objectives: 'Décrire les trois états physiques de la matière.',
-    exercises: 'Tableau de classification au tableau',
-    homework: 'Apprendre la synthèse et compléter le tableau',
-    observations: 'Le sous-chapitre attendu était 3.2, correction demandée.',
-    status: 'Correction demandée',
-    prefectObservation: 'Préciser la raison du décalage avec le sous-chapitre attendu.',
-    decision: 'Correction demandée',
-  },
-  {
-    id: 'RQC-004',
-    rawId: '4',
-    programDistributionId: '4',
-    teacherAssignmentId: '1',
-    date: localDisplayDate(),
-    teacher: 'Esther Tshi',
-    className: '2nde C',
-    subject: 'Histoire-Géographie',
-    program: 'Programme reçu du Management',
-    chapter: 'Chapitre 5 : Afrique centrale',
-    subChapter: '5.1 États et capitales',
-    periods: 0,
-    summary: 'Rapport incomplet, séance non justifiée.',
-    objectives: 'Non renseigné',
-    exercises: 'Non renseigné',
-    homework: 'Non renseigné',
-    observations: 'Absence de rapport complet après rappel.',
-    status: 'Rejeté',
-    prefectObservation: 'Rapport rejeté, justification obligatoire.',
-    decision: 'Rejeté',
-  },
-]
 
 function ReportTable() {
   return <table><thead><tr><th>Type de rapport</th><th>Description</th><th>Données incluses</th><th>Période</th><th>Dernière génération</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.title}><td><SubjectIcon tone={report.color} />{report.title}</td><td>{report.desc}</td><td>{report.data.split('|').map((line) => <span className="data-line" key={line}>• {line}</span>)}</td><td><Badge status={report.period} /></td><td>{report.date}</td><td><button className="icon-button"><Icon name="eye" /></button><button className="icon-button red"><Icon name="pdf" /></button><button className="icon-button green"><Icon name="excel" /></button><button className="icon-button purple"><Icon name="print" /></button></td></tr>)}</tbody></table>
@@ -1822,7 +1743,7 @@ function PrefectDashboard() {
 }
 
 function TodayReportsTable() {
-  const [rows, setRows] = useState<UiLessonReport[]>(dailyCourseReports.filter((report) => report.date === localDisplayDate()))
+  const [rows, setRows] = useState<UiLessonReport[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -1832,7 +1753,7 @@ function TodayReportsTable() {
         const today = localDisplayDate()
         setRows(data.filter((report) => report.date === today))
       } catch {
-        setRows(dailyCourseReports.filter((report) => report.date === localDisplayDate()))
+        setRows([])
       } finally {
         setLoading(false)
       }
@@ -1968,8 +1889,8 @@ function PrefectEvaluations() {
 
 function PrefectReports() {
   const [observation, setObservation] = useState('Conforme au programme prévu. Validation recommandée.')
-  const [reports, setReports] = useState<UiLessonReport[]>(dailyCourseReports)
-  const [selectedId, setSelectedId] = useState(dailyCourseReports[0].rawId)
+  const [reports, setReports] = useState<UiLessonReport[]>([])
+  const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -2000,11 +1921,11 @@ function PrefectReports() {
 
     try {
       const data = await reportsApi.getPendingPrefectReports()
-      setReports(data.length ? data : dailyCourseReports)
-      setSelectedId((current) => data.find((report) => report.rawId === current)?.rawId || data[0]?.rawId || dailyCourseReports[0].rawId)
+      setReports(data)
+      setSelectedId((current) => data.find((report) => report.rawId === current)?.rawId || data[0]?.rawId || '')
     } catch (apiError) {
-      if (!(apiError instanceof TypeError)) setError('Impossible de charger les rapports.')
-      setReports(dailyCourseReports)
+      setError(apiError instanceof TypeError ? 'Connexion backend indisponible.' : 'Impossible de charger les rapports.')
+      setReports([])
     } finally {
       setLoading(false)
     }
@@ -2027,8 +1948,7 @@ function PrefectReports() {
       await loadReports()
     } catch (apiError) {
       if (apiError instanceof TypeError) {
-        setReports((current) => current.map((report) => report.rawId === targetReport.rawId ? { ...report, status: decision === 'validated' ? 'Valide' : decision === 'rejected' ? 'Rejete' : 'Correction demandee', decision: decision === 'validated' ? 'Valide' : decision === 'rejected' ? 'Rejete' : 'Correction demandee', prefectObservation: observation } : report))
-        setNotice('Décision enregistrée en mode démo.')
+        setError('Connexion backend indisponible. Décision non enregistrée.')
       } else {
         setError('Impossible d’enregistrer la décision.')
       }
@@ -2058,6 +1978,7 @@ function PrefectReports() {
           </div>
           {loading && <div className="note-box"><Icon name="clock" /> Chargement des rapports...</div>}
           {error && <div className="login-error">{error}</div>}
+          {!loading && !filteredReports.length && <div className="note-box"><Icon name="info" /> Aucun rapport réel reçu.</div>}
           <PrefectDailyValidationTable reports={filteredReports} selectedId={selectedId} onSelect={setSelectedId} onDecision={(reportId, decision) => { setSelectedId(reportId); void decideReport(decision, reportId) }} />
         </Card>
         <aside className="right-column">
@@ -2096,7 +2017,7 @@ function PrefectReports() {
   )
 }
 
-function PrefectDailyValidationTable({ reports = dailyCourseReports, selectedId, onSelect, onDecision }: { reports?: UiLessonReport[]; selectedId?: string; onSelect?: (id: string) => void; onDecision?: (id: string, decision: PrefectDecision) => void }) {
+function PrefectDailyValidationTable({ reports = [], selectedId, onSelect, onDecision }: { reports?: UiLessonReport[]; selectedId?: string; onSelect?: (id: string) => void; onDecision?: (id: string, decision: PrefectDecision) => void }) {
   return <table><thead><tr><th>Rapport</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Date soumission</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.id} className={report.rawId === selectedId ? 'prefect-selected-row' : ''} onClick={() => { onSelect?.(report.rawId); window.location.assign(`/prefet/rapports/${report.rawId}`) }}><td>{report.id}</td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.date}</td><td><ReportStatusBadge status={report.status} /></td><td><div className="validation-actions visible-actions"><button className="decision-button green" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'validated') }}>Valider</button><button className="decision-button blue" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'correction_requested') }}>Correction</button><button className="decision-button red" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'rejected') }}>Rejeter</button></div></td></tr>)}</tbody></table>
 }
 
@@ -2113,9 +2034,9 @@ function PrefectReportDetail() {
   async function load() {
     try {
       const supervision = await reportsApi.getSupervisionReports()
-      setReport(supervision.reports.find((item) => item.rawId === reportId) || dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+      setReport(supervision.reports.find((item) => item.rawId === reportId) || null)
     } catch {
-      setReport(dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+      setReport(null)
     }
   }
 
@@ -2128,11 +2049,11 @@ function PrefectReportDetail() {
       setMessage('Décision enregistrée.')
       await load()
     } catch {
-      setMessage('Décision enregistrée en mode démo.')
+      setMessage('Connexion backend indisponible. Décision non enregistrée.')
     }
   }
 
-  return <section className="prefect-report-grid"><Card title="Détail du rapport" className="span-2">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Chargement...</div>}</Card><Card title="Actions"><form className="prefect-observation-form"><label>Observation<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label><div className="visible-actions"><button className="decision-button green" type="button" onClick={() => void decide('validated')}>Valider</button><button className="decision-button blue" type="button" onClick={() => void decide('correction_requested')}>Demander correction</button><button className="decision-button red" type="button" onClick={() => void decide('rejected')}>Rejeter</button></div></form>{message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}</Card></section>
+  return <section className="prefect-report-grid"><Card title="Détail du rapport" className="span-2">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Rapport réel introuvable.</div>}</Card><Card title="Actions"><form className="prefect-observation-form"><label>Observation<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label><div className="visible-actions"><button className="decision-button green" type="button" disabled={!report} onClick={() => void decide('validated')}>Valider</button><button className="decision-button blue" type="button" disabled={!report} onClick={() => void decide('correction_requested')}>Demander correction</button><button className="decision-button red" type="button" disabled={!report} onClick={() => void decide('rejected')}>Rejeter</button></div></form>{message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}</Card></section>
 }
 
 function SupervisionDetail() {
@@ -2143,16 +2064,16 @@ function SupervisionDetail() {
     async function load() {
       try {
         const supervision = await reportsApi.getSupervisionReports()
-        setReport(supervision.reports.find((item) => item.rawId === reportId) || dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+        setReport(supervision.reports.find((item) => item.rawId === reportId) || null)
       } catch {
-        setReport(dailyCourseReports.find((item) => item.rawId === reportId) || dailyCourseReports[0])
+        setReport(null)
       }
     }
 
     void load()
   }, [reportId])
 
-  return <section className="content-with-side"><div><Card title="Détail supervision du rapport">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Chargement...</div>}</Card></div><aside className="right-column"><Card title="Action récente"><DecisionHistoryList reports={report ? [report] : dailyCourseReports.slice(0, 1)} /></Card></aside></section>
+  return <section className="content-with-side"><div><Card title="Détail supervision du rapport">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Rapport réel introuvable.</div>}</Card></div><aside className="right-column"><Card title="Action récente"><DecisionHistoryList reports={report ? [report] : []} /></Card></aside></section>
 }
 
 function PrefectProgressionDetail() {
@@ -2193,7 +2114,7 @@ function PrefectMessages() {
       setNotice('Message envoyé aux enseignants.')
       setMessage('')
     } catch {
-      setError('API indisponible. Le message reste en mode démo.')
+      setError('Message non envoyé. Vérifiez la connexion au backend.')
     } finally {
       setSending(false)
     }
@@ -2357,9 +2278,10 @@ function TeacherProgress() {
 
 function TeacherTextBook() {
   const [message, setMessage] = useState('')
-  const [reports, setReports] = useState<UiLessonReport[]>(dailyCourseReports)
+  const [reports, setReports] = useState<UiLessonReport[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const reference = reports[0]
 
   async function loadTeacherReports() {
     setLoading(true)
@@ -2367,10 +2289,10 @@ function TeacherTextBook() {
 
     try {
       const data = await reportsApi.getTeacherReports()
-      setReports(data.length ? data : dailyCourseReports)
+      setReports(data)
     } catch (apiError) {
-      if (!(apiError instanceof TypeError)) setError('Impossible de charger vos rapports.')
-      setReports(dailyCourseReports)
+      setError(apiError instanceof TypeError ? 'Connexion backend indisponible.' : 'Impossible de charger vos rapports.')
+      setReports([])
     } finally {
       setLoading(false)
     }
@@ -2385,6 +2307,10 @@ function TeacherTextBook() {
     const form = event.currentTarget
     const formData = new FormData(form)
     const reference = reports[0]
+    if (!reference) {
+      setError('Aucun programme réel disponible pour soumettre un rapport.')
+      return
+    }
     setLoading(true)
     setError('')
     setMessage('')
@@ -2405,21 +2331,7 @@ function TeacherTextBook() {
       await loadTeacherReports()
     } catch (apiError) {
       if (apiError instanceof TypeError) {
-        setReports((current) => [{
-          ...dailyCourseReports[0],
-          id: `RQC-${Date.now().toString().slice(-3)}`,
-          rawId: Date.now().toString(),
-          date: new Intl.DateTimeFormat('fr-FR').format(new Date(String(formData.get('actual_date') || new Date()))),
-          periods: Number(formData.get('actual_periods') || 1),
-          summary: String(formData.get('lesson_summary') || ''),
-          objectives: String(formData.get('objectives_achieved') || ''),
-          exercises: String(formData.get('exercises_given') || ''),
-          homework: String(formData.get('homework_given') || ''),
-          observations: String(formData.get('observations') || ''),
-          status: 'Soumis',
-          decision: 'En attente',
-        }, ...current])
-        setMessage('Rapport quotidien soumis en mode démo.')
+        setError('Connexion backend indisponible. Rapport non soumis.')
       } else {
         setError('Impossible de soumettre le rapport.')
       }
@@ -2431,11 +2343,11 @@ function TeacherTextBook() {
   return (
     <>
       <TeacherStats items={[
-        { icon: 'calendar', value: '06/07/2026', label: 'Date du jour', detail: 'Rapport à soumettre', tone: 'blue' },
-        { icon: 'book', value: 'Fractions', label: 'Programme reçu', detail: '5ème A - Mathématiques', tone: 'purple' },
-        { icon: 'clock', value: '2', label: 'Périodes réalisées', detail: 'Cours du matin', tone: 'orange' },
-        { icon: 'checkCircle', value: '1', label: 'Rapports validés', detail: 'Cette semaine', tone: 'green' },
-        { icon: 'alert', value: '1', label: 'Correction demandée', detail: 'À régulariser', tone: 'red' },
+        { icon: 'calendar', value: localDisplayDate(), label: 'Date du jour', detail: 'Rapport à soumettre', tone: 'blue' },
+        { icon: 'book', value: reference?.chapter || 'Aucun', label: 'Programme reçu', detail: reference ? `${reference.className} - ${reference.subject}` : 'Aucune donnée réelle', tone: 'purple' },
+        { icon: 'clock', value: String(reference?.periods || 0), label: 'Périodes réalisées', detail: 'Dernier rapport réel', tone: 'orange' },
+        { icon: 'checkCircle', value: String(reports.filter((report) => report.status === 'Valide').length), label: 'Rapports validés', detail: 'Historique réel', tone: 'green' },
+        { icon: 'alert', value: String(reports.filter((report) => report.status === 'Correction demandee').length), label: 'Correction demandée', detail: 'Historique réel', tone: 'red' },
       ]} />
       {message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}
       {error && <div className="login-error">{error}</div>}
@@ -2443,20 +2355,20 @@ function TeacherTextBook() {
         <div>
           <Card title="Rapport Quotidien de Cours / Pointage">
             <form className="textbook-form" onSubmit={submitDailyReport}>
-              <div className="form-grid two"><label>Programme reçu<input defaultValue={reports[0]?.program || 'Répartition annuelle publiée - Mathématiques 5ème A'} readOnly /></label><label>Date du jour<input name="actual_date" type="date" defaultValue={localDateInputValue()} /></label></div>
-              <div className="form-grid three"><label>Classe<select><option>5ème A</option><option>6ème B</option></select></label><label>Matière<select><option>Mathématiques</option><option>Physique-Chimie</option></select></label><label>Nombre de périodes réalisées<input name="actual_periods" type="number" min="0" defaultValue="2" /></label></div>
-              <div className="form-grid two"><label>Chapitre prévu<input defaultValue="Chapitre 4 : Fractions" /></label><label>Sous-chapitre prévu<input defaultValue="4.2 Addition et soustraction des fractions" /></label></div>
-              <label>Résumé du cours enseigné<textarea name="lesson_summary" defaultValue="Mise au même dénominateur, exemples guidés, exercices d’application et correction collective." /></label>
-              <div className="form-grid two"><label>Objectifs atteints<textarea name="objectives_achieved" defaultValue="Les élèves additionnent deux fractions de dénominateurs différents et expliquent les étapes." /></label><label>Observations<textarea name="observations" defaultValue="Classe active. Deux élèves nécessitent une remédiation ciblée lors du prochain cours." /></label></div>
-              <div className="form-grid two"><label>Exercices donnés<textarea name="exercises_given" defaultValue="Exercices 1 à 6 page 45 du manuel." /></label><label>Devoirs donnés<textarea name="homework_given" defaultValue="Exercices 7 à 10 page 46. Apprendre la règle d’addition." /></label></div>
-              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="submit" className="blue-button" disabled={loading}><Icon name="arrow" /> {loading ? 'Chargement...' : 'Soumettre le rapport'}</button></div>
+              <div className="form-grid two"><label>Programme reçu<input value={reference?.program || 'Aucun programme réel disponible'} readOnly /></label><label>Date du jour<input name="actual_date" type="date" defaultValue={localDateInputValue()} /></label></div>
+              <div className="form-grid three"><label>Classe<input value={reference?.className || ''} readOnly /></label><label>Matière<input value={reference?.subject || ''} readOnly /></label><label>Nombre de périodes réalisées<input name="actual_periods" type="number" min="0" defaultValue={reference?.periods || 1} /></label></div>
+              <div className="form-grid two"><label>Chapitre prévu<input value={reference?.chapter || ''} readOnly /></label><label>Sous-chapitre prévu<input value={reference?.subChapter || ''} readOnly /></label></div>
+              <label>Résumé du cours enseigné<textarea name="lesson_summary" placeholder="Saisir le résumé réel du cours..." /></label>
+              <div className="form-grid two"><label>Objectifs atteints<textarea name="objectives_achieved" placeholder="Saisir les objectifs atteints..." /></label><label>Observations<textarea name="observations" placeholder="Saisir les observations..." /></label></div>
+              <div className="form-grid two"><label>Exercices donnés<textarea name="exercises_given" placeholder="Saisir les exercices donnés..." /></label><label>Devoirs donnés<textarea name="homework_given" placeholder="Saisir les devoirs donnés..." /></label></div>
+              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="submit" className="blue-button" disabled={loading || !reference}><Icon name="arrow" /> {loading ? 'Chargement...' : 'Soumettre le rapport'}</button></div>
             </form>
           </Card>
           <div className="note-box teacher-note"><Icon name="info" /> Le rapport quotidien sert au pointage pédagogique et à la validation du Préfet / Directeur des Études.</div>
         </div>
         <aside className="right-column textbook-side">
           <Card title="Historique de mes rapports" className="table-card">{loading && <div className="note-box"><Icon name="clock" /> Chargement...</div>}<TeacherDailyReportHistory rows={reports} /></Card>
-          <Card title="Programme attendu"><div className="control-box"><span>Chapitre prévu : <b>Chapitre 4 : Fractions</b></span><span>Sous-chapitre prévu : <b>4.2 Addition et soustraction</b></span><strong><Icon name="checkCircle" /> Conforme</strong><p>Le rapport du jour correspond au programme reçu.</p></div></Card>
+          <Card title="Programme attendu"><div className="control-box"><span>Chapitre prévu : <b>{reference?.chapter || 'Aucune donnée réelle'}</b></span><span>Sous-chapitre prévu : <b>{reference?.subChapter || 'Aucune donnée réelle'}</b></span><strong><Icon name="checkCircle" /> Données backend</strong><p>{reference ? 'Le formulaire reprend le dernier programme réel reçu.' : 'Aucun rapport réel disponible.'}</p></div></Card>
           <Card title="Calendrier de cette semaine"><WeekGrid /></Card>
         </aside>
       </section>
@@ -2464,7 +2376,8 @@ function TeacherTextBook() {
   )
 }
 
-function TeacherDailyReportHistory({ rows = dailyCourseReports }: { rows?: UiLessonReport[] }) {
+function TeacherDailyReportHistory({ rows = [] }: { rows?: UiLessonReport[] }) {
+  if (!rows.length) return <div className="note-box"><Icon name="info" /> Aucun rapport soumis</div>
   return <table><thead><tr><th>Date</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Périodes</th><th>Statut</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{row.date}</td><td>{row.className}</td><td>{row.subject}</td><td>{row.chapter}</td><td>{row.periods}</td><td><ReportStatusBadge status={row.status} /></td></tr>)}</tbody></table>
 }
 
