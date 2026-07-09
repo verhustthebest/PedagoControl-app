@@ -109,7 +109,8 @@ function reportNotificationContext(report: {
     }
   }
 }) {
-  const teacher = [report.users?.first_name, report.users?.last_name].filter(Boolean).join(' ') || report.users?.email || 'Enseignant'
+  const rawTeacher = [report.users?.first_name, report.users?.last_name].filter(Boolean).join(' ')
+  const teacher = rawTeacher === 'Enseignant Demo' ? report.users?.email || 'Enseignant' : rawTeacher || report.users?.email || 'Enseignant'
   const schoolClass = report.teacher_assignments?.academic_year_subjects?.academic_year_classes?.school_classes
   const className = [schoolClass?.name, schoolClass?.parallel].filter(Boolean).join(' ') || 'Classe'
   const subject = report.teacher_assignments?.academic_year_subjects?.subjects?.name || 'Matiere'
