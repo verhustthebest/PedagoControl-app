@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 const AUTH_TOKEN_KEY = 'controle_pedagogique_token'
 
 type ApiRequestOptions = RequestInit & {
@@ -33,7 +33,7 @@ export function clearToken() {
   window.localStorage.removeItem(AUTH_TOKEN_KEY)
 }
 
-export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}, baseUrl = API_URL): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
     headers.Authorization = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
     headers,
   })
