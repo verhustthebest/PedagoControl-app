@@ -23,7 +23,16 @@ function formatUser(user) {
         first_name: user.first_name,
         last_name: user.last_name,
         school_id: user.school_id ? user.school_id.toString() : null,
-        roles: user.user_roles.map((userRole) => userRole.roles.name),
+        roles: user.user_roles
+            .filter((userRole) => userRole.roles.is_active)
+            .map((userRole) => userRole.roles.name),
+        permissions: [
+            ...new Set(user.user_roles
+                .filter((userRole) => userRole.roles.is_active)
+                .flatMap((userRole) => userRole.roles.role_permissions
+                .filter((rolePermission) => rolePermission.permissions.is_active)
+                .map((rolePermission) => rolePermission.permissions.code))),
+        ],
     };
 }
 async function loginWithEmailAndPassword(email, password) {
@@ -32,7 +41,15 @@ async function loginWithEmailAndPassword(email, password) {
         include: {
             user_roles: {
                 include: {
-                    roles: true,
+                    roles: {
+                        include: {
+                            role_permissions: {
+                                include: {
+                                    permissions: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -65,7 +82,15 @@ async function findAuthUserById(userId) {
         include: {
             user_roles: {
                 include: {
-                    roles: true,
+                    roles: {
+                        include: {
+                            role_permissions: {
+                                include: {
+                                    permissions: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },

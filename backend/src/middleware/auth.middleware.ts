@@ -29,3 +29,38 @@ export async function authenticateBearerToken(request: AuthenticatedRequest, res
     return response.status(401).json({ message: 'Invalid or expired token' })
   }
 }
+
+export function requirePermission(code: string) {
+  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+    if (!request.user) {
+      return response.status(401).json({ message: 'Authentication required' })
+    }
+
+    if (request.user.roles.includes('SUPER_ADMIN') || request.user.permissions.includes(code)) {
+      return next()
+    }
+
+    return response.status(403).json({ message: `Permission required: ${code}` })
+  }
+}
+
+export function requireSchoolScope(parameterName = 'schoolId') {
+  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+    if (!request.user) {
+      return response.status(401).json({ message: 'Authentication required' })
+    }
+
+    const rawSchoolId = request.params[parameterName]
+    const requestedSchoolId = Array.isArray(rawSchoolId) ? rawSchoolId[0] : rawSchoolId
+
+    if (!requestedSchoolId || !/^\d+$/.test(requestedSchoolId) || BigInt(requestedSchoolId) <= 0n) {
+      return response.status(400).json({ message: 'A valid school id is required' })
+    }
+
+    if (request.user.school_id && BigInt(request.user.school_id) !== BigInt(requestedSchoolId)) {
+      return response.status(403).json({ message: 'Access to another school is forbidden' })
+    }
+
+    return next()
+  }
+}

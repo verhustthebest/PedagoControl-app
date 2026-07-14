@@ -9,6 +9,7 @@ export type AuthUser = {
   last_name: string
   school_id: string | null
   roles: string[]
+  permissions: string[]
 }
 
 type JwtPayload = {
@@ -34,7 +35,13 @@ function formatUser(user: {
   first_name: string
   last_name: string
   school_id: bigint | null
-  user_roles: Array<{ roles: { name: string } }>
+  user_roles: Array<{
+    roles: {
+      name: string
+      is_active: boolean
+      role_permissions: Array<{ permissions: { code: string; is_active: boolean } }>
+    }
+  }>
 }): AuthUser {
   return {
     id: user.id.toString(),
@@ -42,7 +49,20 @@ function formatUser(user: {
     first_name: user.first_name,
     last_name: user.last_name,
     school_id: user.school_id ? user.school_id.toString() : null,
-    roles: user.user_roles.map((userRole) => userRole.roles.name),
+    roles: user.user_roles
+      .filter((userRole) => userRole.roles.is_active)
+      .map((userRole) => userRole.roles.name),
+    permissions: [
+      ...new Set(
+        user.user_roles
+          .filter((userRole) => userRole.roles.is_active)
+          .flatMap((userRole) =>
+            userRole.roles.role_permissions
+              .filter((rolePermission) => rolePermission.permissions.is_active)
+              .map((rolePermission) => rolePermission.permissions.code),
+          ),
+      ),
+    ],
   }
 }
 
@@ -52,7 +72,15 @@ export async function loginWithEmailAndPassword(email: string, password: string)
     include: {
       user_roles: {
         include: {
-          roles: true,
+          roles: {
+            include: {
+              role_permissions: {
+                include: {
+                  permissions: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -91,7 +119,15 @@ export async function findAuthUserById(userId: string) {
     include: {
       user_roles: {
         include: {
-          roles: true,
+          roles: {
+            include: {
+              role_permissions: {
+                include: {
+                  permissions: true,
+                },
+              },
+            },
+          },
         },
       },
     },

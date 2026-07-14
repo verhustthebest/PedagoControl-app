@@ -27,6 +27,7 @@ export function me(request: AuthenticatedRequest, response: Response) {
   return response.json({
     user: request.user,
     roles: request.user?.roles ?? [],
+    permissions: request.user?.permissions ?? [],
     school_id: request.user?.school_id ?? null,
   })
 }

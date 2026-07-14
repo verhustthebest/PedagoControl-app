@@ -15,6 +15,8 @@ const roleSeeds = [
   { name: 'ADMIN_GESTIONNAIRE', label: 'Admin Gestionnaire', description: 'Gestion et supervision de l ecole demo' },
   { name: 'PREFET', label: 'Prefet des Etudes', description: 'Validation pedagogique des rapports demo' },
   { name: 'ENSEIGNANT', label: 'Enseignant', description: 'Soumission des rapports quotidiens demo' },
+  { name: 'INFORMATICIEN', label: 'Informaticien', description: 'Gestion technique limitee de l ecole demo' },
+  { name: 'PARENT', label: 'Parent', description: 'Acces limite a ses enfants et donnees personnelles' },
 ]
 
 function dateOnly(value: string) {
