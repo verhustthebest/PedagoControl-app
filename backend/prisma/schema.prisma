@@ -8,14 +8,16 @@ datasource db {
 }
 
 model academic_year_classes {
-  id                     BigInt                   @id @default(autoincrement())
-  academic_year_id       BigInt
-  school_class_id        BigInt
-  is_active              Boolean                  @default(true)
-  created_at             DateTime                 @default(now()) @db.Timestamp(6)
-  school_classes         school_classes           @relation(fields: [school_class_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ayc_class")
-  academic_years         academic_years           @relation(fields: [academic_year_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ayc_year")
-  academic_year_subjects academic_year_subjects[]
+  id                            BigInt                          @id @default(autoincrement())
+  academic_year_id              BigInt
+  school_class_id               BigInt
+  is_active                     Boolean                         @default(true)
+  created_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  school_classes                school_classes                  @relation(fields: [school_class_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ayc_class")
+  academic_years                academic_years                  @relation(fields: [academic_year_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ayc_year")
+  academic_year_subjects        academic_year_subjects[]
+  student_enrollments           student_enrollments[]
+  parent_daily_acknowledgements parent_daily_acknowledgements[]
 
   @@unique([academic_year_id, school_class_id], map: "uq_ayc")
   @@index([academic_year_id], map: "idx_academic_year_classes_year_id")
@@ -367,41 +369,368 @@ model school_classes {
 }
 
 model school_subscriptions {
-  id               BigInt        @id @default(autoincrement())
-  school_id        BigInt
-  subscription_id  BigInt
-  teacher_limit    Int
-  billing_period   String        @db.VarChar(30)
-  discount_percent Decimal       @default(0) @db.Decimal(5, 2)
-  amount_to_pay    Decimal       @db.Decimal(10, 2)
-  start_date       DateTime      @db.Date
-  end_date         DateTime      @db.Date
-  status           String        @default("active") @db.VarChar(30)
-  created_at       DateTime      @default(now()) @db.Timestamp(6)
-  updated_at       DateTime      @default(now()) @db.Timestamp(6)
-  schools          schools       @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_subscription_school")
-  subscriptions    subscriptions @relation(fields: [subscription_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_school_subscription_subscription")
+  id                            BigInt                          @id @default(autoincrement())
+  school_id                     BigInt
+  subscription_id               BigInt
+  teacher_limit                 Int
+  billing_period                String                          @db.VarChar(30)
+  discount_percent              Decimal                         @default(0) @db.Decimal(5, 2)
+  amount_to_pay                 Decimal                         @db.Decimal(10, 2)
+  start_date                    DateTime                        @db.Date
+  end_date                      DateTime                        @db.Date
+  status                        String                          @default("active") @db.VarChar(30)
+  created_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  schools                       schools                         @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_subscription_school")
+  subscriptions                 subscriptions                   @relation(fields: [subscription_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_school_subscription_subscription")
+  school_invoices               school_invoices[]
+  school_parental_subscriptions school_parental_subscriptions[]
 
   @@index([school_id], map: "idx_school_subscriptions_school_id")
 }
 
 model schools {
-  id                   BigInt                 @id @default(autoincrement())
-  code                 String                 @unique @db.VarChar(50)
-  name                 String                 @db.VarChar(150)
-  promoter_name        String                 @db.VarChar(150)
-  promoter_email       String                 @db.VarChar(150)
-  phone                String?                @db.VarChar(50)
-  address              String?
-  status               String                 @default("active") @db.VarChar(30)
-  created_at           DateTime               @default(now()) @db.Timestamp(6)
-  updated_at           DateTime               @default(now()) @db.Timestamp(6)
-  academic_years       academic_years[]
-  activity_logs        activity_logs[]
-  school_calendar      school_calendar[]
-  school_classes       school_classes[]
-  school_subscriptions school_subscriptions[]
-  users                users[]
+  id                            BigInt                          @id @default(autoincrement())
+  code                          String                          @unique @db.VarChar(50)
+  name                          String                          @db.VarChar(150)
+  promoter_name                 String                          @db.VarChar(150)
+  promoter_email                String                          @db.VarChar(150)
+  phone                         String?                         @db.VarChar(50)
+  address                       String
+  status                        String                          @default("active") @db.VarChar(30)
+  created_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  academic_years                academic_years[]
+  activity_logs                 activity_logs[]
+  school_calendar               school_calendar[]
+  school_classes                school_classes[]
+  school_subscriptions          school_subscriptions[]
+  users                         users[]
+  attachment_requests           attachment_requests[]
+  guardians                     guardians[]
+  school_invoices               school_invoices[]
+  school_parental_subscriptions school_parental_subscriptions[]
+  school_parental_settings      school_parental_settings?
+  students                      students[]
+}
+
+model school_parental_settings {
+  id                                                       BigInt    @id @default(autoincrement())
+  school_id                                                BigInt    @unique
+  is_enabled                                               Boolean   @default(false)
+  enabled_at                                               DateTime? @db.Timestamp(6)
+  disabled_at                                              DateTime? @db.Timestamp(6)
+  attachment_requires_validation                           Boolean   @default(true)
+  attachment_request_expiry_days                           Int       @default(7)
+  otp_expiry_minutes                                       Int       @default(10)
+  otp_max_attempts                                         Int       @default(5)
+  daily_acknowledgement_required                           Boolean   @default(true)
+  daily_acknowledgement_deadline                           DateTime? @db.Time(6)
+  created_by_user_id                                       BigInt?
+  updated_by_user_id                                       BigInt?
+  created_at                                               DateTime  @default(now()) @db.Timestamp(6)
+  updated_at                                               DateTime  @default(now()) @db.Timestamp(6)
+  schools                                                  schools   @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_parental_settings_school")
+  users_school_parental_settings_created_by_user_idTousers users?    @relation("school_parental_settings_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_parental_settings_created_by")
+  users_school_parental_settings_updated_by_user_idTousers users?    @relation("school_parental_settings_updated_by_user_idTousers", fields: [updated_by_user_id], references: [id], onUpdate: NoAction, map: "fk_parental_settings_updated_by")
+
+  @@index([school_id], map: "idx_parental_settings_school")
+}
+
+model students {
+  id                            BigInt                          @id @default(autoincrement())
+  school_id                     BigInt
+  matricule                     String                          @db.VarChar(100)
+  first_name                    String                          @db.VarChar(100)
+  last_name                     String                          @db.VarChar(100)
+  middle_name                   String                          @db.VarChar(100)
+  gender                        String                          @db.VarChar(20)
+  birth_date                    DateTime                        @db.Date
+  birth_place                   String                          @db.VarChar(150)
+  address                       String
+  profile_photo                 String?
+  status                        String                          @default("active") @db.VarChar(30)
+  created_by_user_id            BigInt?
+  created_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  schools                       schools                         @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_students_school")
+  users                         users?                          @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_students_created_by")
+  student_enrollments           student_enrollments[]
+  student_guardians             student_guardians[]
+  attachment_requests           attachment_requests[]
+  parent_daily_acknowledgements parent_daily_acknowledgements[]
+
+  @@unique([school_id, matricule], map: "uq_students_school_matricule")
+  @@index([school_id], map: "idx_students_school")
+  @@index([status], map: "idx_students_status")
+}
+
+model student_enrollments {
+  id                              BigInt                         @id @default(autoincrement())
+  student_id                      BigInt
+  academic_year_class_id          BigInt
+  enrolled_by_user_id             BigInt?
+  enrollment_date                 DateTime                       @default(now()) @db.Date
+  status                          String                         @default("active") @db.VarChar(30)
+  parental_tracking_enabled       Boolean                        @default(false)
+  parental_tracking_started_at    DateTime?                      @db.Timestamp(6)
+  parental_tracking_ended_at      DateTime?                      @db.Timestamp(6)
+  school_parental_subscription_id BigInt?
+  notes                           String?
+  created_at                      DateTime                       @default(now()) @db.Timestamp(6)
+  updated_at                      DateTime                       @default(now()) @db.Timestamp(6)
+  students                        students                       @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_enrollments_student")
+  academic_year_classes           academic_year_classes          @relation(fields: [academic_year_class_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_enrollments_year_class")
+  users                           users?                         @relation(fields: [enrolled_by_user_id], references: [id], onUpdate: NoAction, map: "fk_student_enrollments_enrolled_by")
+  school_parental_subscriptions   school_parental_subscriptions? @relation(fields: [school_parental_subscription_id], references: [id], onUpdate: NoAction, map: "fk_student_enrollments_parental_subscription")
+
+  @@unique([student_id, academic_year_class_id], map: "uq_student_enrollment_year_class")
+  @@index([academic_year_class_id], map: "idx_student_enrollments_year_class")
+  @@index([student_id], map: "idx_student_enrollments_student")
+  @@index([school_parental_subscription_id], map: "idx_student_enrollments_parental_subscription")
+  @@index([parental_tracking_enabled], map: "idx_student_enrollments_parental_tracking")
+}
+
+model guardians {
+  id                                        BigInt                          @id @default(autoincrement())
+  school_id                                 BigInt
+  user_id                                   BigInt?
+  created_by_user_id                        BigInt?
+  first_name                                String                          @db.VarChar(100)
+  last_name                                 String                          @db.VarChar(100)
+  middle_name                               String?                         @db.VarChar(100)
+  phone                                     String?                         @db.VarChar(30)
+  email                                     String?                         @db.VarChar(150)
+  phone_verified_at                         DateTime?                       @db.Timestamp(6)
+  email_verified_at                         DateTime?                       @db.Timestamp(6)
+  national_id_number                        String?                         @db.VarChar(100)
+  occupation                                String?                         @db.VarChar(150)
+  address                                   String?
+  preferred_contact_method                  String?                         @db.VarChar(30)
+  status                                    String                          @default("active") @db.VarChar(30)
+  created_at                                DateTime                        @default(now()) @db.Timestamp(6)
+  updated_at                                DateTime                        @default(now()) @db.Timestamp(6)
+  schools                                   schools                         @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_guardians_school")
+  users_guardians_user_idTousers            users?                          @relation("guardians_user_idTousers", fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_guardians_user")
+  users_guardians_created_by_user_idTousers users?                          @relation("guardians_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_guardians_created_by")
+  student_guardians                         student_guardians[]
+  attachment_requests                       attachment_requests[]
+  contact_verifications                     contact_verifications[]
+  parent_daily_acknowledgements             parent_daily_acknowledgements[]
+
+  @@unique([school_id, user_id], map: "uq_guardians_school_user")
+  @@index([school_id], map: "idx_guardians_school")
+  @@index([user_id], map: "idx_guardians_user")
+  @@index([created_by_user_id], map: "idx_guardians_created_by")
+}
+
+model student_guardians {
+  id                   BigInt    @id @default(autoincrement())
+  student_id           BigInt
+  guardian_id          BigInt
+  relationship_type    String    @db.VarChar(50)
+  is_primary           Boolean   @default(false)
+  can_receive_alerts   Boolean   @default(true)
+  can_view_journal     Boolean   @default(true)
+  status               String    @default("pending") @db.VarChar(30)
+  validated_by_user_id BigInt?
+  validated_at         DateTime? @db.Timestamp(6)
+  created_at           DateTime  @default(now()) @db.Timestamp(6)
+  updated_at           DateTime  @default(now()) @db.Timestamp(6)
+  students             students  @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_guardians_student")
+  guardians            guardians @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_guardians_guardian")
+  users                users?    @relation(fields: [validated_by_user_id], references: [id], onUpdate: NoAction, map: "fk_student_guardians_validated_by")
+
+  @@unique([student_id, guardian_id], map: "uq_student_guardian")
+  @@index([guardian_id], map: "idx_student_guardians_guardian")
+  @@index([student_id], map: "idx_student_guardians_student")
+  @@index([status], map: "idx_student_guardians_status")
+}
+
+model attachment_requests {
+  id                                                    BigInt                         @id @default(autoincrement())
+  school_id                                             BigInt
+  student_id                                            BigInt
+  guardian_id                                           BigInt
+  requested_by_user_id                                  BigInt?
+  reviewed_by_user_id                                   BigInt?
+  request_code                                          String                         @unique @db.VarChar(100)
+  relationship_type                                     String                         @db.VarChar(50)
+  status                                                String                         @default("pending") @db.VarChar(30)
+  request_message                                       String?
+  review_comment                                        String?
+  expires_at                                            DateTime?                      @db.Timestamp(6)
+  submitted_at                                          DateTime                       @default(now()) @db.Timestamp(6)
+  reviewed_at                                           DateTime?                      @db.Timestamp(6)
+  created_at                                            DateTime                       @default(now()) @db.Timestamp(6)
+  updated_at                                            DateTime                       @default(now()) @db.Timestamp(6)
+  schools                                               schools                        @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment_requests_school")
+  students                                              students                       @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment_requests_student")
+  guardians                                             guardians                      @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment_requests_guardian")
+  users_attachment_requests_requested_by_user_idTousers users?                         @relation("attachment_requests_requested_by_user_idTousers", fields: [requested_by_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_attachment_requests_requested_by")
+  users_attachment_requests_reviewed_by_user_idTousers  users?                         @relation("attachment_requests_reviewed_by_user_idTousers", fields: [reviewed_by_user_id], references: [id], onUpdate: NoAction, map: "fk_attachment_requests_reviewed_by")
+  attachment_request_documents                          attachment_request_documents[]
+
+  @@index([guardian_id], map: "idx_attachment_requests_guardian")
+  @@index([school_id, status], map: "idx_attachment_requests_school_status")
+  @@index([student_id], map: "idx_attachment_requests_student")
+}
+
+model attachment_request_documents {
+  id                    BigInt              @id @default(autoincrement())
+  attachment_request_id BigInt
+  uploaded_by_user_id   BigInt?
+  document_type         String              @db.VarChar(50)
+  original_file_name    String              @db.VarChar(255)
+  stored_file_name      String              @db.VarChar(255)
+  file_type             String              @db.VarChar(100)
+  file_size             BigInt
+  file_url              String
+  storage_key           String?
+  created_at            DateTime            @default(now()) @db.Timestamp(6)
+  attachment_requests   attachment_requests @relation(fields: [attachment_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment_documents_request")
+  users                 users?              @relation(fields: [uploaded_by_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_attachment_documents_uploaded_by")
+
+  @@index([attachment_request_id], map: "idx_attachment_documents_request")
+}
+
+model contact_verifications {
+  id             BigInt    @id @default(autoincrement())
+  guardian_id    BigInt
+  contact_type   String    @db.VarChar(30)
+  contact_value  String    @db.VarChar(150)
+  otp_hash       String
+  purpose        String    @db.VarChar(50)
+  status         String    @default("pending") @db.VarChar(30)
+  attempts_count Int       @default(0)
+  expires_at     DateTime  @db.Timestamp(6)
+  verified_at    DateTime? @db.Timestamp(6)
+  consumed_at    DateTime? @db.Timestamp(6)
+  created_at     DateTime  @default(now()) @db.Timestamp(6)
+  guardians      guardians @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contact_verifications_guardian")
+
+  @@index([contact_value, contact_type], map: "idx_contact_verifications_contact")
+  @@index([expires_at], map: "idx_contact_verifications_expires_at")
+  @@index([guardian_id, status], map: "idx_contact_verifications_guardian_status")
+}
+
+model parent_daily_acknowledgements {
+  id                     BigInt                @id @default(autoincrement())
+  guardian_id            BigInt
+  student_id             BigInt
+  academic_year_class_id BigInt
+  journal_date           DateTime              @db.Date
+  lesson_count_snapshot  Int
+  journal_snapshot       Json
+  acknowledged_at        DateTime              @default(now()) @db.Timestamp(6)
+  ip_address             String?               @db.VarChar(50)
+  user_agent             String?
+  comment                String?
+  created_at             DateTime              @default(now()) @db.Timestamp(6)
+  guardians              guardians             @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_parent_ack_guardian")
+  students               students              @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_parent_ack_student")
+  academic_year_classes  academic_year_classes @relation(fields: [academic_year_class_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_parent_ack_year_class")
+
+  @@unique([guardian_id, student_id, journal_date], map: "uq_parent_daily_acknowledgement")
+  @@index([academic_year_class_id], map: "idx_parent_ack_year_class")
+  @@index([student_id, journal_date], map: "idx_parent_ack_student_date")
+}
+
+model school_parental_subscriptions {
+  id                     BigInt                 @id @default(autoincrement())
+  school_id              BigInt
+  school_subscription_id BigInt
+  unit_price_per_student Decimal                @db.Decimal(10, 2)
+  currency               String                 @default("USD") @db.VarChar(10)
+  billing_period         String                 @db.VarChar(30)
+  start_date             DateTime               @db.Date
+  end_date               DateTime               @db.Date
+  invoice_day            Int?
+  next_invoice_date      DateTime?              @db.Date
+  status                 String                 @default("active") @db.VarChar(30)
+  created_at             DateTime               @default(now()) @db.Timestamp(6)
+  updated_at             DateTime               @default(now()) @db.Timestamp(6)
+  schools                schools                @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_parental_subscription_school")
+  school_subscriptions   school_subscriptions   @relation(fields: [school_subscription_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_parental_subscription_main")
+  student_enrollments    student_enrollments[]
+  school_invoice_items   school_invoice_items[]
+
+  @@unique([school_id, school_subscription_id], map: "uq_school_parental_main_subscription")
+  @@index([school_id, status], map: "idx_school_parental_subscription_status")
+  @@index([school_subscription_id], map: "idx_school_parental_subscription_main")
+}
+
+model school_invoices {
+  id                      BigInt                    @id @default(autoincrement())
+  school_id               BigInt
+  school_subscription_id  BigInt
+  invoice_number          String                    @unique @db.VarChar(100)
+  invoice_type            String                    @db.VarChar(30)
+  billing_period_start    DateTime?                 @db.Date
+  billing_period_end      DateTime?                 @db.Date
+  student_count_snapshot  Int?
+  billing_email           String                    @db.VarChar(150)
+  issue_date              DateTime                  @db.Date
+  due_date                DateTime                  @db.Date
+  subtotal                Decimal                   @db.Decimal(12, 2)
+  discount_amount         Decimal                   @default(0) @db.Decimal(12, 2)
+  total_amount            Decimal                   @db.Decimal(12, 2)
+  currency                String                    @default("USD") @db.VarChar(10)
+  status                  String                    @default("draft") @db.VarChar(30)
+  emailed_at              DateTime?                 @db.Timestamp(6)
+  pdf_url                 String?
+  created_at              DateTime                  @default(now()) @db.Timestamp(6)
+  updated_at              DateTime                  @default(now()) @db.Timestamp(6)
+  schools                 schools                   @relation(fields: [school_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_invoices_school")
+  school_subscriptions    school_subscriptions      @relation(fields: [school_subscription_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_school_invoices_subscription")
+  school_invoice_items    school_invoice_items[]
+  school_invoice_payments school_invoice_payments[]
+
+  @@unique([school_id, invoice_type, billing_period_start, billing_period_end], map: "uq_school_invoice_billing_period")
+  @@index([school_id, status], map: "idx_school_invoices_school_status")
+  @@index([invoice_type], map: "idx_school_invoices_type")
+  @@index([school_subscription_id], map: "idx_school_invoices_subscription")
+  @@index([due_date], map: "idx_school_invoices_due_date")
+}
+
+model school_invoice_items {
+  id                              BigInt                         @id @default(autoincrement())
+  school_invoice_id               BigInt
+  item_type                       String                         @db.VarChar(30)
+  description                     String
+  quantity                        Decimal                        @db.Decimal(12, 2)
+  unit_price                      Decimal                        @db.Decimal(12, 2)
+  amount                          Decimal                        @db.Decimal(12, 2)
+  school_parental_subscription_id BigInt?
+  created_at                      DateTime                       @default(now()) @db.Timestamp(6)
+  school_invoices                 school_invoices                @relation(fields: [school_invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_invoice_items_invoice")
+  school_parental_subscriptions   school_parental_subscriptions? @relation(fields: [school_parental_subscription_id], references: [id], onUpdate: NoAction, map: "fk_school_invoice_items_parental_subscription")
+
+  @@unique([school_invoice_id, item_type], map: "uq_school_invoice_item_type")
+  @@index([school_invoice_id], map: "idx_school_invoice_items_invoice")
+  @@index([school_parental_subscription_id], map: "idx_school_invoice_items_parental_subscription")
+  @@index([item_type], map: "idx_school_invoice_items_type")
+}
+
+model school_invoice_payments {
+  id                    BigInt          @id @default(autoincrement())
+  school_invoice_id     BigInt
+  amount                Decimal         @db.Decimal(12, 2)
+  currency              String          @default("USD") @db.VarChar(10)
+  payment_method        String          @db.VarChar(30)
+  transaction_reference String?         @db.VarChar(150)
+  receipt_number        String          @unique @db.VarChar(100)
+  status                String          @default("completed") @db.VarChar(30)
+  paid_at               DateTime        @db.Timestamp(6)
+  recorded_by_user_id   BigInt
+  notes                 String?
+  created_at            DateTime        @default(now()) @db.Timestamp(6)
+  school_invoices       school_invoices @relation(fields: [school_invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_school_invoice_payments_invoice")
+  users                 users           @relation(fields: [recorded_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_school_invoice_payments_recorded_by")
+
+  @@index([school_invoice_id], map: "idx_school_invoice_payments_invoice")
+  @@index([recorded_by_user_id], map: "idx_school_invoice_payments_recorded_by")
+  @@index([status], map: "idx_school_invoice_payments_status")
 }
 
 model subjects {
@@ -464,30 +793,41 @@ model user_roles {
 }
 
 model users {
-  id                                                                 BigInt                @id @default(autoincrement())
-  school_id                                                          BigInt?
-  first_name                                                         String                @db.VarChar(100)
-  last_name                                                          String                @db.VarChar(100)
-  email                                                              String                @unique @db.VarChar(150)
-  phone                                                              String?               @db.VarChar(30)
-  password_hash                                                      String
-  profile_photo                                                      String?
-  is_active                                                          Boolean               @default(true)
-  last_login                                                         DateTime?             @db.Timestamp(6)
-  created_at                                                         DateTime              @default(now()) @db.Timestamp(6)
-  updated_at                                                         DateTime              @default(now()) @db.Timestamp(6)
-  activity_logs                                                      activity_logs[]
-  annual_programs                                                    annual_programs[]
-  lesson_comments                                                    lesson_comments[]
-  lesson_sessions                                                    lesson_sessions[]
-  lesson_validations                                                 lesson_validations[]
-  notifications_notifications_recipient_user_idTousers               notifications[]       @relation("notifications_recipient_user_idTousers")
-  notifications_notifications_sender_user_idTousers                  notifications[]       @relation("notifications_sender_user_idTousers")
-  report_attachments                                                 report_attachments[]
-  teacher_assignments_teacher_assignments_assigned_by_user_idTousers teacher_assignments[] @relation("teacher_assignments_assigned_by_user_idTousers")
-  teacher_assignments_teacher_assignments_teacher_user_idTousers     teacher_assignments[] @relation("teacher_assignments_teacher_user_idTousers")
-  user_roles                                                         user_roles[]
-  schools                                                            schools?              @relation(fields: [school_id], references: [id], onUpdate: NoAction, map: "fk_users_school")
+  id                                                                          BigInt                         @id @default(autoincrement())
+  school_id                                                                   BigInt?
+  first_name                                                                  String                         @db.VarChar(100)
+  last_name                                                                   String                         @db.VarChar(100)
+  email                                                                       String                         @unique @db.VarChar(150)
+  phone                                                                       String?                        @db.VarChar(30)
+  password_hash                                                               String
+  profile_photo                                                               String?
+  is_active                                                                   Boolean                        @default(true)
+  last_login                                                                  DateTime?                      @db.Timestamp(6)
+  created_at                                                                  DateTime                       @default(now()) @db.Timestamp(6)
+  updated_at                                                                  DateTime                       @default(now()) @db.Timestamp(6)
+  activity_logs                                                               activity_logs[]
+  annual_programs                                                             annual_programs[]
+  lesson_comments                                                             lesson_comments[]
+  lesson_sessions                                                             lesson_sessions[]
+  lesson_validations                                                          lesson_validations[]
+  notifications_notifications_recipient_user_idTousers                        notifications[]                @relation("notifications_recipient_user_idTousers")
+  notifications_notifications_sender_user_idTousers                           notifications[]                @relation("notifications_sender_user_idTousers")
+  report_attachments                                                          report_attachments[]
+  teacher_assignments_teacher_assignments_assigned_by_user_idTousers          teacher_assignments[]          @relation("teacher_assignments_assigned_by_user_idTousers")
+  teacher_assignments_teacher_assignments_teacher_user_idTousers              teacher_assignments[]          @relation("teacher_assignments_teacher_user_idTousers")
+  user_roles                                                                  user_roles[]
+  schools                                                                     schools?                       @relation(fields: [school_id], references: [id], onUpdate: NoAction, map: "fk_users_school")
+  attachment_request_documents                                                attachment_request_documents[]
+  attachment_requests_attachment_requests_requested_by_user_idTousers         attachment_requests[]          @relation("attachment_requests_requested_by_user_idTousers")
+  attachment_requests_attachment_requests_reviewed_by_user_idTousers          attachment_requests[]          @relation("attachment_requests_reviewed_by_user_idTousers")
+  guardians_guardians_user_idTousers                                          guardians[]                    @relation("guardians_user_idTousers")
+  guardians_guardians_created_by_user_idTousers                               guardians[]                    @relation("guardians_created_by_user_idTousers")
+  school_invoice_payments                                                     school_invoice_payments[]
+  school_parental_settings_school_parental_settings_created_by_user_idTousers school_parental_settings[]     @relation("school_parental_settings_created_by_user_idTousers")
+  school_parental_settings_school_parental_settings_updated_by_user_idTousers school_parental_settings[]     @relation("school_parental_settings_updated_by_user_idTousers")
+  student_enrollments                                                         student_enrollments[]
+  student_guardians                                                           student_guardians[]
+  students                                                                    students[]
 
   @@index([school_id], map: "idx_users_school_id")
 }
