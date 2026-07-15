@@ -44,6 +44,18 @@ export function requirePermission(code: string) {
   }
 }
 
+export function requireRole(role: string) {
+  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+    if (!request.user) {
+      return response.status(401).json({ message: 'Authentication required' })
+    }
+    if (!request.user.roles.includes(role)) {
+      return response.status(403).json({ message: `Role required: ${role}` })
+    }
+    return next()
+  }
+}
+
 export function requireSchoolScope(parameterName = 'schoolId') {
   return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
     if (!request.user) {

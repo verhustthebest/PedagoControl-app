@@ -442,6 +442,34 @@ function parentalPeriod(academicYearStart: Date) {
   }
 }
 
+export function enrollmentTrackingStatus(enrollment: {
+  parental_tracking_enabled: boolean
+  parental_tracking_started_at: Date | string | null
+  parental_tracking_ended_at: Date | string | null
+  academic_year_classes?: { academic_years?: { start_date: Date | string } }
+}, now = new Date()) {
+  const startedAt = enrollment.parental_tracking_started_at
+    ? new Date(enrollment.parental_tracking_started_at)
+    : null
+  const endedAt = enrollment.parental_tracking_ended_at
+    ? new Date(enrollment.parental_tracking_ended_at)
+    : null
+  const academicYearStart = enrollment.academic_year_classes?.academic_years?.start_date
+    ? new Date(enrollment.academic_year_classes.academic_years.start_date)
+    : null
+  const billingEnd = academicYearStart ? parentalPeriod(academicYearStart).end : null
+
+  if (
+    !enrollment.parental_tracking_enabled ||
+    (endedAt !== null && endedAt.getTime() <= now.getTime()) ||
+    (billingEnd !== null && billingEnd.getTime() < now.getTime() && (!startedAt || startedAt <= now))
+  ) {
+    return 'inactive' as const
+  }
+  if (startedAt && startedAt.getTime() > now.getTime()) return 'scheduled' as const
+  return 'active' as const
+}
+
 function endOfUtcDay(value: Date) {
   return new Date(
     Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate(), 23, 59, 59, 999),
@@ -538,9 +566,12 @@ export async function setStudentTracking(
   }
 
   const { enrollment, period } = selected
+  const academicYearStart = utcDateOnly(enrollment.academic_year_classes.academic_years.start_date)
   const computedStart =
-    today.getTime() < period.start.getTime()
-      ? period.start
+    today.getTime() < academicYearStart.getTime()
+      ? academicYearStart
+      : today.getTime() < period.start.getTime()
+        ? period.start
       : today.getTime() <= period.end.getTime()
         ? now
         : null
@@ -551,9 +582,12 @@ export async function setStudentTracking(
     )
   }
 
+  const existingStart = enrollment.parental_tracking_started_at
   const effectiveStart =
-    enabled && enrollment.parental_tracking_enabled && enrollment.parental_tracking_started_at
-      ? enrollment.parental_tracking_started_at
+    enabled && enrollment.parental_tracking_enabled && existingStart
+      ? existingStart.getTime() < academicYearStart.getTime()
+        ? academicYearStart
+        : existingStart
       : computedStart
   let subscriptionId = enrollment.school_parental_subscription_id
   if (enabled) {

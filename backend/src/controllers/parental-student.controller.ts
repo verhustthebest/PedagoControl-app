@@ -2,6 +2,7 @@ import type { Response } from 'express'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware'
 import {
   createStudent,
+  enrollmentTrackingStatus,
   getStudent,
   listStudents,
   setStudentTracking,
@@ -32,33 +33,9 @@ function presentStudent(value: unknown) {
 
   const enrollment = student.enrollment as Record<string, unknown> | null
   if (enrollment) {
-    const enabled = enrollment.parental_tracking_enabled === true
-    const startedAt =
-      typeof enrollment.parental_tracking_started_at === 'string'
-        ? new Date(enrollment.parental_tracking_started_at)
-        : null
-    const endedAt =
-      typeof enrollment.parental_tracking_ended_at === 'string'
-        ? new Date(enrollment.parental_tracking_ended_at)
-        : null
-    const academicYearClass = enrollment.academic_year_classes as
-      | { academic_years?: { start_date?: string } }
-      | undefined
-    const academicYearStart = academicYearClass?.academic_years?.start_date
-      ? new Date(academicYearClass.academic_years.start_date)
-      : null
-    const billingEnd = academicYearStart
-      ? new Date(Date.UTC(academicYearStart.getUTCFullYear() + 1, 5, 15, 23, 59, 59, 999))
-      : null
-    const now = new Date()
-
-    enrollment.tracking_status =
-      !enabled || (endedAt !== null && endedAt.getTime() <= now.getTime()) ||
-      (billingEnd !== null && billingEnd.getTime() < now.getTime() && (!startedAt || startedAt <= now))
-        ? 'inactive'
-        : startedAt !== null && startedAt.getTime() > now.getTime()
-          ? 'scheduled'
-          : 'active'
+    enrollment.tracking_status = enrollmentTrackingStatus(
+      enrollment as Parameters<typeof enrollmentTrackingStatus>[0],
+    )
   }
   return student
 }
