@@ -67,8 +67,14 @@ function formatUser(user: {
 }
 
 export async function loginWithEmailAndPassword(email: string, password: string) {
-  const user = await prisma.users.findUnique({
-    where: { email: email.trim().toLowerCase() },
+  const identifier = email.trim()
+  const user = await prisma.users.findFirst({
+    where: {
+      OR: [
+        { email: { equals: identifier.toLowerCase(), mode: 'insensitive' } },
+        { phone: identifier },
+      ],
+    },
     include: {
       user_roles: {
         include: {
