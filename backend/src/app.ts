@@ -6,6 +6,8 @@ import healthRoutes from './routes/health.routes'
 import lessonReportRoutes from './routes/lesson-report.routes'
 import notificationRoutes from './routes/notification.routes'
 import parentalRoutes from './routes/parental.routes'
+import parentalGuardianRoutes from './routes/parental-guardian.routes'
+import parentalStudentRoutes from './routes/parental-student.routes'
 import schoolRoutes from './routes/school.routes'
 
 dotenv.config()
@@ -34,6 +36,8 @@ app.use('/api', healthRoutes)
 app.use('/api', lessonReportRoutes)
 app.use('/api', notificationRoutes)
 app.use('/api', parentalRoutes)
+app.use('/api', parentalGuardianRoutes)
+app.use('/api', parentalStudentRoutes)
 app.use('/api', schoolRoutes)
 
 export default app
