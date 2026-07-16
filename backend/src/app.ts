@@ -9,6 +9,7 @@ import parentalRoutes from './routes/parental.routes'
 import parentalGuardianRoutes from './routes/parental-guardian.routes'
 import parentRegistrationRoutes from './routes/parent-registration.routes'
 import parentPortalRoutes from './routes/parent-portal.routes'
+import parentalBillingRoutes from './routes/parental-billing.routes'
 import parentalStudentRoutes from './routes/parental-student.routes'
 import schoolRoutes from './routes/school.routes'
 
@@ -40,6 +41,7 @@ app.use('/api', notificationRoutes)
 app.use('/api', parentalRoutes)
 app.use('/api', parentRegistrationRoutes)
 app.use('/api', parentPortalRoutes)
+app.use('/api', parentalBillingRoutes)
 app.use('/api', parentalGuardianRoutes)
 app.use('/api', parentalStudentRoutes)
 app.use('/api', schoolRoutes)

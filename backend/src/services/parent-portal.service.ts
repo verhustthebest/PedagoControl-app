@@ -25,6 +25,11 @@ function parseDate(value: unknown) {
   ) {
     throw new ParentalApiError('date is invalid', 400)
   }
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  if (date.getTime() > today.getTime()) {
+    throw new ParentalApiError('journal_date cannot be in the future', 400)
+  }
   return date
 }
 
@@ -123,10 +128,7 @@ async function dailyLessons(academicYearClassId: bigint, journalDate: Date) {
       teacher_assignments: {
         academic_year_subjects: { academic_year_class_id: academicYearClassId },
       },
-      OR: [
-        { lesson_status: { in: ['published', 'validated'] } },
-        { lesson_validations: { some: { decision: 'validated' } } },
-      ],
+      lesson_validations: { some: { decision: 'validated' } },
     },
     include: lessonInclude,
     orderBy: [{ actual_start_time: 'asc' }, { id: 'asc' }],

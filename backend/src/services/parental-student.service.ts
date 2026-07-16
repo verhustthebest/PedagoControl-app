@@ -476,7 +476,11 @@ function endOfUtcDay(value: Date) {
   )
 }
 
-export async function countBillableParentalStudents(schoolIdValue: string, monthValue: Date) {
+export async function countBillableParentalStudents(
+  schoolIdValue: string,
+  monthValue: Date,
+  parentalSubscriptionId?: bigint,
+) {
   const schoolId = parseId(schoolIdValue, 'schoolId')
   const month = monthValue.getUTCMonth()
   if (month === 6 || month === 7) return 0
@@ -489,10 +493,11 @@ export async function countBillableParentalStudents(schoolIdValue: string, month
 
   return prisma.student_enrollments.count({
     where: {
-      status: 'active',
-      parental_tracking_enabled: true,
       parental_tracking_started_at: { lte: cutoff },
       OR: [{ parental_tracking_ended_at: null }, { parental_tracking_ended_at: { gt: cutoff } }],
+      ...(parentalSubscriptionId
+        ? { school_parental_subscription_id: parentalSubscriptionId }
+        : {}),
       students: { school_id: schoolId },
       academic_year_classes: {
         academic_years: {
