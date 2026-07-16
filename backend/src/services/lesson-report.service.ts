@@ -1,5 +1,6 @@
 import type { AuthUser } from './auth.service'
 import prisma from '../prisma/client'
+import { isSuperAdmin } from '../security/access-policy'
 
 const PREFET_ROLES = ['PREFET', 'PREFET_DES_ETUDES', 'DIRECTEUR_ETUDES', 'DIRECTEUR_DES_ETUDES']
 const PROMOTER_ROLES = ['PROMOTEUR', 'ADMIN_GESTIONNAIRE', 'SUPER_ADMIN']
@@ -55,7 +56,9 @@ function todayRange() {
 }
 
 function schoolScope(user: AuthUser) {
-  return user.school_id ? { users: { school_id: toBigInt(user.school_id) } } : {}
+  if (user.school_id) return { users: { school_id: toBigInt(user.school_id) } }
+  if (isSuperAdmin(user)) return {}
+  throw new Error('Access forbidden')
 }
 
 async function findRecipients(roleNames: string[], schoolId: string | null, excludeUserId?: string) {

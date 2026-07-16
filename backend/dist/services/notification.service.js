@@ -10,6 +10,7 @@ exports.getUnreadNotificationCount = getUnreadNotificationCount;
 exports.markNotificationRead = markNotificationRead;
 exports.markAllNotificationsRead = markAllNotificationsRead;
 const client_1 = __importDefault(require("../prisma/client"));
+const access_policy_1 = require("../security/access-policy");
 function toBigInt(value) {
     return typeof value === 'bigint' ? value : BigInt(value);
 }
@@ -84,6 +85,10 @@ async function broadcastMessage(user, input) {
     if (!input.message) {
         throw new Error('message is required');
     }
+    if (!(0, access_policy_1.canBroadcast)(user))
+        throw new Error('Access forbidden');
+    if (!user.school_id && !(0, access_policy_1.isSuperAdmin)(user))
+        throw new Error('Access forbidden');
     const recipients = await client_1.default.users.findMany({
         where: {
             is_active: true,

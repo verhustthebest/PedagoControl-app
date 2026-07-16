@@ -1,6 +1,11 @@
 import type { NextFunction, Request, Response } from 'express'
 import { findAuthUserById, verifyAuthToken } from '../services/auth.service'
 import type { AuthUser } from '../services/auth.service'
+import {
+  hasAnyRole,
+  hasUsableSchoolContext,
+  isSuperAdmin,
+} from '../security/access-policy'
 
 export type AuthenticatedRequest = Request & {
   user?: AuthUser
@@ -10,7 +15,7 @@ export async function authenticateBearerToken(request: AuthenticatedRequest, res
   const authorization = request.header('Authorization')
 
   if (!authorization?.startsWith('Bearer ')) {
-    return response.status(401).json({ message: 'Bearer token required' })
+    return response.status(401).json({ message: 'Authentication required' })
   }
 
   const token = authorization.slice('Bearer '.length).trim()
@@ -20,13 +25,13 @@ export async function authenticateBearerToken(request: AuthenticatedRequest, res
     const user = await findAuthUserById(payload.sub)
 
     if (!user) {
-      return response.status(401).json({ message: 'Invalid token user' })
+      return response.status(401).json({ message: 'Authentication required' })
     }
 
     request.user = user
     return next()
   } catch {
-    return response.status(401).json({ message: 'Invalid or expired token' })
+    return response.status(401).json({ message: 'Authentication required' })
   }
 }
 
@@ -36,11 +41,11 @@ export function requirePermission(code: string) {
       return response.status(401).json({ message: 'Authentication required' })
     }
 
-    if (request.user.roles.includes('SUPER_ADMIN') || request.user.permissions.includes(code)) {
+    if (isSuperAdmin(request.user) || request.user.permissions.includes(code)) {
       return next()
     }
 
-    return response.status(403).json({ message: `Permission required: ${code}` })
+    return response.status(403).json({ message: 'Access forbidden' })
   }
 }
 
@@ -50,7 +55,31 @@ export function requireRole(role: string) {
       return response.status(401).json({ message: 'Authentication required' })
     }
     if (!request.user.roles.includes(role)) {
-      return response.status(403).json({ message: `Role required: ${role}` })
+      return response.status(403).json({ message: 'Access forbidden' })
+    }
+    return next()
+  }
+}
+
+export function requireAnyRole(roles: readonly string[]) {
+  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+    if (!request.user) {
+      return response.status(401).json({ message: 'Authentication required' })
+    }
+    if (!hasAnyRole(request.user, roles)) {
+      return response.status(403).json({ message: 'Access forbidden' })
+    }
+    return next()
+  }
+}
+
+export function requireSchoolContext() {
+  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+    if (!request.user) {
+      return response.status(401).json({ message: 'Authentication required' })
+    }
+    if (!hasUsableSchoolContext(request.user)) {
+      return response.status(403).json({ message: 'Access forbidden' })
     }
     return next()
   }
@@ -69,8 +98,12 @@ export function requireSchoolScope(parameterName = 'schoolId') {
       return response.status(400).json({ message: 'A valid school id is required' })
     }
 
+    if (!request.user.school_id && !isSuperAdmin(request.user)) {
+      return response.status(403).json({ message: 'Access forbidden' })
+    }
+
     if (request.user.school_id && BigInt(request.user.school_id) !== BigInt(requestedSchoolId)) {
-      return response.status(403).json({ message: 'Access to another school is forbidden' })
+      return response.status(403).json({ message: 'Access forbidden' })
     }
 
     return next()

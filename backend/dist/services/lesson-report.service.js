@@ -11,6 +11,7 @@ exports.getPendingReports = getPendingReports;
 exports.decideReport = decideReport;
 exports.getSupervisionReports = getSupervisionReports;
 const client_1 = __importDefault(require("../prisma/client"));
+const access_policy_1 = require("../security/access-policy");
 const PREFET_ROLES = ['PREFET', 'PREFET_DES_ETUDES', 'DIRECTEUR_ETUDES', 'DIRECTEUR_DES_ETUDES'];
 const PROMOTER_ROLES = ['PROMOTEUR', 'ADMIN_GESTIONNAIRE', 'SUPER_ADMIN'];
 const DECISIONS = ['validated', 'rejected', 'correction_requested'];
@@ -37,7 +38,11 @@ function todayRange() {
     return { start, end };
 }
 function schoolScope(user) {
-    return user.school_id ? { users: { school_id: toBigInt(user.school_id) } } : {};
+    if (user.school_id)
+        return { users: { school_id: toBigInt(user.school_id) } };
+    if ((0, access_policy_1.isSuperAdmin)(user))
+        return {};
+    throw new Error('Access forbidden');
 }
 async function findRecipients(roleNames, schoolId, excludeUserId) {
     return client_1.default.users.findMany({

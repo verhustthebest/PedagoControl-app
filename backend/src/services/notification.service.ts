@@ -1,5 +1,6 @@
 import type { AuthUser } from './auth.service'
 import prisma from '../prisma/client'
+import { canBroadcast, isSuperAdmin } from '../security/access-policy'
 
 function toBigInt(value: string | number | bigint) {
   return typeof value === 'bigint' ? value : BigInt(value)
@@ -93,6 +94,9 @@ export async function broadcastMessage(user: AuthUser, input: { title?: string; 
   if (!input.message) {
     throw new Error('message is required')
   }
+
+  if (!canBroadcast(user)) throw new Error('Access forbidden')
+  if (!user.school_id && !isSuperAdmin(user)) throw new Error('Access forbidden')
 
   const recipients = await prisma.users.findMany({
     where: {

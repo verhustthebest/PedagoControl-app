@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const parental_student_controller_1 = require("../controllers/parental-student.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+const access = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolScope)(), (0, auth_middleware_1.requirePermission)('MANAGE_STUDENTS')];
+router.get('/parental/schools/:schoolId/students', ...access, parental_student_controller_1.indexStudents);
+router.post('/parental/schools/:schoolId/students', ...access, parental_student_controller_1.createStudentHandler);
+router.get('/parental/schools/:schoolId/students/:studentId', ...access, parental_student_controller_1.showStudent);
+router.put('/parental/schools/:schoolId/students/:studentId', ...access, parental_student_controller_1.updateStudentHandler);
+router.patch('/parental/schools/:schoolId/students/:studentId/tracking', ...access, parental_student_controller_1.updateStudentTracking);
+exports.default = router;

@@ -49,6 +49,8 @@ const permissionSeeds = [
     { code: 'VIEW_SCHOOL_INVOICES', label: 'Consulter les factures de l ecole', description: 'Consulter les factures emises pour une ecole.' },
     { code: 'PRINT_SCHOOL_INVOICE', label: 'Imprimer une facture de l ecole', description: 'Imprimer une facture emise pour une ecole.' },
     { code: 'RECORD_SCHOOL_PAYMENT', label: 'Enregistrer un paiement de l ecole', description: 'Enregistrer manuellement un paiement recu de l ecole.' },
+    { code: 'BROADCAST_SCHOOL_MESSAGES', label: 'Diffuser des messages dans une ecole', description: 'Diffuser un message collectif uniquement dans son ecole.' },
+    { code: 'BROADCAST_GLOBAL_MESSAGES', label: 'Diffuser des messages globaux', description: 'Diffuser un message collectif a toutes les ecoles.' },
 ];
 const schoolManagementPermissions = [
     'MANAGE_STUDENTS',
@@ -59,6 +61,7 @@ const schoolManagementPermissions = [
     'VIEW_PARENTAL_JOURNALS',
     'VIEW_PARENTAL_ACKNOWLEDGEMENTS',
     'SEND_PARENTAL_NOTIFICATIONS',
+    'BROADCAST_SCHOOL_MESSAGES',
 ];
 const technicianPermissions = [
     'MANAGE_STUDENTS',

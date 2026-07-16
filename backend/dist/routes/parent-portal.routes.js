@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const parent_portal_controller_1 = require("../controllers/parent-portal.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+const parent = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireRole)('PARENT')];
+router.get('/parental/me/children', ...parent, (0, auth_middleware_1.requirePermission)('VIEW_OWN_CHILDREN'), parent_portal_controller_1.ownChildren);
+router.get('/parental/me/children/:studentId/journals', ...parent, (0, auth_middleware_1.requirePermission)('VIEW_OWN_DAILY_JOURNALS'), parent_portal_controller_1.ownChildJournals);
+router.post('/parental/me/children/:studentId/acknowledgements', ...parent, (0, auth_middleware_1.requirePermission)('ACKNOWLEDGE_DAILY_JOURNAL'), parent_portal_controller_1.acknowledgeJournal);
+router.get('/parental/me/notifications', ...parent, (0, auth_middleware_1.requirePermission)('VIEW_OWN_NOTIFICATIONS'), parent_portal_controller_1.ownNotifications);
+exports.default = router;

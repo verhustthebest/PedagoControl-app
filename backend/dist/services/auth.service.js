@@ -36,8 +36,14 @@ function formatUser(user) {
     };
 }
 async function loginWithEmailAndPassword(email, password) {
-    const user = await client_1.default.users.findUnique({
-        where: { email: email.trim().toLowerCase() },
+    const identifier = email.trim();
+    const user = await client_1.default.users.findFirst({
+        where: {
+            OR: [
+                { email: { equals: identifier.toLowerCase(), mode: 'insensitive' } },
+                { phone: identifier },
+            ],
+        },
         include: {
             user_roles: {
                 include: {

@@ -2,25 +2,29 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticateBearerToken = authenticateBearerToken;
 exports.requirePermission = requirePermission;
+exports.requireRole = requireRole;
+exports.requireAnyRole = requireAnyRole;
+exports.requireSchoolContext = requireSchoolContext;
 exports.requireSchoolScope = requireSchoolScope;
 const auth_service_1 = require("../services/auth.service");
+const access_policy_1 = require("../security/access-policy");
 async function authenticateBearerToken(request, response, next) {
     const authorization = request.header('Authorization');
     if (!authorization?.startsWith('Bearer ')) {
-        return response.status(401).json({ message: 'Bearer token required' });
+        return response.status(401).json({ message: 'Authentication required' });
     }
     const token = authorization.slice('Bearer '.length).trim();
     try {
         const payload = (0, auth_service_1.verifyAuthToken)(token);
         const user = await (0, auth_service_1.findAuthUserById)(payload.sub);
         if (!user) {
-            return response.status(401).json({ message: 'Invalid token user' });
+            return response.status(401).json({ message: 'Authentication required' });
         }
         request.user = user;
         return next();
     }
     catch {
-        return response.status(401).json({ message: 'Invalid or expired token' });
+        return response.status(401).json({ message: 'Authentication required' });
     }
 }
 function requirePermission(code) {
@@ -28,10 +32,43 @@ function requirePermission(code) {
         if (!request.user) {
             return response.status(401).json({ message: 'Authentication required' });
         }
-        if (request.user.roles.includes('SUPER_ADMIN') || request.user.permissions.includes(code)) {
+        if ((0, access_policy_1.isSuperAdmin)(request.user) || request.user.permissions.includes(code)) {
             return next();
         }
-        return response.status(403).json({ message: `Permission required: ${code}` });
+        return response.status(403).json({ message: 'Access forbidden' });
+    };
+}
+function requireRole(role) {
+    return (request, response, next) => {
+        if (!request.user) {
+            return response.status(401).json({ message: 'Authentication required' });
+        }
+        if (!request.user.roles.includes(role)) {
+            return response.status(403).json({ message: 'Access forbidden' });
+        }
+        return next();
+    };
+}
+function requireAnyRole(roles) {
+    return (request, response, next) => {
+        if (!request.user) {
+            return response.status(401).json({ message: 'Authentication required' });
+        }
+        if (!(0, access_policy_1.hasAnyRole)(request.user, roles)) {
+            return response.status(403).json({ message: 'Access forbidden' });
+        }
+        return next();
+    };
+}
+function requireSchoolContext() {
+    return (request, response, next) => {
+        if (!request.user) {
+            return response.status(401).json({ message: 'Authentication required' });
+        }
+        if (!(0, access_policy_1.hasUsableSchoolContext)(request.user)) {
+            return response.status(403).json({ message: 'Access forbidden' });
+        }
+        return next();
     };
 }
 function requireSchoolScope(parameterName = 'schoolId') {
@@ -44,8 +81,11 @@ function requireSchoolScope(parameterName = 'schoolId') {
         if (!requestedSchoolId || !/^\d+$/.test(requestedSchoolId) || BigInt(requestedSchoolId) <= 0n) {
             return response.status(400).json({ message: 'A valid school id is required' });
         }
+        if (!request.user.school_id && !(0, access_policy_1.isSuperAdmin)(request.user)) {
+            return response.status(403).json({ message: 'Access forbidden' });
+        }
         if (request.user.school_id && BigInt(request.user.school_id) !== BigInt(requestedSchoolId)) {
-            return response.status(403).json({ message: 'Access to another school is forbidden' });
+            return response.status(403).json({ message: 'Access forbidden' });
         }
         return next();
     };
