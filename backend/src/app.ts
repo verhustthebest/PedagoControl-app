@@ -12,10 +12,13 @@ import parentPortalRoutes from './routes/parent-portal.routes'
 import parentalBillingRoutes from './routes/parental-billing.routes'
 import parentalStudentRoutes from './routes/parental-student.routes'
 import schoolRoutes from './routes/school.routes'
+import { globalApiRateLimit } from './middleware/rate-limit.middleware'
+import { resolveTrustProxyHops } from './config/network'
 
 dotenv.config()
 
 const app = express()
+app.set('trust proxy', resolveTrustProxyHops())
 const allowedOrigins = new Set([
   'http://localhost:5173',
   'https://pedago-control-app.vercel.app',
@@ -33,6 +36,7 @@ app.use(cors({
   },
 }))
 app.use(express.json())
+app.use('/api', globalApiRateLimit)
 
 app.use('/api', authRoutes)
 app.use('/api', healthRoutes)

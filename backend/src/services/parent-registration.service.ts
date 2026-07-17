@@ -5,9 +5,15 @@ import { Prisma } from '@prisma/client'
 import prisma from '../prisma/client'
 import { ParentalApiError } from './parental.service'
 import { type OtpChannel, sendRegistrationOtp } from './otp-provider.service'
+import { RateLimitError } from '../security/abuse-protection'
 
 const PURPOSE = 'parent_registration'
 const CHANNELS: OtpChannel[] = ['email', 'whatsapp', 'sms']
+
+function positiveInteger(name: string, fallback: number) {
+  const value = Number(process.env[name])
+  return Number.isInteger(value) && value > 0 ? value : fallback
+}
 
 type RegistrationTokenPayload = {
   scope: typeof PURPOSE
@@ -127,6 +133,33 @@ export async function requestParentRegistrationOtp(input: {
   }
 
   const guardian = guardians[0]
+  const now = new Date()
+  const hourAgo = new Date(now.getTime() - 60 * 60_000)
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60_000)
+  const [latest, guardianHour, guardianDay, schoolHour, schoolDay] = await Promise.all([
+    prisma.contact_verifications.findFirst({
+      where: { guardian_id: guardian.id, purpose: PURPOSE },
+      orderBy: { created_at: 'desc' },
+      select: { created_at: true },
+    }),
+    prisma.contact_verifications.count({ where: { guardian_id: guardian.id, purpose: PURPOSE, created_at: { gte: hourAgo } } }),
+    prisma.contact_verifications.count({ where: { guardian_id: guardian.id, purpose: PURPOSE, created_at: { gte: dayAgo } } }),
+    prisma.contact_verifications.count({ where: { guardians: { school_id: school.id }, purpose: PURPOSE, created_at: { gte: hourAgo } } }),
+    prisma.contact_verifications.count({ where: { guardians: { school_id: school.id }, purpose: PURPOSE, created_at: { gte: dayAgo } } }),
+  ])
+  const resendDelaySeconds = positiveInteger('OTP_RESEND_MIN_SECONDS', 60)
+  if (latest) {
+    const availableAt = latest.created_at.getTime() + resendDelaySeconds * 1000
+    if (availableAt > now.getTime()) throw new RateLimitError(Math.ceil((availableAt - now.getTime()) / 1000))
+  }
+  if (
+    guardianHour >= positiveInteger('OTP_GUARDIAN_MAX_PER_HOUR', 4) ||
+    guardianDay >= positiveInteger('OTP_GUARDIAN_MAX_PER_DAY', 10) ||
+    schoolHour >= positiveInteger('OTP_SCHOOL_MAX_PER_HOUR', 100) ||
+    schoolDay >= positiveInteger('OTP_SCHOOL_MAX_PER_DAY', 500)
+  ) {
+    throw new RateLimitError(3600)
+  }
   const settings = await prisma.school_parental_settings.findUnique({ where: { school_id: school.id } })
   const expiresInMinutes = settings?.otp_expiry_minutes ?? 10
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0')

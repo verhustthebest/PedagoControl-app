@@ -1,4 +1,5 @@
 import { ParentalApiError } from './parental.service'
+import { maskContact } from '../security/abuse-protection'
 
 export type OtpChannel = 'email' | 'whatsapp' | 'sms'
 
@@ -77,7 +78,7 @@ async function sendTwilio(input: SendOtpInput) {
 export async function sendRegistrationOtp(input: SendOtpInput) {
   if (isDevelopmentSimulationEnabled()) {
     console.log(
-      `[OTP DEV] channel=${input.channel} destination=${input.destination} code=${input.code}`,
+      `[OTP DEV] delivery simulated channel=${input.channel} destination=${maskContact(input.destination)}`,
     )
     return
   }

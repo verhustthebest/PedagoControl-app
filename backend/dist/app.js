@@ -17,8 +17,11 @@ const parent_portal_routes_1 = __importDefault(require("./routes/parent-portal.r
 const parental_billing_routes_1 = __importDefault(require("./routes/parental-billing.routes"));
 const parental_student_routes_1 = __importDefault(require("./routes/parental-student.routes"));
 const school_routes_1 = __importDefault(require("./routes/school.routes"));
+const rate_limit_middleware_1 = require("./middleware/rate-limit.middleware");
+const network_1 = require("./config/network");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+app.set('trust proxy', (0, network_1.resolveTrustProxyHops)());
 const allowedOrigins = new Set([
     'http://localhost:5173',
     'https://pedago-control-app.vercel.app',
@@ -34,6 +37,7 @@ app.use((0, cors_1.default)({
     },
 }));
 app.use(express_1.default.json());
+app.use('/api', rate_limit_middleware_1.globalApiRateLimit);
 app.use('/api', auth_routes_1.default);
 app.use('/api', health_routes_1.default);
 app.use('/api', lesson_report_routes_1.default);

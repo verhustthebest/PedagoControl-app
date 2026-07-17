@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendRegistrationOtp = sendRegistrationOtp;
 const parental_service_1 = require("./parental.service");
+const abuse_protection_1 = require("../security/abuse-protection");
 function isDevelopmentSimulationEnabled() {
     return process.env.NODE_ENV !== 'production' && process.env.OTP_USE_SIMULATED_PROVIDER !== 'false';
 }
@@ -55,7 +56,7 @@ async function sendTwilio(input) {
 }
 async function sendRegistrationOtp(input) {
     if (isDevelopmentSimulationEnabled()) {
-        console.log(`[OTP DEV] channel=${input.channel} destination=${input.destination} code=${input.code}`);
+        console.log(`[OTP DEV] delivery simulated channel=${input.channel} destination=${(0, abuse_protection_1.maskContact)(input.destination)}`);
         return;
     }
     if (input.channel === 'email')

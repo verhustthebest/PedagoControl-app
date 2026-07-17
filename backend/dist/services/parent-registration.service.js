@@ -13,8 +13,13 @@ const client_1 = require("@prisma/client");
 const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
 const otp_provider_service_1 = require("./otp-provider.service");
+const abuse_protection_1 = require("../security/abuse-protection");
 const PURPOSE = 'parent_registration';
 const CHANNELS = ['email', 'whatsapp', 'sms'];
+function positiveInteger(name, fallback) {
+    const value = Number(process.env[name]);
+    return Number.isInteger(value) && value > 0 ? value : fallback;
+}
 function jwtSecret() {
     if (!process.env.JWT_SECRET)
         throw new parental_service_1.ParentalApiError('JWT secret is not configured', 503);
@@ -113,6 +118,32 @@ async function requestParentRegistrationOtp(input) {
         throw new parental_service_1.ParentalApiError('Several guardians use this contact; school assistance is required', 409);
     }
     const guardian = guardians[0];
+    const now = new Date();
+    const hourAgo = new Date(now.getTime() - 60 * 60000);
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60000);
+    const [latest, guardianHour, guardianDay, schoolHour, schoolDay] = await Promise.all([
+        client_2.default.contact_verifications.findFirst({
+            where: { guardian_id: guardian.id, purpose: PURPOSE },
+            orderBy: { created_at: 'desc' },
+            select: { created_at: true },
+        }),
+        client_2.default.contact_verifications.count({ where: { guardian_id: guardian.id, purpose: PURPOSE, created_at: { gte: hourAgo } } }),
+        client_2.default.contact_verifications.count({ where: { guardian_id: guardian.id, purpose: PURPOSE, created_at: { gte: dayAgo } } }),
+        client_2.default.contact_verifications.count({ where: { guardians: { school_id: school.id }, purpose: PURPOSE, created_at: { gte: hourAgo } } }),
+        client_2.default.contact_verifications.count({ where: { guardians: { school_id: school.id }, purpose: PURPOSE, created_at: { gte: dayAgo } } }),
+    ]);
+    const resendDelaySeconds = positiveInteger('OTP_RESEND_MIN_SECONDS', 60);
+    if (latest) {
+        const availableAt = latest.created_at.getTime() + resendDelaySeconds * 1000;
+        if (availableAt > now.getTime())
+            throw new abuse_protection_1.RateLimitError(Math.ceil((availableAt - now.getTime()) / 1000));
+    }
+    if (guardianHour >= positiveInteger('OTP_GUARDIAN_MAX_PER_HOUR', 4) ||
+        guardianDay >= positiveInteger('OTP_GUARDIAN_MAX_PER_DAY', 10) ||
+        schoolHour >= positiveInteger('OTP_SCHOOL_MAX_PER_HOUR', 100) ||
+        schoolDay >= positiveInteger('OTP_SCHOOL_MAX_PER_DAY', 500)) {
+        throw new abuse_protection_1.RateLimitError(3600);
+    }
     const settings = await client_2.default.school_parental_settings.findUnique({ where: { school_id: school.id } });
     const expiresInMinutes = settings?.otp_expiry_minutes ?? 10;
     const code = (0, crypto_1.randomInt)(0, 1000000).toString().padStart(6, '0');
