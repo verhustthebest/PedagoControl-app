@@ -1,4 +1,3 @@
-import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import authRoutes from './routes/auth.routes'
@@ -14,28 +13,13 @@ import parentalStudentRoutes from './routes/parental-student.routes'
 import schoolRoutes from './routes/school.routes'
 import { globalApiRateLimit } from './middleware/rate-limit.middleware'
 import { resolveTrustProxyHops } from './config/network'
+import { configureHttpBoundary, httpErrorHandler } from './config/http'
 
 dotenv.config()
 
 const app = express()
 app.set('trust proxy', resolveTrustProxyHops())
-const allowedOrigins = new Set([
-  'http://localhost:5173',
-  'https://pedago-control-app.vercel.app',
-  process.env.FRONTEND_URL,
-].filter(Boolean))
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) {
-      callback(null, true)
-      return
-    }
-
-    callback(new Error('Not allowed by CORS'))
-  },
-}))
-app.use(express.json())
+configureHttpBoundary(app)
 app.use('/api', globalApiRateLimit)
 
 app.use('/api', authRoutes)
@@ -49,5 +33,6 @@ app.use('/api', parentalBillingRoutes)
 app.use('/api', parentalGuardianRoutes)
 app.use('/api', parentalStudentRoutes)
 app.use('/api', schoolRoutes)
+app.use(httpErrorHandler)
 
 export default app

@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
@@ -19,24 +18,11 @@ const parental_student_routes_1 = __importDefault(require("./routes/parental-stu
 const school_routes_1 = __importDefault(require("./routes/school.routes"));
 const rate_limit_middleware_1 = require("./middleware/rate-limit.middleware");
 const network_1 = require("./config/network");
+const http_1 = require("./config/http");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.set('trust proxy', (0, network_1.resolveTrustProxyHops)());
-const allowedOrigins = new Set([
-    'http://localhost:5173',
-    'https://pedago-control-app.vercel.app',
-    process.env.FRONTEND_URL,
-].filter(Boolean));
-app.use((0, cors_1.default)({
-    origin(origin, callback) {
-        if (!origin || allowedOrigins.has(origin)) {
-            callback(null, true);
-            return;
-        }
-        callback(new Error('Not allowed by CORS'));
-    },
-}));
-app.use(express_1.default.json());
+(0, http_1.configureHttpBoundary)(app);
 app.use('/api', rate_limit_middleware_1.globalApiRateLimit);
 app.use('/api', auth_routes_1.default);
 app.use('/api', health_routes_1.default);
@@ -49,4 +35,5 @@ app.use('/api', parental_billing_routes_1.default);
 app.use('/api', parental_guardian_routes_1.default);
 app.use('/api', parental_student_routes_1.default);
 app.use('/api', school_routes_1.default);
+app.use(http_1.httpErrorHandler);
 exports.default = app;
