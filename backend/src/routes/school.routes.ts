@@ -6,6 +6,8 @@ import {
   requireSchoolContext,
 } from '../middleware/auth.middleware'
 import { SCHOOL_LIST_ROLES } from '../security/access-policy'
+import { validate } from '../middleware/validate.middleware'
+import { paginationQuery } from '../validation/schemas'
 
 const router = Router()
 
@@ -14,6 +16,7 @@ router.get(
   authenticateBearerToken,
   requireSchoolContext(),
   requireAnyRole(SCHOOL_LIST_ROLES),
+  validate({ query: paginationQuery }),
   getSchools,
 )
 

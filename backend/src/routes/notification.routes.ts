@@ -13,6 +13,8 @@ import { requireSchoolContext } from '../middleware/auth.middleware'
 import { canBroadcast } from '../security/access-policy'
 import type { NextFunction, Response } from 'express'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware'
+import { validate } from '../middleware/validate.middleware'
+import { itemParams, messageBody } from '../validation/schemas'
 
 const router = Router()
 
@@ -25,15 +27,16 @@ function requireBroadcastAccess(request: AuthenticatedRequest, response: Respons
 router.get('/notifications', authenticateBearerToken, notifications)
 router.get('/notifications/unread-count', authenticateBearerToken, unreadNotificationCount)
 router.patch('/notifications/read-all', authenticateBearerToken, readAllNotifications)
-router.patch('/notifications/:id/read', authenticateBearerToken, readNotification)
+router.patch('/notifications/:id/read', authenticateBearerToken, validate({ params: itemParams }), readNotification)
 router.get('/messages', authenticateBearerToken, messages)
 router.post(
   '/messages/broadcast',
   authenticateBearerToken,
   requireSchoolContext(),
   requireBroadcastAccess,
+  validate({ body: messageBody }),
   broadcastMessages,
 )
-router.patch('/messages/:id/read', authenticateBearerToken, readMessage)
+router.patch('/messages/:id/read', authenticateBearerToken, validate({ params: itemParams }), readMessage)
 
 export default router

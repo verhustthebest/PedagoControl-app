@@ -10,6 +10,8 @@ import {
   requirePermission,
   requireSchoolScope,
 } from '../middleware/auth.middleware'
+import { validate } from '../middleware/validate.middleware'
+import { schoolParams, settingsBody, subscriptionBody } from '../validation/schemas'
 
 const router = Router()
 
@@ -18,6 +20,7 @@ router.get(
   authenticateBearerToken,
   requireSchoolScope(),
   requirePermission('CONFIGURE_PARENTAL_MODULE'),
+  validate({ params: schoolParams }),
   showParentalSettings,
 )
 router.put(
@@ -25,6 +28,7 @@ router.put(
   authenticateBearerToken,
   requireSchoolScope(),
   requirePermission('CONFIGURE_PARENTAL_MODULE'),
+  validate({ params: schoolParams, body: settingsBody }),
   saveParentalSettings,
 )
 router.get(
@@ -32,6 +36,7 @@ router.get(
   authenticateBearerToken,
   requireSchoolScope(),
   requirePermission('MANAGE_PARENTAL_PRICING'),
+  validate({ params: schoolParams }),
   showParentalSubscription,
 )
 router.put(
@@ -39,6 +44,7 @@ router.put(
   authenticateBearerToken,
   requireSchoolScope(),
   requirePermission('MANAGE_PARENTAL_PRICING'),
+  validate({ params: schoolParams, body: subscriptionBody }),
   saveParentalSubscription,
 )
 

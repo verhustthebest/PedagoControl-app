@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const parent_registration_controller_1 = require("../controllers/parent-registration.controller");
+const validate_middleware_1 = require("../middleware/validate.middleware");
+const schemas_1 = require("../validation/schemas");
 const router = (0, express_1.Router)();
-router.post('/parental/auth/request-otp', parent_registration_controller_1.requestOtp);
-router.post('/parental/auth/verify-otp', parent_registration_controller_1.verifyOtp);
-router.post('/parental/auth/register', parent_registration_controller_1.registerParent);
+router.post('/parental/auth/request-otp', (0, validate_middleware_1.validate)({ body: schemas_1.requestOtpBody }), parent_registration_controller_1.requestOtp);
+router.post('/parental/auth/verify-otp', (0, validate_middleware_1.validate)({ body: schemas_1.verifyOtpBody }), parent_registration_controller_1.verifyOtp);
+router.post('/parental/auth/register', (0, validate_middleware_1.validate)({ body: schemas_1.registerParentBody }), parent_registration_controller_1.registerParent);
 exports.default = router;

@@ -17,6 +17,8 @@ import {
   SUPERVISION_ROLES,
   TEACHER_ROLES,
 } from '../security/access-policy'
+import { validate } from '../middleware/validate.middleware'
+import { reportBody, reportDecisionBody, reportParams } from '../validation/schemas'
 
 const router = Router()
 
@@ -26,9 +28,9 @@ const supervisors = [authenticateBearerToken, requireSchoolContext(), requireAny
 
 router.get('/teacher/reports', ...teachers, teacherReports)
 router.get('/teacher/reports/today', ...teachers, teacherReportsToday)
-router.post('/teacher/reports', ...teachers, submitTeacherReport)
+router.post('/teacher/reports', ...teachers, validate({ body: reportBody }), submitTeacherReport)
 router.get('/prefet/reports/pending', ...prefects, prefetReportsPending)
-router.patch('/prefet/reports/:id/decision', ...prefects, decidePrefetReport)
+router.patch('/prefet/reports/:id/decision', ...prefects, validate({ params: reportParams, body: reportDecisionBody }), decidePrefetReport)
 router.get('/supervision/reports', ...supervisors, supervisionReports)
 
 export default router
