@@ -14,8 +14,10 @@ import schoolRoutes from './routes/school.routes'
 import { globalApiRateLimit } from './middleware/rate-limit.middleware'
 import { resolveTrustProxyHops } from './config/network'
 import { configureHttpBoundary, httpErrorHandler } from './config/http'
+import { validateTokenConfiguration } from './config/token-security'
 
 dotenv.config()
+validateTokenConfiguration()
 
 const app = express()
 app.set('trust proxy', resolveTrustProxyHops())

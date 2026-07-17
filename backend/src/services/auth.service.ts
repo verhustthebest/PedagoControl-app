@@ -1,6 +1,8 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { randomUUID } from 'crypto'
 import prisma from '../prisma/client'
+import { ACCESS_TOKEN_ALGORITHM, ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER, ACCESS_TOKEN_TTL, accessTokenSecret } from '../config/token-security'
 
 export type AuthUser = {
   id: string
@@ -14,19 +16,14 @@ export type AuthUser = {
 
 type JwtPayload = {
   sub: string
-  email: string
   roles: string[]
   school_id: string | null
+  token_type: 'access'
+  jti: string
 }
 
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET
-
-  if (!secret) {
-    throw new Error('JWT_SECRET is not configured')
-  }
-
-  return secret
+export function isAccountEligible(user: { is_active: boolean; school_id: bigint | null; schools?: { status: string } | null; activeRoleCount: number }) {
+  return user.is_active && (!user.school_id || user.schools?.status === 'active') && user.activeRoleCount > 0
 }
 
 function formatUser(user: {
@@ -76,6 +73,7 @@ export async function loginWithEmailAndPassword(email: string, password: string)
       ],
     },
     include: {
+      schools: { select: { status: true } },
       user_roles: {
         include: {
           roles: {
@@ -92,7 +90,12 @@ export async function loginWithEmailAndPassword(email: string, password: string)
     },
   })
 
-  if (!user || !user.is_active) {
+  if (!user || !isAccountEligible({
+    is_active: user.is_active,
+    school_id: user.school_id,
+    schools: user.schools,
+    activeRoleCount: user.user_roles.filter(item => item.roles.is_active).length,
+  })) {
     return null
   }
 
@@ -105,11 +108,16 @@ export async function loginWithEmailAndPassword(email: string, password: string)
   const authUser = formatUser(user)
   const payload: JwtPayload = {
     sub: authUser.id,
-    email: authUser.email,
     roles: authUser.roles,
     school_id: authUser.school_id,
+    token_type: 'access',
+    jti: randomUUID(),
   }
-  const token = jwt.sign(payload, getJwtSecret(), { expiresIn: '8h' })
+  const token = jwt.sign(payload, accessTokenSecret(), {
+    algorithm: ACCESS_TOKEN_ALGORITHM,
+    expiresIn: ACCESS_TOKEN_TTL() as jwt.SignOptions['expiresIn'],
+    issuer: ACCESS_TOKEN_ISSUER(), audience: ACCESS_TOKEN_AUDIENCE(),
+  })
 
   return {
     token,
@@ -123,6 +131,7 @@ export async function findAuthUserById(userId: string) {
   const user = await prisma.users.findUnique({
     where: { id: BigInt(userId) },
     include: {
+      schools: { select: { status: true } },
       user_roles: {
         include: {
           roles: {
@@ -139,13 +148,23 @@ export async function findAuthUserById(userId: string) {
     },
   })
 
-  if (!user || !user.is_active) {
+  if (!user || !isAccountEligible({
+    is_active: user.is_active,
+    school_id: user.school_id,
+    schools: user.schools,
+    activeRoleCount: user.user_roles.filter(item => item.roles.is_active).length,
+  })) {
     return null
   }
-
   return formatUser(user)
 }
 
 export function verifyAuthToken(token: string) {
-  return jwt.verify(token, getJwtSecret()) as JwtPayload
+  const payload = jwt.verify(token, accessTokenSecret(), {
+    algorithms: [ACCESS_TOKEN_ALGORITHM], issuer: ACCESS_TOKEN_ISSUER(), audience: ACCESS_TOKEN_AUDIENCE(),
+  }) as JwtPayload
+  if (payload.token_type !== 'access' || !payload.sub || !payload.jti || !Array.isArray(payload.roles)) {
+    throw new Error('Invalid access token')
+  }
+  return payload
 }

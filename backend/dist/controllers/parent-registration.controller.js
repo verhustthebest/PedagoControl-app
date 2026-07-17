@@ -70,6 +70,9 @@ async function registerParent(request, response) {
             console.warn('[SECURITY] Parent registration rate limited', { ip, token: (0, abuse_protection_1.fingerprint)(input.registration_token) });
             return handleError(response, error, 'Unable to finalize Parent registration');
         }
+        if (error instanceof parental_service_1.ParentalApiError && error.statusCode < 500) {
+            return response.status(error.statusCode === 429 ? 429 : 400).json({ message: 'Unable to finalize Parent registration' });
+        }
         return handleError(response, error, 'Unable to finalize Parent registration');
     }
 }

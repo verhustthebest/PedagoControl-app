@@ -1,4 +1,4 @@
-import { randomInt } from 'crypto'
+import { randomInt, randomUUID } from 'crypto'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { Prisma } from '@prisma/client'
@@ -6,6 +6,8 @@ import prisma from '../prisma/client'
 import { ParentalApiError } from './parental.service'
 import { type OtpChannel, sendRegistrationOtp } from './otp-provider.service'
 import { RateLimitError } from '../security/abuse-protection'
+import { ACCESS_TOKEN_ALGORITHM, PARENT_TOKEN_AUDIENCE, PARENT_TOKEN_ISSUER, parentRegistrationTokenSecret } from '../config/token-security'
+import { hashOtp, safelyCompareOtp } from '../security/otp-security'
 
 const PURPOSE = 'parent_registration'
 const CHANNELS: OtpChannel[] = ['email', 'whatsapp', 'sms']
@@ -16,14 +18,11 @@ function positiveInteger(name: string, fallback: number) {
 }
 
 type RegistrationTokenPayload = {
-  scope: typeof PURPOSE
+  token_type: typeof PURPOSE
   verification_id: string
   guardian_id: string
-}
-
-function jwtSecret() {
-  if (!process.env.JWT_SECRET) throw new ParentalApiError('JWT secret is not configured', 503)
-  return process.env.JWT_SECRET
+  sub: string
+  jti: string
 }
 
 function parseId(value: unknown, field: string) {
@@ -163,7 +162,7 @@ export async function requestParentRegistrationOtp(input: {
   const settings = await prisma.school_parental_settings.findUnique({ where: { school_id: school.id } })
   const expiresInMinutes = settings?.otp_expiry_minutes ?? 10
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0')
-  const otpHash = await bcrypt.hash(code, 10)
+  const otpHash = await hashOtp(code)
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000)
 
   await prisma.contact_verifications.updateMany({
@@ -243,7 +242,7 @@ export async function verifyParentRegistrationOtp(input: {
     throw new ParentalApiError('Maximum OTP attempts reached', 429)
   }
 
-  const valid = await bcrypt.compare(otp, verification.otp_hash)
+  const valid = await safelyCompareOtp(otp, verification.otp_hash)
   if (!valid) {
     const attempts = verification.attempts_count + 1
     await prisma.contact_verifications.update({
@@ -274,12 +273,19 @@ export async function verifyParentRegistrationOtp(input: {
 
   const registrationToken = jwt.sign(
     {
-      scope: PURPOSE,
+      token_type: PURPOSE,
       verification_id: verification.id.toString(),
       guardian_id: verification.guardian_id.toString(),
+      sub: verification.guardian_id.toString(),
+      jti: randomUUID(),
     } satisfies RegistrationTokenPayload,
-    jwtSecret(),
-    { expiresIn: '15m' },
+    parentRegistrationTokenSecret(),
+    {
+      algorithm: ACCESS_TOKEN_ALGORITHM,
+      expiresIn: (process.env.PARENT_REGISTRATION_TOKEN_TTL ?? '15m') as jwt.SignOptions['expiresIn'],
+      issuer: PARENT_TOKEN_ISSUER,
+      audience: PARENT_TOKEN_AUDIENCE,
+    },
   )
   return { registration_token: registrationToken, expires_in_seconds: 900 }
 }
@@ -294,11 +300,15 @@ export async function finalizeParentRegistration(input: {
 
   let payload: RegistrationTokenPayload
   try {
-    payload = jwt.verify(token, jwtSecret()) as RegistrationTokenPayload
+    payload = jwt.verify(token, parentRegistrationTokenSecret(), {
+      algorithms: [ACCESS_TOKEN_ALGORITHM], issuer: PARENT_TOKEN_ISSUER, audience: PARENT_TOKEN_AUDIENCE,
+    }) as RegistrationTokenPayload
   } catch {
     throw new ParentalApiError('Registration token is invalid or expired', 401)
   }
-  if (payload.scope !== PURPOSE) throw new ParentalApiError('Registration token has an invalid scope', 401)
+  if (payload.token_type !== PURPOSE || !payload.jti || payload.sub !== payload.guardian_id) {
+    throw new ParentalApiError('Registration token is invalid or expired', 401)
+  }
 
   const verificationId = parseId(payload.verification_id, 'verification_id')
   const guardianId = parseId(payload.guardian_id, 'guardian_id')

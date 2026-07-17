@@ -14,16 +14,13 @@ const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
 const otp_provider_service_1 = require("./otp-provider.service");
 const abuse_protection_1 = require("../security/abuse-protection");
+const token_security_1 = require("../config/token-security");
+const otp_security_1 = require("../security/otp-security");
 const PURPOSE = 'parent_registration';
 const CHANNELS = ['email', 'whatsapp', 'sms'];
 function positiveInteger(name, fallback) {
     const value = Number(process.env[name]);
     return Number.isInteger(value) && value > 0 ? value : fallback;
-}
-function jwtSecret() {
-    if (!process.env.JWT_SECRET)
-        throw new parental_service_1.ParentalApiError('JWT secret is not configured', 503);
-    return process.env.JWT_SECRET;
 }
 function parseId(value, field) {
     try {
@@ -147,7 +144,7 @@ async function requestParentRegistrationOtp(input) {
     const settings = await client_2.default.school_parental_settings.findUnique({ where: { school_id: school.id } });
     const expiresInMinutes = settings?.otp_expiry_minutes ?? 10;
     const code = (0, crypto_1.randomInt)(0, 1000000).toString().padStart(6, '0');
-    const otpHash = await bcrypt_1.default.hash(code, 10);
+    const otpHash = await (0, otp_security_1.hashOtp)(code);
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60000);
     await client_2.default.contact_verifications.updateMany({
         where: { guardian_id: guardian.id, purpose: PURPOSE, status: 'pending' },
@@ -219,7 +216,7 @@ async function verifyParentRegistrationOtp(input) {
     if (verification.attempts_count >= maxAttempts) {
         throw new parental_service_1.ParentalApiError('Maximum OTP attempts reached', 429);
     }
-    const valid = await bcrypt_1.default.compare(otp, verification.otp_hash);
+    const valid = await (0, otp_security_1.safelyCompareOtp)(otp, verification.otp_hash);
     if (!valid) {
         const attempts = verification.attempts_count + 1;
         await client_2.default.contact_verifications.update({
@@ -244,10 +241,17 @@ async function verifyParentRegistrationOtp(input) {
         description: 'L OTP d inscription Parent a ete verifie.',
     });
     const registrationToken = jsonwebtoken_1.default.sign({
-        scope: PURPOSE,
+        token_type: PURPOSE,
         verification_id: verification.id.toString(),
         guardian_id: verification.guardian_id.toString(),
-    }, jwtSecret(), { expiresIn: '15m' });
+        sub: verification.guardian_id.toString(),
+        jti: (0, crypto_1.randomUUID)(),
+    }, (0, token_security_1.parentRegistrationTokenSecret)(), {
+        algorithm: token_security_1.ACCESS_TOKEN_ALGORITHM,
+        expiresIn: (process.env.PARENT_REGISTRATION_TOKEN_TTL ?? '15m'),
+        issuer: token_security_1.PARENT_TOKEN_ISSUER,
+        audience: token_security_1.PARENT_TOKEN_AUDIENCE,
+    });
     return { registration_token: registrationToken, expires_in_seconds: 900 };
 }
 async function finalizeParentRegistration(input) {
@@ -257,13 +261,16 @@ async function finalizeParentRegistration(input) {
         throw new parental_service_1.ParentalApiError('password must contain at least 8 characters', 400);
     let payload;
     try {
-        payload = jsonwebtoken_1.default.verify(token, jwtSecret());
+        payload = jsonwebtoken_1.default.verify(token, (0, token_security_1.parentRegistrationTokenSecret)(), {
+            algorithms: [token_security_1.ACCESS_TOKEN_ALGORITHM], issuer: token_security_1.PARENT_TOKEN_ISSUER, audience: token_security_1.PARENT_TOKEN_AUDIENCE,
+        });
     }
     catch {
         throw new parental_service_1.ParentalApiError('Registration token is invalid or expired', 401);
     }
-    if (payload.scope !== PURPOSE)
-        throw new parental_service_1.ParentalApiError('Registration token has an invalid scope', 401);
+    if (payload.token_type !== PURPOSE || !payload.jti || payload.sub !== payload.guardian_id) {
+        throw new parental_service_1.ParentalApiError('Registration token is invalid or expired', 401);
+    }
     const verificationId = parseId(payload.verification_id, 'verification_id');
     const guardianId = parseId(payload.guardian_id, 'guardian_id');
     const verification = await client_2.default.contact_verifications.findFirst({

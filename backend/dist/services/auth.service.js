@@ -3,18 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.isAccountEligible = isAccountEligible;
 exports.loginWithEmailAndPassword = loginWithEmailAndPassword;
 exports.findAuthUserById = findAuthUserById;
 exports.verifyAuthToken = verifyAuthToken;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = require("crypto");
 const client_1 = __importDefault(require("../prisma/client"));
-function getJwtSecret() {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        throw new Error('JWT_SECRET is not configured');
-    }
-    return secret;
+const token_security_1 = require("../config/token-security");
+function isAccountEligible(user) {
+    return user.is_active && (!user.school_id || user.schools?.status === 'active') && user.activeRoleCount > 0;
 }
 function formatUser(user) {
     return {
@@ -45,6 +44,7 @@ async function loginWithEmailAndPassword(email, password) {
             ],
         },
         include: {
+            schools: { select: { status: true } },
             user_roles: {
                 include: {
                     roles: {
@@ -60,7 +60,12 @@ async function loginWithEmailAndPassword(email, password) {
             },
         },
     });
-    if (!user || !user.is_active) {
+    if (!user || !isAccountEligible({
+        is_active: user.is_active,
+        school_id: user.school_id,
+        schools: user.schools,
+        activeRoleCount: user.user_roles.filter(item => item.roles.is_active).length,
+    })) {
         return null;
     }
     const passwordIsValid = await bcrypt_1.default.compare(password, user.password_hash);
@@ -70,11 +75,16 @@ async function loginWithEmailAndPassword(email, password) {
     const authUser = formatUser(user);
     const payload = {
         sub: authUser.id,
-        email: authUser.email,
         roles: authUser.roles,
         school_id: authUser.school_id,
+        token_type: 'access',
+        jti: (0, crypto_1.randomUUID)(),
     };
-    const token = jsonwebtoken_1.default.sign(payload, getJwtSecret(), { expiresIn: '8h' });
+    const token = jsonwebtoken_1.default.sign(payload, (0, token_security_1.accessTokenSecret)(), {
+        algorithm: token_security_1.ACCESS_TOKEN_ALGORITHM,
+        expiresIn: (0, token_security_1.ACCESS_TOKEN_TTL)(),
+        issuer: (0, token_security_1.ACCESS_TOKEN_ISSUER)(), audience: (0, token_security_1.ACCESS_TOKEN_AUDIENCE)(),
+    });
     return {
         token,
         user: authUser,
@@ -86,6 +96,7 @@ async function findAuthUserById(userId) {
     const user = await client_1.default.users.findUnique({
         where: { id: BigInt(userId) },
         include: {
+            schools: { select: { status: true } },
             user_roles: {
                 include: {
                     roles: {
@@ -101,11 +112,22 @@ async function findAuthUserById(userId) {
             },
         },
     });
-    if (!user || !user.is_active) {
+    if (!user || !isAccountEligible({
+        is_active: user.is_active,
+        school_id: user.school_id,
+        schools: user.schools,
+        activeRoleCount: user.user_roles.filter(item => item.roles.is_active).length,
+    })) {
         return null;
     }
     return formatUser(user);
 }
 function verifyAuthToken(token) {
-    return jsonwebtoken_1.default.verify(token, getJwtSecret());
+    const payload = jsonwebtoken_1.default.verify(token, (0, token_security_1.accessTokenSecret)(), {
+        algorithms: [token_security_1.ACCESS_TOKEN_ALGORITHM], issuer: (0, token_security_1.ACCESS_TOKEN_ISSUER)(), audience: (0, token_security_1.ACCESS_TOKEN_AUDIENCE)(),
+    });
+    if (payload.token_type !== 'access' || !payload.sub || !payload.jti || !Array.isArray(payload.roles)) {
+        throw new Error('Invalid access token');
+    }
+    return payload;
 }

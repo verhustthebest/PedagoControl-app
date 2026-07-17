@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { findAuthUserById, verifyAuthToken } from '../services/auth.service'
 import type { AuthUser } from '../services/auth.service'
+import { randomUUID } from 'crypto'
 import {
   hasAnyRole,
   hasUsableSchoolContext,
@@ -24,13 +25,16 @@ export async function authenticateBearerToken(request: AuthenticatedRequest, res
     const payload = verifyAuthToken(token)
     const user = await findAuthUserById(payload.sub)
 
-    if (!user) {
+    if (!user || user.school_id !== payload.school_id) {
       return response.status(401).json({ message: 'Authentication required' })
     }
 
     request.user = user
     return next()
   } catch {
+    const requestId = request.header('X-Request-ID')?.slice(0, 100) || randomUUID()
+    response.setHeader('X-Request-ID', requestId)
+    console.warn('[SECURITY] access token rejected', { request_id: requestId })
     return response.status(401).json({ message: 'Authentication required' })
   }
 }

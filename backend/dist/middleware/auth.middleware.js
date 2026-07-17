@@ -7,6 +7,7 @@ exports.requireAnyRole = requireAnyRole;
 exports.requireSchoolContext = requireSchoolContext;
 exports.requireSchoolScope = requireSchoolScope;
 const auth_service_1 = require("../services/auth.service");
+const crypto_1 = require("crypto");
 const access_policy_1 = require("../security/access-policy");
 async function authenticateBearerToken(request, response, next) {
     const authorization = request.header('Authorization');
@@ -17,13 +18,16 @@ async function authenticateBearerToken(request, response, next) {
     try {
         const payload = (0, auth_service_1.verifyAuthToken)(token);
         const user = await (0, auth_service_1.findAuthUserById)(payload.sub);
-        if (!user) {
+        if (!user || user.school_id !== payload.school_id) {
             return response.status(401).json({ message: 'Authentication required' });
         }
         request.user = user;
         return next();
     }
     catch {
+        const requestId = request.header('X-Request-ID')?.slice(0, 100) || (0, crypto_1.randomUUID)();
+        response.setHeader('X-Request-ID', requestId);
+        console.warn('[SECURITY] access token rejected', { request_id: requestId });
         return response.status(401).json({ message: 'Authentication required' });
     }
 }

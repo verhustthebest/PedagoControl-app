@@ -81,6 +81,9 @@ export async function registerParent(request: Request, response: Response) {
       console.warn('[SECURITY] Parent registration rate limited', { ip, token: fingerprint(input.registration_token) })
       return handleError(response, error, 'Unable to finalize Parent registration')
     }
+    if (error instanceof ParentalApiError && error.statusCode < 500) {
+      return response.status(error.statusCode === 429 ? 429 : 400).json({ message: 'Unable to finalize Parent registration' })
+    }
     return handleError(response, error, 'Unable to finalize Parent registration')
   }
 }
