@@ -45,7 +45,7 @@ test('teacher cannot decide Prefect reports and Parent cannot access internal re
 
 test('Informaticien is denied pricing, invoice viewing, and payment permissions', () => {
   const informaticien = identity('INFORMATICIEN')
-  for (const permission of ['MANAGE_PARENTAL_PRICING', 'VIEW_SCHOOL_INVOICES', 'RECORD_SCHOOL_PAYMENT']) {
+  for (const permission of ['MANAGE_PARENTAL_PRICING', 'VIEW_PARENTAL_INVOICES', 'GENERATE_PARENTAL_INVOICE', 'RECORD_PARENTAL_PAYMENT', 'PRINT_PARENTAL_INVOICE']) {
     const result = deniedBy(requirePermission(permission), { user: informaticien })
     assert.equal(result.response.statusCode, 403)
     assert.deepEqual(result.response.body, { message: 'Access forbidden' })

@@ -47,9 +47,10 @@ const permissionSeeds = [
   { code: 'MANAGE_OWN_PROFILE', label: 'Gerer son profil', description: 'Modifier uniquement ses propres donnees personnelles.' },
   { code: 'CONFIGURE_PARENTAL_MODULE', label: 'Configurer le Suivi parental', description: 'Activer et configurer le module pour une ecole.' },
   { code: 'MANAGE_PARENTAL_PRICING', label: 'Gerer le prix du Suivi parental', description: 'Modifier le prix applicable aux prochaines factures.' },
-  { code: 'VIEW_SCHOOL_INVOICES', label: 'Consulter les factures de l ecole', description: 'Consulter les factures emises pour une ecole.' },
-  { code: 'PRINT_SCHOOL_INVOICE', label: 'Imprimer une facture de l ecole', description: 'Imprimer une facture emise pour une ecole.' },
-  { code: 'RECORD_SCHOOL_PAYMENT', label: 'Enregistrer un paiement de l ecole', description: 'Enregistrer manuellement un paiement recu de l ecole.' },
+  { code: 'VIEW_PARENTAL_INVOICES', label: 'Consulter les factures du Suivi parental', description: 'Consulter les factures du Suivi parental emises pour une ecole.' },
+  { code: 'GENERATE_PARENTAL_INVOICE', label: 'Generer une facture du Suivi parental', description: 'Generer la facture mensuelle adressee a une ecole.' },
+  { code: 'RECORD_PARENTAL_PAYMENT', label: 'Enregistrer un paiement du Suivi parental', description: 'Enregistrer un paiement recu de l ecole.' },
+  { code: 'PRINT_PARENTAL_INVOICE', label: 'Imprimer une facture du Suivi parental', description: 'Creer un acces temporaire a une facture emise.' },
   { code: 'BROADCAST_SCHOOL_MESSAGES', label: 'Diffuser des messages dans une ecole', description: 'Diffuser un message collectif uniquement dans son ecole.' },
   { code: 'BROADCAST_GLOBAL_MESSAGES', label: 'Diffuser des messages globaux', description: 'Diffuser un message collectif a toutes les ecoles.' },
 ] as const
@@ -66,6 +67,8 @@ const schoolManagementPermissions = [
   'VIEW_PARENTAL_ACKNOWLEDGEMENTS',
   'SEND_PARENTAL_NOTIFICATIONS',
   'BROADCAST_SCHOOL_MESSAGES',
+  'VIEW_PARENTAL_INVOICES',
+  'PRINT_PARENTAL_INVOICE',
 ] as const
 
 const technicianPermissions = [

@@ -25,7 +25,7 @@ export const schoolParams = z.object({ schoolId: resourceIdentifier }).strict()
 export const studentParams = z.object({ schoolId: resourceIdentifier, studentId: resourceIdentifier }).strict()
 export const guardianParams = z.object({ schoolId: resourceIdentifier, guardianId: resourceIdentifier }).strict()
 export const guardianLinkParams = z.object({ schoolId: resourceIdentifier, studentId: resourceIdentifier, guardianId: resourceIdentifier }).strict()
-export const invoiceParams = z.object({ schoolId: resourceIdentifier, invoiceId: resourceIdentifier }).strict()
+export const invoiceParams = z.object({ schoolId: resourceIdentifier, invoiceId: publicId }).strict()
 
 export const loginBody = z.object({
   email: z.string().trim().max(254).transform(v => v.includes('@') ? v.toLowerCase() : v.replace(/[\s().-]/g, '')),

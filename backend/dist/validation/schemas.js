@@ -31,7 +31,7 @@ exports.schoolParams = zod_1.z.object({ schoolId: exports.resourceIdentifier }).
 exports.studentParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, studentId: exports.resourceIdentifier }).strict();
 exports.guardianParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, guardianId: exports.resourceIdentifier }).strict();
 exports.guardianLinkParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, studentId: exports.resourceIdentifier, guardianId: exports.resourceIdentifier }).strict();
-exports.invoiceParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, invoiceId: exports.resourceIdentifier }).strict();
+exports.invoiceParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, invoiceId: exports.publicId }).strict();
 exports.loginBody = zod_1.z.object({
     email: zod_1.z.string().trim().max(254).transform(v => v.includes('@') ? v.toLowerCase() : v.replace(/[\s().-]/g, '')),
     password: zod_1.z.string().min(1).max(256),

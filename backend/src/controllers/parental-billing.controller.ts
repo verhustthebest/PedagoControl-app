@@ -9,6 +9,7 @@ import {
   consumeInvoiceDownloadToken,
 } from '../services/parental-billing.service'
 import { ParentalApiError } from '../services/parental.service'
+import { parentalInvoiceDetailDto, parentalInvoiceListDto, parentalPaymentDto } from '../dto/parental-invoice.dto'
 
 function parameter(request: AuthenticatedRequest, name: string) {
   const value = request.params[name]
@@ -33,22 +34,17 @@ export async function generateInvoice(request: AuthenticatedRequest, response: R
       request.user.id,
       request.body?.billing_month,
     )
-    return response.status(201).json({ invoice: serialize(invoice) })
+    return response.status(201).json({ invoice: parentalInvoiceDetailDto(invoice) })
   } catch (error) {
     return handleError(response, error, 'Unable to generate parental invoice')
   }
 }
 export async function indexInvoices(request: AuthenticatedRequest, response: Response) {
   try {
-    return response.json(
-      serialize(
-        await listParentalInvoices(parameter(request, 'schoolId'), {
-          page: query(request.query.page),
-          limit: query(request.query.limit),
-          status: query(request.query.status),
-        }),
-      ),
-    )
+    const result = await listParentalInvoices(parameter(request, 'schoolId'), {
+      page: query(request.query.page), limit: query(request.query.limit), status: query(request.query.status),
+    })
+    return response.json({ invoices: result.invoices.map(parentalInvoiceListDto), pagination: result.pagination })
   } catch (error) {
     return handleError(response, error, 'Unable to fetch parental invoices')
   }
@@ -56,9 +52,7 @@ export async function indexInvoices(request: AuthenticatedRequest, response: Res
 export async function showInvoice(request: AuthenticatedRequest, response: Response) {
   try {
     return response.json({
-      invoice: serialize(
-        await getParentalInvoice(parameter(request, 'schoolId'), parameter(request, 'invoiceId')),
-      ),
+      invoice: parentalInvoiceDetailDto(await getParentalInvoice(parameter(request, 'schoolId'), parameter(request, 'invoiceId'))),
     })
   } catch (error) {
     return handleError(response, error, 'Unable to fetch parental invoice')
@@ -73,7 +67,7 @@ export async function createPayment(request: AuthenticatedRequest, response: Res
       request.user.id,
       request.body,
     )
-    return response.status(201).json({ payment: serialize(payment) })
+    return response.status(201).json({ payment: parentalPaymentDto(payment) })
   } catch (error) {
     return handleError(response, error, 'Unable to record school payment')
   }
