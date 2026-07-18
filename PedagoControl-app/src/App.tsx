@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, DIRECTION_ROLES, ProtectedRoute } from './auth'
 import { AccessibilityEnhancer } from './components'
-import { DirectorLayout, ManagementLayout, PrefectLayout, TeacherLayout } from './layouts'
+import { AdminLayout, DirectorLayout, ManagementLayout, PrefectLayout, TeacherLayout } from './layouts'
+import { AdminDashboardPage, ParentalConfigurationPage, ParentalDashboardPage } from './pages/admin'
 import { ForbiddenAccess, LoginScreen, PresentationScreen, UnauthenticatedAccess } from './pages/auth'
 import { AnnualRepartition, Dashboard, EvaluationControl, ProgressTracking, Reports, SchoolPrograms, SupervisionDetail } from './pages/director'
 import { TeacherDashboard, TeacherEvaluations, TeacherPrograms, TeacherProgress, TeacherTextBook } from './pages/enseignant'
@@ -125,7 +126,10 @@ function App() {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={['ADMIN_GESTIONNAIRE']} />}>
-          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+          <Route path="/admin" element={<AdminLayout><AdminDashboardPage /></AdminLayout>} />
+          <Route path="/admin/suivi-parental" element={<AdminLayout><ParentalDashboardPage /></AdminLayout>} />
+          <Route path="/admin/suivi-parental/configuration" element={<AdminLayout><ParentalConfigurationPage /></AdminLayout>} />
+          <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['INFORMATICIEN']} />}>
           <Route path="/informaticien/*" element={<Navigate to="/" replace />} />
