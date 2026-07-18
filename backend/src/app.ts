@@ -14,6 +14,7 @@ import schoolRoutes from './routes/school.routes'
 import schoolClassRoutes from './routes/school-class.routes'
 import attachmentRequestRoutes from './routes/attachment-request.routes'
 import technicalJournalRoutes from './routes/technical-journal.routes'
+import parentContributionRoutes from './routes/parent-contribution.routes'
 import { globalApiRateLimit } from './middleware/rate-limit.middleware'
 import { resolveTrustProxyHops } from './config/network'
 import { configureHttpBoundary } from './config/http'
@@ -44,6 +45,7 @@ app.use('/api', schoolRoutes)
 app.use('/api', schoolClassRoutes)
 app.use('/api', attachmentRequestRoutes)
 app.use('/api', technicalJournalRoutes)
+app.use('/api', parentContributionRoutes)
 app.use(notFound)
 app.use(globalErrorHandler)
 

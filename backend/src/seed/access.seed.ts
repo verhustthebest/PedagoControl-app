@@ -51,6 +51,12 @@ const permissionSeeds = [
   { code: 'GENERATE_PARENTAL_INVOICE', label: 'Generer une facture du Suivi parental', description: 'Generer la facture mensuelle adressee a une ecole.' },
   { code: 'RECORD_PARENTAL_PAYMENT', label: 'Enregistrer un paiement du Suivi parental', description: 'Enregistrer un paiement recu de l ecole.' },
   { code: 'PRINT_PARENTAL_INVOICE', label: 'Imprimer une facture du Suivi parental', description: 'Creer un acces temporaire a une facture emise.' },
+  { code: 'VIEW_PARENT_CONTRIBUTIONS', label: 'Consulter les contributions Parent', description: 'Consulter les echeances Parent vers Ecole.' },
+  { code: 'CONFIGURE_PARENT_CONTRIBUTION', label: 'Configurer les contributions Parent', description: 'Configurer la politique financiere Parent vers Ecole.' },
+  { code: 'GENERATE_PARENT_CONTRIBUTION_DUES', label: 'Generer les echeances Parent', description: 'Generer les echeances mensuelles par enfant suivi.' },
+  { code: 'RECORD_PARENT_CONTRIBUTION_PAYMENT', label: 'Enregistrer un paiement Parent', description: 'Enregistrer un paiement manuel recu par l ecole.' },
+  { code: 'VIEW_OWN_PARENT_CONTRIBUTIONS', label: 'Consulter ses contributions', description: 'Consulter les echeances de ses enfants approuves.' },
+  { code: 'AUDIT_PARENT_CONTRIBUTIONS', label: 'Auditer les contributions Parent', description: 'Audit global en lecture seule.' },
   { code: 'BROADCAST_SCHOOL_MESSAGES', label: 'Diffuser des messages dans une ecole', description: 'Diffuser un message collectif uniquement dans son ecole.' },
   { code: 'BROADCAST_GLOBAL_MESSAGES', label: 'Diffuser des messages globaux', description: 'Diffuser un message collectif a toutes les ecoles.' },
 ] as const
@@ -69,6 +75,10 @@ const schoolManagementPermissions = [
   'BROADCAST_SCHOOL_MESSAGES',
   'VIEW_PARENTAL_INVOICES',
   'PRINT_PARENTAL_INVOICE',
+  'VIEW_PARENT_CONTRIBUTIONS',
+  'CONFIGURE_PARENT_CONTRIBUTION',
+  'GENERATE_PARENT_CONTRIBUTION_DUES',
+  'RECORD_PARENT_CONTRIBUTION_PAYMENT',
 ] as const
 
 const technicianPermissions = [
@@ -89,6 +99,7 @@ const parentPermissions = [
   'ACKNOWLEDGE_DAILY_JOURNAL',
   'VIEW_OWN_NOTIFICATIONS',
   'MANAGE_OWN_PROFILE',
+  'VIEW_OWN_PARENT_CONTRIBUTIONS',
 ] as const
 
 async function main() {

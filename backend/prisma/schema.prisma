@@ -416,6 +416,8 @@ model schools {
   school_parental_subscriptions school_parental_subscriptions[]
   school_parental_settings      school_parental_settings?
   students                      students[]
+  parent_contribution_settings  parent_contribution_settings?
+  parent_contribution_dues      parent_contribution_dues[]
 }
 
 model school_parental_settings {
@@ -464,6 +466,7 @@ model students {
   student_guardians             student_guardians[]
   attachment_requests           attachment_requests[]
   parent_daily_acknowledgements parent_daily_acknowledgements[]
+  parent_contribution_dues      parent_contribution_dues[]
 
   @@unique([school_id, matricule], map: "uq_students_school_matricule")
   @@index([school_id], map: "idx_students_school")
@@ -842,25 +845,95 @@ model users {
   students                                                                    students[]
   auth_sessions                                                               auth_sessions[]
   action_tokens                                                               action_tokens[]
+  parent_contribution_settings_created                                        parent_contribution_settings[] @relation("parent_contribution_settings_created")
+  parent_contribution_settings_updated                                        parent_contribution_settings[] @relation("parent_contribution_settings_updated")
+  parent_contribution_payments_recorded                                       parent_contribution_payments[]
 
   @@index([school_id], map: "idx_users_school_id")
 }
 
+model parent_contribution_settings {
+  id                 BigInt                     @id @default(autoincrement())
+  public_id          String                     @unique @default(uuid()) @db.Uuid
+  school_id          BigInt                     @unique
+  mode               String                     @db.VarChar(40)
+  monthly_amount     Decimal                    @default(0) @db.Decimal(12, 2)
+  currency           String                     @default("USD") @db.VarChar(10)
+  due_day            Int                        @default(5)
+  grace_days         Int                        @default(0)
+  reminder_days      Int[]                      @default([])
+  created_by_user_id BigInt
+  updated_by_user_id BigInt
+  created_at         DateTime                   @default(now()) @db.Timestamp(6)
+  updated_at         DateTime                   @default(now()) @db.Timestamp(6)
+  schools            schools                    @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  created_by         users                      @relation("parent_contribution_settings_created", fields: [created_by_user_id], references: [id])
+  updated_by         users                      @relation("parent_contribution_settings_updated", fields: [updated_by_user_id], references: [id])
+  dues               parent_contribution_dues[]
+}
+
+model parent_contribution_dues {
+  id                     BigInt                         @id @default(autoincrement())
+  public_id              String                         @unique @default(uuid()) @db.Uuid
+  school_id              BigInt
+  student_id             BigInt
+  setting_id             BigInt
+  period_start           DateTime                       @db.Date
+  period_end             DateTime                       @db.Date
+  due_date               DateTime                       @db.Date
+  mode_snapshot          String                         @db.VarChar(40)
+  amount_due             Decimal                        @db.Decimal(12, 2)
+  amount_paid            Decimal                        @default(0) @db.Decimal(12, 2)
+  balance                Decimal                        @db.Decimal(12, 2)
+  currency               String                         @db.VarChar(10)
+  grace_days_snapshot    Int
+  reminder_days_snapshot Int[]                          @default([])
+  status                 String                         @db.VarChar(30)
+  created_at             DateTime                       @default(now()) @db.Timestamp(6)
+  updated_at             DateTime                       @default(now()) @db.Timestamp(6)
+  schools                schools                        @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  students               students                       @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  setting                parent_contribution_settings   @relation(fields: [setting_id], references: [id], onDelete: Restrict)
+  payments               parent_contribution_payments[]
+
+  @@unique([student_id, period_start], map: "uq_parent_contribution_student_period")
+  @@index([school_id, period_start])
+  @@index([student_id, status])
+}
+
+model parent_contribution_payments {
+  id                  BigInt                   @id @default(autoincrement())
+  public_id           String                   @unique @default(uuid()) @db.Uuid
+  due_id              BigInt
+  amount              Decimal                  @db.Decimal(12, 2)
+  currency            String                   @db.VarChar(10)
+  payment_method      String                   @db.VarChar(30)
+  reference           String?                  @db.VarChar(150)
+  notes               String?
+  paid_at             DateTime                 @default(now()) @db.Timestamp(6)
+  recorded_by_user_id BigInt
+  created_at          DateTime                 @default(now()) @db.Timestamp(6)
+  due                 parent_contribution_dues @relation(fields: [due_id], references: [id], onDelete: Restrict)
+  recorded_by         users                    @relation(fields: [recorded_by_user_id], references: [id], onDelete: Restrict)
+
+  @@index([due_id, paid_at])
+}
+
 model action_tokens {
-  id                   String           @id @default(uuid()) @db.Uuid
-  token_hash           String           @unique @db.VarChar(64)
-  action               String           @db.VarChar(60)
-  user_id              BigInt?
-  guardian_id          BigInt?
-  school_invoice_id    BigInt?
-  resource_public_id   String?          @db.Uuid
-  expires_at           DateTime         @db.Timestamp(6)
-  used_at              DateTime?        @db.Timestamp(6)
-  revoked_at           DateTime?        @db.Timestamp(6)
-  created_at           DateTime         @default(now()) @db.Timestamp(6)
-  users                users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_user")
-  guardians            guardians?       @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_guardian")
-  school_invoices      school_invoices? @relation(fields: [school_invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_invoice")
+  id                 String           @id @default(uuid()) @db.Uuid
+  token_hash         String           @unique @db.VarChar(64)
+  action             String           @db.VarChar(60)
+  user_id            BigInt?
+  guardian_id        BigInt?
+  school_invoice_id  BigInt?
+  resource_public_id String?          @db.Uuid
+  expires_at         DateTime         @db.Timestamp(6)
+  used_at            DateTime?        @db.Timestamp(6)
+  revoked_at         DateTime?        @db.Timestamp(6)
+  created_at         DateTime         @default(now()) @db.Timestamp(6)
+  users              users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_user")
+  guardians          guardians?       @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_guardian")
+  school_invoices    school_invoices? @relation(fields: [school_invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_invoice")
 
   @@index([action, user_id], map: "idx_action_tokens_action_user")
   @@index([action, guardian_id], map: "idx_action_tokens_action_guardian")
