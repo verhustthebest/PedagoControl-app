@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { AdminNavigation } from '../components/adminGestionnaire/AdminNavigation'
 import './admin-layout.css'
+import '../components/adminParental/admin-resources.css'
 import { apiRequest } from '../services/api'
 
 export function AdminLayout({ children }: { children: ReactNode }) {

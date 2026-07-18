@@ -1,0 +1,19 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../../auth'
+import { adminParentalApi, studentTrackingLabel, type Page, type Student } from '../../../services/adminParental'
+import { PageHeader } from '../../../components/adminParental/PageHeader'
+import { ResourceState } from '../../../components/adminParental/ResourceState'
+import { StatusBadge } from '../../../components/adminParental/StatusBadge'
+
+export function StudentListPage() {
+  const { user } = useAuth(); const schoolId = user?.school_id
+  const [search,setSearch]=useState(''); const [tracking,setTracking]=useState(''); const [page,setPage]=useState(1)
+  const [result,setResult]=useState<Page<Student>|null>(null); const [loading,setLoading]=useState(true); const [error,setError]=useState('')
+  const load=()=>{if(!schoolId)return;setLoading(true);setError('');void adminParentalApi.students(schoolId,{search,tracking,page,limit:10}).then(setResult).catch(e=>setError(e instanceof Error?e.message:'Erreur API')).finally(()=>setLoading(false))}
+  useEffect(load,[schoolId,page])
+  return <><PageHeader icon="♙" title="Gestion des élèves" subtitle="Consultez et gérez les informations des élèves de l’établissement." actions={<Link className="admin-button green" to="/admin/eleves/nouveau">＋ Ajouter un élève</Link>}/>
+    <section className="admin-kpis"><article className="admin-card admin-kpi"><span>Élèves enregistrés</span><strong>{result?.total ?? '—'}</strong><small>Total retourné par l’API</small></article><article className="admin-card admin-kpi"><span>Suivi parental</span><strong>{tracking || 'Tous'}</strong><small>Filtre courant</small></article><article className="admin-card admin-kpi"><span>Classes</span><strong>Donnée indisponible</strong><small>Aucun agrégat API</small></article></section>
+    <section className="admin-card" style={{marginTop:14}}><form className="resource-toolbar" onSubmit={e=>{e.preventDefault();setPage(1);load()}}><label>Rechercher un élève<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nom, prénom ou matricule"/></label><label>Suivi parental<select value={tracking} onChange={e=>setTracking(e.target.value)}><option value="">Tous</option><option value="true">Actif / Programmé</option><option value="false">Inactif</option></select></label><button className="admin-button">Filtrer</button></form>
+      <ResourceState loading={loading} error={error} empty={!loading&&!error&&result?.items.length===0} retry={load}><div className="resource-table-wrap"><table className="resource-table"><thead><tr><th>Matricule</th><th>Nom et prénoms</th><th>Sexe</th><th>Classe</th><th>Année scolaire</th><th>Suivi parental</th><th>Actions</th></tr></thead><tbody>{result?.items.map(student=><tr key={student.public_id}><td>{student.matricule||'—'}</td><td><div className="resource-person"><span className="resource-avatar">{student.first_name[0]}{student.last_name[0]}</span><b>{student.last_name} {student.first_name}</b></div></td><td>{student.gender==='F'?'Fille':student.gender==='M'?'Garçon':'—'}</td><td>{student.enrollment?.academic_year_classes?.school_classes?.name||'—'}</td><td>{student.enrollment?.academic_year_classes?.academic_years?.name||'—'}</td><td><StatusBadge status={studentTrackingLabel(student)}/></td><td><div className="resource-actions"><Link aria-label="Voir le profil" to={`/admin/eleves/${student.public_id}`}>◉</Link></div></td></tr>)}</tbody></table></div>{result&&<footer className="resource-pagination"><span>Page {result.page} sur {Math.max(result.pages,1)} · {result.total} élève(s)</span><div><button disabled={page<=1} onClick={()=>setPage(p=>p-1)}>‹</button><button className="active">{page}</button><button disabled={page>=result.pages} onClick={()=>setPage(p=>p+1)}>›</button></div></footer>}</ResourceState></section></>
+}

@@ -27,6 +27,45 @@ export type AdminPortalData = {
   unavailable: string[]
 }
 
+export type Student = {
+  id?: string; public_id: string; matricule?: string; first_name: string; last_name: string; middle_name?: string | null
+  gender?: string; birth_date?: string; birth_place?: string; address?: string; status?: string
+  enrollment?: { parental_tracking_enabled?: boolean; tracking_status?: 'Inactif' | 'Programmé' | 'Actif'; academic_year_classes?: { school_classes?: { name?: string }; academic_years?: { name?: string } } } | null
+}
+export type Guardian = {
+  id?: string; public_id: string; first_name: string; last_name: string; middle_name?: string | null; phone?: string | null
+  email?: string | null; address?: string | null; occupation?: string | null; preferred_contact_method?: string | null; status?: string
+  student_guardians?: { status?: string; relationship_type?: string; students?: Student }[]
+}
+export type Page<T> = { items: T[]; page: number; total: number; pages: number }
+
+function queryString(values: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams()
+  Object.entries(values).forEach(([key, value]) => { if (value !== undefined && value !== '') query.set(key, String(value)) })
+  return query.toString()
+}
+
+export const studentTrackingLabel = (student: Student) => student.enrollment?.tracking_status || (student.enrollment?.parental_tracking_enabled ? 'Actif' : 'Inactif')
+
+export const adminParentalApi = {
+  async students(schoolId: string, filters: { search?: string; status?: string; tracking?: string; page?: number; limit?: number } = {}): Promise<Page<Student>> {
+    const payload = await apiRequest<{ students: Student[]; pagination: { page: number; total: number; total_pages: number } }>(`/parental/schools/${encodeURIComponent(schoolId)}/students?${queryString(filters)}`)
+    return { items: payload.students, page: payload.pagination.page, total: payload.pagination.total, pages: payload.pagination.total_pages }
+  },
+  student: (schoolId: string, publicId: string) => apiRequest<{ student: Student }>(`/parental/schools/${encodeURIComponent(schoolId)}/students/${encodeURIComponent(publicId)}`),
+  createStudent: (schoolId: string, body: Record<string, unknown>) => apiRequest<{ student: Student }>(`/parental/schools/${encodeURIComponent(schoolId)}/students`, { method: 'POST', body: JSON.stringify(body) }),
+  updateStudent: (schoolId: string, publicId: string, body: Record<string, unknown>) => apiRequest<{ student: Student }>(`/parental/schools/${encodeURIComponent(schoolId)}/students/${encodeURIComponent(publicId)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  setTracking: (schoolId: string, publicId: string, enabled: boolean) => apiRequest<{ student: Student }>(`/parental/schools/${encodeURIComponent(schoolId)}/students/${encodeURIComponent(publicId)}/tracking`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+  async guardians(schoolId: string, filters: { search?: string; status?: string; page?: number; limit?: number } = {}): Promise<Page<Guardian>> {
+    const payload = await apiRequest<{ guardians: Guardian[]; pagination: { page: number; total: number; total_pages: number } }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians?${queryString(filters)}`)
+    return { items: payload.guardians, page: payload.pagination.page, total: payload.pagination.total, pages: payload.pagination.total_pages }
+  },
+  guardian: (schoolId: string, publicId: string) => apiRequest<{ guardian: Guardian }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians/${encodeURIComponent(publicId)}`),
+  createGuardian: (schoolId: string, body: Record<string, unknown>) => apiRequest<{ guardian: Guardian }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians`, { method: 'POST', body: JSON.stringify(body) }),
+  updateGuardian: (schoolId: string, publicId: string, body: Record<string, unknown>) => apiRequest<{ guardian: Guardian }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians/${encodeURIComponent(publicId)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  attachStudent: (schoolId: string, studentPublicId: string, guardianInternalId: string, relationshipType: string) => apiRequest(`/parental/schools/${encodeURIComponent(schoolId)}/students/${encodeURIComponent(studentPublicId)}/guardians`, { method: 'POST', body: JSON.stringify({ guardian_id: guardianInternalId, relationship_type: relationshipType }) }),
+}
+
 const totalOf = (payload: { pagination?: { total?: number } }) =>
   typeof payload.pagination?.total === 'number' ? payload.pagination.total : null
 

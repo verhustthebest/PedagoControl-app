@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 const groups = [
   { label: 'Tableau de bord', items: [['⌂', 'Tableau de bord', '/admin']] },
   { label: 'Gestion académique', items: [['▦', 'Classes', '#'], ['♙', 'Enseignants', '#'], ['▤', 'Matières', '#'], ['◫', 'Emplois du temps', '#'], ['✓', 'Évaluations', '#'], ['↗', 'Résultats', '#']] },
-  { label: 'Suivi parental', items: [['♙', 'Tableau de bord', '/admin/suivi-parental'], ['◎', 'Élèves', '#'], ['♧', 'Parents & Tuteurs', '#'], ['⇄', 'Demandes de liaison', '#'], ['▣', 'Comptes parents', '#'], ['▤', 'Journal numérique', '#'], ['✓', 'Visas parentaux', '#'], ['♢', 'Notifications', '#']] },
+  { label: 'Suivi parental', items: [['♙', 'Tableau de bord', '/admin/suivi-parental'], ['◎', 'Élèves', '/admin/eleves'], ['♧', 'Parents & Tuteurs', '/admin/parents'], ['⇄', 'Demandes de liaison', '/admin/rattachements/demandes'], ['▣', 'Comptes parents', '#'], ['▤', 'Journal numérique', '#'], ['✓', 'Visas parentaux', '#'], ['♢', 'Notifications', '#']] },
   { label: 'Paramètres', items: [['♙', 'Utilisateurs', '#'], ['⚙', 'Configuration du module', '/admin/suivi-parental/configuration']] },
 ] as const
 

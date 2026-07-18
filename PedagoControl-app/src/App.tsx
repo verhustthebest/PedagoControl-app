@@ -3,6 +3,9 @@ import { AuthProvider, DIRECTION_ROLES, ProtectedRoute } from './auth'
 import { AccessibilityEnhancer } from './components'
 import { AdminLayout, DirectorLayout, ManagementLayout, PrefectLayout, TeacherLayout } from './layouts'
 import { AdminDashboardPage, ParentalConfigurationPage, ParentalDashboardPage } from './pages/admin'
+import { StudentFormPage, StudentListPage, StudentProfilePage } from './pages/admin/students'
+import { GuardianFormPage, GuardianListPage, GuardianProfilePage } from './pages/admin/guardians'
+import { AttachWizardPage, AttachmentRequestDetailPage, AttachmentRequestsPage } from './pages/admin/attachments'
 import { ForbiddenAccess, LoginScreen, PresentationScreen, UnauthenticatedAccess } from './pages/auth'
 import { AnnualRepartition, Dashboard, EvaluationControl, ProgressTracking, Reports, SchoolPrograms, SupervisionDetail } from './pages/director'
 import { TeacherDashboard, TeacherEvaluations, TeacherPrograms, TeacherProgress, TeacherTextBook } from './pages/enseignant'
@@ -129,6 +132,16 @@ function App() {
           <Route path="/admin" element={<AdminLayout><AdminDashboardPage /></AdminLayout>} />
           <Route path="/admin/suivi-parental" element={<AdminLayout><ParentalDashboardPage /></AdminLayout>} />
           <Route path="/admin/suivi-parental/configuration" element={<AdminLayout><ParentalConfigurationPage /></AdminLayout>} />
+          <Route path="/admin/eleves" element={<AdminLayout><StudentListPage /></AdminLayout>} />
+          <Route path="/admin/eleves/nouveau" element={<AdminLayout><StudentFormPage /></AdminLayout>} />
+          <Route path="/admin/eleves/:publicId" element={<AdminLayout><StudentProfilePage /></AdminLayout>} />
+          <Route path="/admin/parents" element={<AdminLayout><GuardianListPage /></AdminLayout>} />
+          <Route path="/admin/parents/nouveau" element={<AdminLayout><GuardianFormPage /></AdminLayout>} />
+          <Route path="/admin/parents/:publicId" element={<AdminLayout><GuardianProfilePage /></AdminLayout>} />
+          <Route path="/admin/parents/:publicId/enfants" element={<AdminLayout><GuardianProfilePage childrenOnly /></AdminLayout>} />
+          <Route path="/admin/parents/:publicId/attacher" element={<AdminLayout><AttachWizardPage /></AdminLayout>} />
+          <Route path="/admin/rattachements/demandes" element={<AdminLayout><AttachmentRequestsPage /></AdminLayout>} />
+          <Route path="/admin/rattachements/demandes/:publicId" element={<AdminLayout><AttachmentRequestDetailPage /></AdminLayout>} />
           <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['INFORMATICIEN']} />}>
