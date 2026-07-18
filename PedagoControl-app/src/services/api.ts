@@ -5,6 +5,17 @@ export const AUTH_FORBIDDEN_EVENT = 'pedago:forbidden'
 
 type ApiRequestOptions = RequestInit & { auth?: boolean; retryAuth?: boolean }
 
+export class ApiError extends Error {
+  readonly status: number
+  readonly requestId?: string
+  constructor(message: string, status: number, requestId?: string) { super(message); this.name = 'ApiError'; this.status = status; this.requestId = requestId }
+}
+
+export function apiErrorMessage(error: unknown) {
+  if (error instanceof ApiError) return error.requestId ? `${error.message} (référence : ${error.requestId})` : error.message
+  return error instanceof Error ? error.message : 'Erreur API'
+}
+
 export type AuthUser = {
   id: string
   first_name: string
@@ -118,7 +129,7 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_FORBIDDEN_EVENT))
       redirect('/acces-interdit')
     }
-    throw new Error(data?.message || 'Erreur API')
+    throw new ApiError(data?.message || 'Erreur API', response.status, data?.request_id)
   }
   return data as T
 }

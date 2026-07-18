@@ -38,6 +38,12 @@ export type Guardian = {
   student_guardians?: { status?: string; relationship_type?: string; students?: Student }[]
 }
 export type Page<T> = { items: T[]; page: number; total: number; pages: number }
+export type AttachmentStatus = 'BROUILLON' | 'EN_ATTENTE' | 'APPROUVE' | 'REFUSE' | 'DESACTIVE'
+export type AttachmentDocument = { public_id: string; document_type: string; file_name: string; mime_type: 'application/pdf'|'image/jpeg'|'image/png'; file_size: string; created_at?: string }
+export type AttachmentRequest = { public_id:string; request_code:string; relationship_type:string; status:AttachmentStatus; request_message?:string|null; review_comment?:string|null; submitted_at:string; reviewed_at?:string|null; expires_at?:string|null; guardian:{public_id:string;first_name:string;last_name:string;phone?:string|null;email?:string|null}; student:{public_id:string;matricule?:string;first_name:string;last_name:string}; documents:AttachmentDocument[] }
+export type AnnualClass = { public_id:string; is_active:boolean; academic_year:{public_id:string;name:string;is_active:boolean}; class:{public_id:string;name:string;parallel?:string|null;level:string;section?:string|null;is_active:boolean} }
+export type InvitationResult = { message:string; expires_in_minutes:number }
+export type AttachmentFilters = { status?:AttachmentStatus; search?:string; from?:string; to?:string; page?:number; limit?:number }
 
 function queryString(values: Record<string, string | number | undefined>) {
   const query = new URLSearchParams()
@@ -48,6 +54,14 @@ function queryString(values: Record<string, string | number | undefined>) {
 export const studentTrackingLabel = (student: Student) => student.enrollment?.tracking_status || (student.enrollment?.parental_tracking_enabled ? 'Actif' : 'Inactif')
 
 export const adminParentalApi = {
+  async attachmentRequests(schoolId:string,filters:AttachmentFilters={}):Promise<Page<AttachmentRequest>>{const payload=await apiRequest<{requests:AttachmentRequest[];pagination:{page:number;total:number;total_pages:number}}>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests?${queryString(filters as Record<string,string|number|undefined>)}`);return{items:payload.requests,page:payload.pagination.page,total:payload.pagination.total,pages:payload.pagination.total_pages}},
+  attachmentRequest:(schoolId:string,publicId:string)=>apiRequest<{request:AttachmentRequest}>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests/${encodeURIComponent(publicId)}`),
+  decideAttachment:(schoolId:string,publicId:string,decision:'APPROUVE'|'REFUSE',reason?:string)=>apiRequest<{request:AttachmentRequest}>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests/${encodeURIComponent(publicId)}/decision`,{method:'POST',body:JSON.stringify({decision,...(reason?{reason}:{})})}),
+  disableAttachment:(schoolId:string,publicId:string,reason:string)=>apiRequest<{request:AttachmentRequest}>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests/${encodeURIComponent(publicId)}/disable`,{method:'POST',body:JSON.stringify({reason})}),
+  addAttachmentDocument:(schoolId:string,requestId:string,body:Record<string,unknown>)=>apiRequest<{document:AttachmentDocument}>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests/${encodeURIComponent(requestId)}/documents`,{method:'POST',body:JSON.stringify(body)}),
+  removeAttachmentDocument:(schoolId:string,requestId:string,documentId:string)=>apiRequest<void>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests/${encodeURIComponent(requestId)}/documents/${encodeURIComponent(documentId)}`,{method:'DELETE'}),
+  async classes(schoolId:string,filters:{search?:string;academic_year?:string;section?:string;page?:number;limit?:number}={}):Promise<Page<AnnualClass>>{const payload=await apiRequest<{classes:AnnualClass[];pagination:{page:number;total:number;total_pages:number}}>(`/schools/${encodeURIComponent(schoolId)}/classes?${queryString(filters)}`);return{items:payload.classes,page:payload.pagination.page,total:payload.pagination.total,pages:payload.pagination.total_pages}},
+  prepareInvitation:(schoolId:string,guardianPublicId:string)=>apiRequest<InvitationResult>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians/${encodeURIComponent(guardianPublicId)}/invitation`,{method:'POST'}),
   async students(schoolId: string, filters: { search?: string; status?: string; tracking?: string; page?: number; limit?: number } = {}): Promise<Page<Student>> {
     const payload = await apiRequest<{ students: Student[]; pagination: { page: number; total: number; total_pages: number } }>(`/parental/schools/${encodeURIComponent(schoolId)}/students?${queryString(filters)}`)
     return { items: payload.students, page: payload.pagination.page, total: payload.pagination.total, pages: payload.pagination.total_pages }
