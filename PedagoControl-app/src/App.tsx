@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, DIRECTION_ROLES, ProtectedRoute } from './auth'
 import { AccessibilityEnhancer } from './components'
-import { AdminLayout, DirectorLayout, ManagementLayout, PrefectLayout, TeacherLayout } from './layouts'
+import { AdminLayout, DirectorLayout, ManagementLayout, ParentLayout, PrefectLayout, TeacherLayout } from './layouts'
+import { ParentChildProfile, ParentChildren, ParentDashboard, ParentJournalDetail, ParentJournals, ParentNotifications, ParentProfile } from './pages/parent'
 import { AdminDashboardPage, ParentalConfigurationPage, ParentalDashboardPage } from './pages/admin'
 import { StudentFormPage, StudentListPage, StudentProfilePage } from './pages/admin/students'
 import { GuardianFormPage, GuardianListPage, GuardianProfilePage } from './pages/admin/guardians'
@@ -148,7 +149,14 @@ function App() {
           <Route path="/informaticien/*" element={<Navigate to="/" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['PARENT']} />}>
-          <Route path="/parent/*" element={<Navigate to="/" replace />} />
+          <Route path="/parent" element={<ParentLayout><ParentDashboard /></ParentLayout>} />
+          <Route path="/parent/enfants" element={<ParentLayout><ParentChildren /></ParentLayout>} />
+          <Route path="/parent/enfants/:publicId" element={<ParentLayout><ParentChildProfile /></ParentLayout>} />
+          <Route path="/parent/enfants/:publicId/journaux" element={<ParentLayout><ParentJournals /></ParentLayout>} />
+          <Route path="/parent/enfants/:publicId/journaux/:date" element={<ParentLayout><ParentJournalDetail /></ParentLayout>} />
+          <Route path="/parent/notifications" element={<ParentLayout><ParentNotifications /></ParentLayout>} />
+          <Route path="/parent/profil" element={<ParentLayout><ParentProfile /></ParentLayout>} />
+          <Route path="/parent/*" element={<Navigate to="/parent" replace />} />
         </Route>
         </Routes>
       </AuthProvider>

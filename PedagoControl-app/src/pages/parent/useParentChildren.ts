@@ -1,0 +1,3 @@
+import{useEffect,useState}from'react';import{apiErrorMessage}from'../../services/api';import{parentApi}from'../../services/parentApi';import type{ParentChild}from'../../types/parent';
+/** Le Backend ne retourne que les rattachements actifs et validés ; le Frontend ne fusionne aucune source locale. */
+export function useParentChildren(){const[data,setData]=useState<ParentChild[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState('');const reload=()=>{setLoading(true);setError('');void parentApi.children().then(setData).catch(e=>setError(apiErrorMessage(e))).finally(()=>setLoading(false))};useEffect(reload,[]);return{data,loading,error,reload}}

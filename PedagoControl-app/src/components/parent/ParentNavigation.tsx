@@ -1,0 +1,3 @@
+import{NavLink}from'react-router-dom';
+const items=[['⌂','Tableau de bord','/parent'],['♙','Mes enfants','/parent/enfants'],['▤','Journaux de classe','/parent/enfants'],['♢','Notifications','/parent/notifications'],['◎','Mon profil','/parent/profil']]as const;
+export function ParentNavigation({close}:{close?:()=>void}){return <nav className="parent-nav" aria-label="Navigation Parent">{items.map(([icon,label,to])=><NavLink key={label} end={to==='/parent'} to={to} onClick={close}><b>{icon}</b>{label}</NavLink>)}</nav>}
