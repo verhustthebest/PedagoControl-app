@@ -1,13 +1,12 @@
-import { randomInt, randomUUID } from 'crypto'
+import { randomInt } from 'crypto'
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
 import { Prisma } from '@prisma/client'
 import prisma from '../prisma/client'
 import { ParentalApiError } from './parental.service'
 import { type OtpChannel, sendRegistrationOtp } from './otp-provider.service'
 import { RateLimitError } from '../security/abuse-protection'
-import { ACCESS_TOKEN_ALGORITHM, PARENT_TOKEN_AUDIENCE, PARENT_TOKEN_ISSUER, parentRegistrationTokenSecret } from '../config/token-security'
 import { hashOtp, safelyCompareOtp } from '../security/otp-security'
+import { consumeActionToken, issueActionToken } from './action-token.service'
 
 const PURPOSE = 'parent_registration'
 const CHANNELS: OtpChannel[] = ['email', 'whatsapp', 'sms']
@@ -15,14 +14,6 @@ const CHANNELS: OtpChannel[] = ['email', 'whatsapp', 'sms']
 function positiveInteger(name: string, fallback: number) {
   const value = Number(process.env[name])
   return Number.isInteger(value) && value > 0 ? value : fallback
-}
-
-type RegistrationTokenPayload = {
-  token_type: typeof PURPOSE
-  verification_id: string
-  guardian_id: string
-  sub: string
-  jti: string
 }
 
 function parseId(value: unknown, field: string) {
@@ -271,23 +262,14 @@ export async function verifyParentRegistrationOtp(input: {
     description: 'L OTP d inscription Parent a ete verifie.',
   })
 
-  const registrationToken = jwt.sign(
-    {
-      token_type: PURPOSE,
-      verification_id: verification.id.toString(),
-      guardian_id: verification.guardian_id.toString(),
-      sub: verification.guardian_id.toString(),
-      jti: randomUUID(),
-    } satisfies RegistrationTokenPayload,
-    parentRegistrationTokenSecret(),
-    {
-      algorithm: ACCESS_TOKEN_ALGORITHM,
-      expiresIn: (process.env.PARENT_REGISTRATION_TOKEN_TTL ?? '15m') as jwt.SignOptions['expiresIn'],
-      issuer: PARENT_TOKEN_ISSUER,
-      audience: PARENT_TOKEN_AUDIENCE,
-    },
-  )
-  return { registration_token: registrationToken, expires_in_seconds: 900 }
+  const issued = await issueActionToken('parent_activation', {
+    guardianId: verification.guardian_id.toString(),
+    resourcePublicId: verification.guardians.public_id,
+  })
+  return {
+    registration_token: issued.token,
+    expires_in_seconds: Math.max(1, Math.ceil((issued.expiresAt.getTime() - Date.now()) / 1000)),
+  }
 }
 
 export async function finalizeParentRegistration(input: {
@@ -298,28 +280,24 @@ export async function finalizeParentRegistration(input: {
   const password = requiredString(input.password, 'password')
   if (password.length < 8) throw new ParentalApiError('password must contain at least 8 characters', 400)
 
-  let payload: RegistrationTokenPayload
+  let actionToken
   try {
-    payload = jwt.verify(token, parentRegistrationTokenSecret(), {
-      algorithms: [ACCESS_TOKEN_ALGORITHM], issuer: PARENT_TOKEN_ISSUER, audience: PARENT_TOKEN_AUDIENCE,
-    }) as RegistrationTokenPayload
+    actionToken = await consumeActionToken(token, 'parent_activation')
   } catch {
     throw new ParentalApiError('Registration token is invalid or expired', 401)
   }
-  if (payload.token_type !== PURPOSE || !payload.jti || payload.sub !== payload.guardian_id) {
+  if (!actionToken.guardian_id) {
     throw new ParentalApiError('Registration token is invalid or expired', 401)
   }
-
-  const verificationId = parseId(payload.verification_id, 'verification_id')
-  const guardianId = parseId(payload.guardian_id, 'guardian_id')
+  const guardianId = actionToken.guardian_id
   const verification = await prisma.contact_verifications.findFirst({
     where: {
-      id: verificationId,
       guardian_id: guardianId,
       purpose: PURPOSE,
       status: 'verified',
       consumed_at: null,
     },
+    orderBy: { verified_at: 'desc' },
     include: {
       guardians: {
         include: {

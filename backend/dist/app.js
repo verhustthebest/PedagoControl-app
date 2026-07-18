@@ -16,6 +16,8 @@ const parent_portal_routes_1 = __importDefault(require("./routes/parent-portal.r
 const parental_billing_routes_1 = __importDefault(require("./routes/parental-billing.routes"));
 const parental_student_routes_1 = __importDefault(require("./routes/parental-student.routes"));
 const school_routes_1 = __importDefault(require("./routes/school.routes"));
+const school_class_routes_1 = __importDefault(require("./routes/school-class.routes"));
+const attachment_request_routes_1 = __importDefault(require("./routes/attachment-request.routes"));
 const rate_limit_middleware_1 = require("./middleware/rate-limit.middleware");
 const network_1 = require("./config/network");
 const http_1 = require("./config/http");
@@ -40,6 +42,8 @@ app.use('/api', parental_billing_routes_1.default);
 app.use('/api', parental_guardian_routes_1.default);
 app.use('/api', parental_student_routes_1.default);
 app.use('/api', school_routes_1.default);
+app.use('/api', school_class_routes_1.default);
+app.use('/api', attachment_request_routes_1.default);
 app.use(error_middleware_1.notFound);
 app.use(error_middleware_1.globalErrorHandler);
 exports.default = app;

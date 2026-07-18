@@ -30,6 +30,8 @@ function redact(value, key = '') {
     if (SENSITIVE_KEYS.test(key))
         return '[redacted]';
     if (typeof value === 'string') {
+        if (/[?&](?:token|code|secret)=/i.test(value))
+            return value.replace(/([?&](?:token|code|secret)=)[^&\s]+/gi, '$1[redacted]');
         if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
             return maskEmail(value);
         if (/^\+?[\d\s().-]{7,}$/.test(value))

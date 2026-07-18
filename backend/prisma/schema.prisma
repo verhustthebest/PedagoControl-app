@@ -9,6 +9,7 @@ datasource db {
 
 model academic_year_classes {
   id                            BigInt                          @id @default(autoincrement())
+  public_id                     String                          @unique @default(uuid()) @db.Uuid
   academic_year_id              BigInt
   school_class_id               BigInt
   is_active                     Boolean                         @default(true)
@@ -41,6 +42,7 @@ model academic_year_subjects {
 
 model academic_years {
   id                    BigInt                  @id @default(autoincrement())
+  public_id             String                  @unique @default(uuid()) @db.Uuid
   school_id             BigInt
   name                  String                  @db.VarChar(100)
   start_date            DateTime                @db.Date
@@ -351,6 +353,7 @@ model school_calendar {
 
 model school_classes {
   id                    BigInt                  @id @default(autoincrement())
+  public_id             String                  @unique @default(uuid()) @db.Uuid
   school_id             BigInt
   education_level_id    BigInt
   education_option_id   BigInt?
@@ -391,6 +394,7 @@ model school_subscriptions {
 
 model schools {
   id                            BigInt                          @id @default(autoincrement())
+  public_id                     String                          @unique @default(uuid()) @db.Uuid
   code                          String                          @unique @db.VarChar(50)
   name                          String                          @db.VarChar(150)
   promoter_name                 String                          @db.VarChar(150)
@@ -439,6 +443,7 @@ model school_parental_settings {
 
 model students {
   id                            BigInt                          @id @default(autoincrement())
+  public_id                     String                          @unique @default(uuid()) @db.Uuid
   school_id                     BigInt
   matricule                     String                          @db.VarChar(100)
   first_name                    String                          @db.VarChar(100)
@@ -493,6 +498,7 @@ model student_enrollments {
 
 model guardians {
   id                                        BigInt                          @id @default(autoincrement())
+  public_id                                 String                          @unique @default(uuid()) @db.Uuid
   school_id                                 BigInt
   user_id                                   BigInt?
   created_by_user_id                        BigInt?
@@ -517,6 +523,7 @@ model guardians {
   attachment_requests                       attachment_requests[]
   contact_verifications                     contact_verifications[]
   parent_daily_acknowledgements             parent_daily_acknowledgements[]
+  action_tokens                             action_tokens[]
 
   @@unique([school_id, user_id], map: "uq_guardians_school_user")
   @@index([school_id], map: "idx_guardians_school")
@@ -549,6 +556,7 @@ model student_guardians {
 
 model attachment_requests {
   id                                                    BigInt                         @id @default(autoincrement())
+  public_id                                             String                         @unique @default(uuid()) @db.Uuid
   school_id                                             BigInt
   student_id                                            BigInt
   guardian_id                                           BigInt
@@ -578,6 +586,7 @@ model attachment_requests {
 
 model attachment_request_documents {
   id                    BigInt              @id @default(autoincrement())
+  public_id             String              @unique @default(uuid()) @db.Uuid
   attachment_request_id BigInt
   uploaded_by_user_id   BigInt?
   document_type         String              @db.VarChar(50)
@@ -587,6 +596,7 @@ model attachment_request_documents {
   file_size             BigInt
   file_url              String
   storage_key           String?
+  removed_at            DateTime?           @db.Timestamp(6)
   created_at            DateTime            @default(now()) @db.Timestamp(6)
   attachment_requests   attachment_requests @relation(fields: [attachment_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment_documents_request")
   users                 users?              @relation(fields: [uploaded_by_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_attachment_documents_uploaded_by")
@@ -662,6 +672,7 @@ model school_parental_subscriptions {
 
 model school_invoices {
   id                      BigInt                    @id @default(autoincrement())
+  public_id               String                    @unique @default(uuid()) @db.Uuid
   school_id               BigInt
   school_subscription_id  BigInt
   invoice_number          String                    @unique @db.VarChar(100)
@@ -685,6 +696,7 @@ model school_invoices {
   school_subscriptions    school_subscriptions      @relation(fields: [school_subscription_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_school_invoices_subscription")
   school_invoice_items    school_invoice_items[]
   school_invoice_payments school_invoice_payments[]
+  action_tokens           action_tokens[]
 
   @@unique([school_id, invoice_type, billing_period_start, billing_period_end], map: "uq_school_invoice_billing_period")
   @@index([school_id, status], map: "idx_school_invoices_school_status")
@@ -829,8 +841,32 @@ model users {
   student_guardians                                                           student_guardians[]
   students                                                                    students[]
   auth_sessions                                                               auth_sessions[]
+  action_tokens                                                               action_tokens[]
 
   @@index([school_id], map: "idx_users_school_id")
+}
+
+model action_tokens {
+  id                   String           @id @default(uuid()) @db.Uuid
+  token_hash           String           @unique @db.VarChar(64)
+  action               String           @db.VarChar(60)
+  user_id              BigInt?
+  guardian_id          BigInt?
+  school_invoice_id    BigInt?
+  resource_public_id   String?          @db.Uuid
+  expires_at           DateTime         @db.Timestamp(6)
+  used_at              DateTime?        @db.Timestamp(6)
+  revoked_at           DateTime?        @db.Timestamp(6)
+  created_at           DateTime         @default(now()) @db.Timestamp(6)
+  users                users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_user")
+  guardians            guardians?       @relation(fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_guardian")
+  school_invoices      school_invoices? @relation(fields: [school_invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_tokens_invoice")
+
+  @@index([action, user_id], map: "idx_action_tokens_action_user")
+  @@index([action, guardian_id], map: "idx_action_tokens_action_guardian")
+  @@index([action, school_invoice_id], map: "idx_action_tokens_action_invoice")
+  @@index([expires_at], map: "idx_action_tokens_expires_at")
+  @@index([revoked_at], map: "idx_action_tokens_revoked_at")
 }
 
 model auth_sessions {

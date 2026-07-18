@@ -59,13 +59,15 @@ test('school Admin cannot access global Management and unknown permissions are d
   assert.equal(denied.response.statusCode, 403)
 })
 
-test('URL identifier tampering cannot read or modify another school', () => {
+test('URL identifier tampering cannot read or modify another school', async () => {
   for (const method of ['GET', 'PUT', 'PATCH', 'POST']) {
-    const result = deniedBy(requireSchoolScope(), {
+    const response = responseRecorder()
+    let next = false
+    await requireSchoolScope()({
       method, params: { schoolId: '2' }, user: identity('ADMIN_GESTIONNAIRE', '1'),
-    })
-    assert.equal(result.response.statusCode, 403)
-    assert.equal(result.next, false)
+    }, response, () => { next = true })
+    assert.equal(response.statusCode, 404)
+    assert.equal(next, false)
   }
 })
 

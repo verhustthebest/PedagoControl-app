@@ -3,6 +3,8 @@ import { findAuthUserById, verifyAuthToken } from '../services/auth.service'
 import type { AuthUser } from '../services/auth.service'
 import { assertActiveSession, revokeSession } from '../services/auth-session.service'
 import { securityLog } from './request-context.middleware'
+import prisma from '../prisma/client'
+import { isPublicId } from '../security/public-id'
 import {
   hasAnyRole,
   hasUsableSchoolContext,
@@ -94,7 +96,7 @@ export function requireSchoolContext() {
 }
 
 export function requireSchoolScope(parameterName = 'schoolId') {
-  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+  return async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
     if (!request.user) {
       return response.status(401).json({ message: 'Authentication required' })
     }
@@ -102,17 +104,31 @@ export function requireSchoolScope(parameterName = 'schoolId') {
     const rawSchoolId = request.params[parameterName]
     const requestedSchoolId = Array.isArray(rawSchoolId) ? rawSchoolId[0] : rawSchoolId
 
-    if (!requestedSchoolId || !/^\d+$/.test(requestedSchoolId) || BigInt(requestedSchoolId) <= 0n) {
+    if (!requestedSchoolId || (!/^\d+$/.test(requestedSchoolId) && !isPublicId(requestedSchoolId))) {
       return response.status(400).json({ message: 'A valid school id is required' })
+    }
+
+    let internalSchoolId: bigint
+    if (isPublicId(requestedSchoolId)) {
+      const school = await prisma.schools.findUnique({ where: { public_id: requestedSchoolId }, select: { id: true } })
+      if (!school) return response.status(404).json({ message: 'Resource not found' })
+      internalSchoolId = school.id
+    } else {
+      internalSchoolId = BigInt(requestedSchoolId)
+      if (internalSchoolId <= 0n) return response.status(400).json({ message: 'A valid school id is required' })
     }
 
     if (!request.user.school_id && !isSuperAdmin(request.user)) {
       return response.status(403).json({ message: 'Access forbidden' })
     }
 
-    if (request.user.school_id && BigInt(request.user.school_id) !== BigInt(requestedSchoolId)) {
-      return response.status(403).json({ message: 'Access forbidden' })
+    if (request.user.school_id && BigInt(request.user.school_id) !== internalSchoolId) {
+      response.locals = response.locals ?? {}
+      response.locals.security_action = 'cross_school_access_refused'
+      return response.status(404).json({ message: 'Resource not found' })
     }
+
+    request.params[parameterName] = internalSchoolId.toString()
 
     return next()
   }

@@ -108,13 +108,13 @@ test('middleware rejects a non-super-admin without school', () => {
   assert.deepEqual(response.body, { message: 'Access forbidden' })
 })
 
-test('school scope prevents access to another school', () => {
+test('school scope prevents access to another school', async () => {
   const response = responseRecorder()
-  requireSchoolScope()(
+  await requireSchoolScope()(
     { params: { schoolId: '2' }, user: identity({ school: '1', roles: ['ADMIN_GESTIONNAIRE'] }) },
     response,
     () => assert.fail('next must not be called'),
   )
-  assert.equal(response.statusCode, 403)
-  assert.deepEqual(response.body, { message: 'Access forbidden' })
+  assert.equal(response.statusCode, 404)
+  assert.deepEqual(response.body, { message: 'Resource not found' })
 })

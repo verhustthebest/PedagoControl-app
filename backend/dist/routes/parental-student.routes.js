@@ -5,11 +5,12 @@ const parental_student_controller_1 = require("../controllers/parental-student.c
 const auth_middleware_1 = require("../middleware/auth.middleware");
 const validate_middleware_1 = require("../middleware/validate.middleware");
 const schemas_1 = require("../validation/schemas");
+const public_resource_middleware_1 = require("../middleware/public-resource.middleware");
 const router = (0, express_1.Router)();
 const access = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolScope)(), (0, auth_middleware_1.requirePermission)('MANAGE_STUDENTS')];
 router.get('/parental/schools/:schoolId/students', ...access, (0, validate_middleware_1.validate)({ params: schemas_1.schoolParams, query: schemas_1.studentListQuery }), parental_student_controller_1.indexStudents);
 router.post('/parental/schools/:schoolId/students', ...access, (0, validate_middleware_1.validate)({ params: schemas_1.schoolParams, body: schemas_1.createStudentBody }), parental_student_controller_1.createStudentHandler);
-router.get('/parental/schools/:schoolId/students/:studentId', ...access, (0, validate_middleware_1.validate)({ params: schemas_1.studentParams }), parental_student_controller_1.showStudent);
-router.put('/parental/schools/:schoolId/students/:studentId', ...access, (0, validate_middleware_1.validate)({ params: schemas_1.studentParams, body: schemas_1.updateStudentBody }), parental_student_controller_1.updateStudentHandler);
-router.patch('/parental/schools/:schoolId/students/:studentId/tracking', ...access, (0, validate_middleware_1.validate)({ params: schemas_1.studentParams, body: schemas_1.trackingBody }), parental_student_controller_1.updateStudentTracking);
+router.get('/parental/schools/:schoolId/students/:studentId', ...access, (0, public_resource_middleware_1.resolvePublicResource)('student', 'studentId'), (0, validate_middleware_1.validate)({ params: schemas_1.studentParams }), parental_student_controller_1.showStudent);
+router.put('/parental/schools/:schoolId/students/:studentId', ...access, (0, public_resource_middleware_1.resolvePublicResource)('student', 'studentId'), (0, validate_middleware_1.validate)({ params: schemas_1.studentParams, body: schemas_1.updateStudentBody }), parental_student_controller_1.updateStudentHandler);
+router.patch('/parental/schools/:schoolId/students/:studentId/tracking', ...access, (0, public_resource_middleware_1.resolvePublicResource)('student', 'studentId'), (0, validate_middleware_1.validate)({ params: schemas_1.studentParams, body: schemas_1.trackingBody }), parental_student_controller_1.updateStudentTracking);
 exports.default = router;

@@ -5,6 +5,8 @@ import {
   getParentalInvoice,
   listParentalInvoices,
   recordManualPayment,
+  createInvoiceDownloadToken,
+  consumeInvoiceDownloadToken,
 } from '../services/parental-billing.service'
 import { ParentalApiError } from '../services/parental.service'
 
@@ -74,5 +76,27 @@ export async function createPayment(request: AuthenticatedRequest, response: Res
     return response.status(201).json({ payment: serialize(payment) })
   } catch (error) {
     return handleError(response, error, 'Unable to record school payment')
+  }
+}
+
+export async function createDownloadToken(request: AuthenticatedRequest, response: Response) {
+  try {
+    const result = await createInvoiceDownloadToken(parameter(request, 'schoolId'), parameter(request, 'invoiceId'))
+    response.setHeader('Cache-Control', 'no-store')
+    return response.status(201).json(result)
+  } catch (error) {
+    return handleError(response, error, 'Unable to create temporary invoice link')
+  }
+}
+
+export async function downloadInvoice(request: AuthenticatedRequest, response: Response) {
+  if (process.env.NODE_ENV === 'production' && !request.secure) return response.status(400).json({ message: 'Invalid request' })
+  try {
+    const token = typeof request.query.token === 'string' ? request.query.token : ''
+    const invoice = await consumeInvoiceDownloadToken(token)
+    response.setHeader('Cache-Control', 'no-store')
+    return response.json({ invoice: serialize(invoice) })
+  } catch {
+    return response.status(401).json({ message: 'Temporary link is invalid or expired' })
   }
 }

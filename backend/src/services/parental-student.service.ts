@@ -143,6 +143,15 @@ async function ensureClassBelongsToSchool(academicYearClassId: bigint, schoolId:
   }
 }
 
+async function resolveAcademicYearClass(value: string, schoolId: bigint) {
+  if (/^[0-9a-f-]{36}$/i.test(value)) {
+    const item = await prisma.academic_year_classes.findFirst({ where: { public_id: value, academic_years: { school_id: schoolId } }, select: { id: true } })
+    if (!item) throw new ParentalApiError('Academic year class not found in this school', 404)
+    return item.id
+  }
+  return parseId(value, 'academic_year_class_id')
+}
+
 async function findStudentInSchool(studentId: bigint, schoolId: bigint) {
   const student = await prisma.students.findFirst({
     where: { id: studentId, school_id: schoolId },
@@ -189,7 +198,7 @@ export async function listStudents(schoolIdValue: string, input: ListStudentsInp
   const limit = parsePagination(input.limit, 20, 'limit', 100)
   const search = input.search?.trim()
   const academicYearClassId = input.academic_year_class_id
-    ? parseId(input.academic_year_class_id, 'academic_year_class_id')
+    ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
     : undefined
 
   let trackingEnabled: boolean | undefined
@@ -261,7 +270,7 @@ export async function createStudent(
   await ensureSchool(schoolId)
 
   const academicYearClassId = input.academic_year_class_id
-    ? parseId(input.academic_year_class_id, 'academic_year_class_id')
+    ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
     : undefined
   if (academicYearClassId) await ensureClassBelongsToSchool(academicYearClassId, schoolId)
 
@@ -342,7 +351,7 @@ export async function updateStudent(
   }
 
   const academicYearClassId = input.academic_year_class_id
-    ? parseId(input.academic_year_class_id, 'academic_year_class_id')
+    ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
     : undefined
   if (academicYearClassId) await ensureClassBelongsToSchool(academicYearClassId, schoolId)
 

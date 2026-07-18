@@ -7,11 +7,15 @@ exports.generateParentalInvoice = generateParentalInvoice;
 exports.listParentalInvoices = listParentalInvoices;
 exports.getParentalInvoice = getParentalInvoice;
 exports.recordManualPayment = recordManualPayment;
+exports.createInvoiceDownloadToken = createInvoiceDownloadToken;
+exports.consumeInvoiceDownloadToken = consumeInvoiceDownloadToken;
 const crypto_1 = require("crypto");
 const client_1 = require("@prisma/client");
 const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
 const parental_student_service_1 = require("./parental-student.service");
+const public_id_1 = require("../security/public-id");
+const action_token_service_1 = require("./action-token.service");
 const INVOICE_TYPE = 'parental_tracking';
 function parseId(value, field) {
     try {
@@ -221,10 +225,9 @@ async function listParentalInvoices(schoolIdValue, input) {
 }
 async function getParentalInvoice(schoolIdValue, invoiceIdValue) {
     const schoolId = parseId(schoolIdValue, 'schoolId');
-    const invoiceId = parseId(invoiceIdValue, 'invoiceId');
     await schoolOrThrow(schoolId);
     const invoice = await client_2.default.school_invoices.findFirst({
-        where: { id: invoiceId, school_id: schoolId, invoice_type: INVOICE_TYPE },
+        where: { ...(0, public_id_1.opaqueResourceWhere)(invoiceIdValue), school_id: schoolId, invoice_type: INVOICE_TYPE },
         include: invoiceInclude(),
     });
     if (!invoice)
@@ -233,7 +236,6 @@ async function getParentalInvoice(schoolIdValue, invoiceIdValue) {
 }
 async function recordManualPayment(schoolIdValue, invoiceIdValue, actorUserId, input) {
     const schoolId = parseId(schoolIdValue, 'schoolId');
-    const invoiceId = parseId(invoiceIdValue, 'invoiceId');
     const actorId = parseId(actorUserId, 'actorUserId');
     const amount = parseAmount(input.amount);
     const paymentMethod = optionalText(input.payment_method, 'payment_method');
@@ -242,7 +244,7 @@ async function recordManualPayment(schoolIdValue, invoiceIdValue, actorUserId, i
     }
     const transactionReference = optionalText(input.transaction_reference, 'transaction_reference');
     const notes = optionalText(input.notes, 'notes');
-    const invoice = await getParentalInvoice(schoolId.toString(), invoiceId.toString());
+    const invoice = await getParentalInvoice(schoolId.toString(), invoiceIdValue);
     if (invoice.status === 'cancelled')
         throw new parental_service_1.ParentalApiError('A cancelled invoice cannot be paid', 409);
     const alreadyPaid = invoice.school_invoice_payments
@@ -286,4 +288,28 @@ async function recordManualPayment(schoolIdValue, invoiceIdValue, actorUserId, i
         });
         return transaction.school_invoice_payments.findUniqueOrThrow({ where: { id: payment.id } });
     });
+}
+async function createInvoiceDownloadToken(schoolIdValue, invoiceIdentifier) {
+    const invoice = await getParentalInvoice(schoolIdValue, invoiceIdentifier);
+    const issued = await (0, action_token_service_1.issueActionToken)('invoice_download', {
+        invoiceId: invoice.id.toString(),
+        resourcePublicId: invoice.public_id,
+    });
+    return {
+        token: issued.token,
+        expires_at: issued.expiresAt,
+        path: `/api/parental/invoices/download?token=${encodeURIComponent(issued.token)}`,
+        invoice: (0, public_id_1.publicInvoiceView)(invoice),
+    };
+}
+async function consumeInvoiceDownloadToken(token) {
+    const action = await (0, action_token_service_1.consumeActionToken)(token, 'invoice_download');
+    if (!action.school_invoice_id || !action.resource_public_id)
+        throw new parental_service_1.ParentalApiError('Temporary link is invalid or expired', 401);
+    const invoice = await client_2.default.school_invoices.findFirst({
+        where: { id: action.school_invoice_id, public_id: action.resource_public_id, invoice_type: INVOICE_TYPE },
+    });
+    if (!invoice)
+        throw new parental_service_1.ParentalApiError('Temporary link is invalid or expired', 401);
+    return (0, public_id_1.publicInvoiceView)(invoice);
 }

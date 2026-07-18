@@ -26,6 +26,7 @@ export function maskIp(value: string) {
 export function redact(value: unknown, key = ''): unknown {
   if (SENSITIVE_KEYS.test(key)) return '[redacted]'
   if (typeof value === 'string') {
+    if (/[?&](?:token|code|secret)=/i.test(value)) return value.replace(/([?&](?:token|code|secret)=)[^&\s]+/gi, '$1[redacted]')
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return maskEmail(value)
     if (/^\+?[\d\s().-]{7,}$/.test(value)) return maskPhone(value)
     return value.length > 500 ? `${value.slice(0, 500)}…` : value

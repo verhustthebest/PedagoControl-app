@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const school_class_controller_1 = require("../controllers/school-class.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const validate_middleware_1 = require("../middleware/validate.middleware");
+const schemas_1 = require("../validation/schemas");
+const router = (0, express_1.Router)();
+router.get('/schools/:schoolId/classes', auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolScope)(), (0, auth_middleware_1.requirePermission)('VIEW_SCHOOL_CLASSES'), (0, validate_middleware_1.validate)({ params: schemas_1.schoolParams, query: schemas_1.classListQuery }), school_class_controller_1.listSchoolClasses);
+exports.default = router;

@@ -117,6 +117,15 @@ async function ensureClassBelongsToSchool(academicYearClassId, schoolId) {
         throw new parental_service_1.ParentalApiError('Academic year class not found in this school', 404);
     }
 }
+async function resolveAcademicYearClass(value, schoolId) {
+    if (/^[0-9a-f-]{36}$/i.test(value)) {
+        const item = await client_2.default.academic_year_classes.findFirst({ where: { public_id: value, academic_years: { school_id: schoolId } }, select: { id: true } });
+        if (!item)
+            throw new parental_service_1.ParentalApiError('Academic year class not found in this school', 404);
+        return item.id;
+    }
+    return parseId(value, 'academic_year_class_id');
+}
 async function findStudentInSchool(studentId, schoolId) {
     const student = await client_2.default.students.findFirst({
         where: { id: studentId, school_id: schoolId },
@@ -152,7 +161,7 @@ async function listStudents(schoolIdValue, input) {
     const limit = parsePagination(input.limit, 20, 'limit', 100);
     const search = input.search?.trim();
     const academicYearClassId = input.academic_year_class_id
-        ? parseId(input.academic_year_class_id, 'academic_year_class_id')
+        ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
         : undefined;
     let trackingEnabled;
     if (input.parental_tracking_enabled !== undefined) {
@@ -216,7 +225,7 @@ async function createStudent(schoolIdValue, actorUserId, input) {
     const actorId = parseId(actorUserId, 'actorUserId');
     await ensureSchool(schoolId);
     const academicYearClassId = input.academic_year_class_id
-        ? parseId(input.academic_year_class_id, 'academic_year_class_id')
+        ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
         : undefined;
     if (academicYearClassId)
         await ensureClassBelongsToSchool(academicYearClassId, schoolId);
@@ -286,7 +295,7 @@ async function updateStudent(schoolIdValue, studentIdValue, actorUserId, input) 
         throw new parental_service_1.ParentalApiError('school_id and matricule cannot be changed', 400);
     }
     const academicYearClassId = input.academic_year_class_id
-        ? parseId(input.academic_year_class_id, 'academic_year_class_id')
+        ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
         : undefined;
     if (academicYearClassId)
         await ensureClassBelongsToSchool(academicYearClassId, schoolId);

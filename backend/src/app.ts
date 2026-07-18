@@ -11,6 +11,8 @@ import parentPortalRoutes from './routes/parent-portal.routes'
 import parentalBillingRoutes from './routes/parental-billing.routes'
 import parentalStudentRoutes from './routes/parental-student.routes'
 import schoolRoutes from './routes/school.routes'
+import schoolClassRoutes from './routes/school-class.routes'
+import attachmentRequestRoutes from './routes/attachment-request.routes'
 import { globalApiRateLimit } from './middleware/rate-limit.middleware'
 import { resolveTrustProxyHops } from './config/network'
 import { configureHttpBoundary } from './config/http'
@@ -38,6 +40,8 @@ app.use('/api', parentalBillingRoutes)
 app.use('/api', parentalGuardianRoutes)
 app.use('/api', parentalStudentRoutes)
 app.use('/api', schoolRoutes)
+app.use('/api', schoolClassRoutes)
+app.use('/api', attachmentRequestRoutes)
 app.use(notFound)
 app.use(globalErrorHandler)
 

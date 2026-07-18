@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client'
 import prisma from '../prisma/client'
 import { ParentalApiError } from './parental.service'
 import { countBillableParentalStudents } from './parental-student.service'
+import { opaqueResourceWhere, publicInvoiceView } from '../security/public-id'
+import { consumeActionToken, issueActionToken } from './action-token.service'
 
 const INVOICE_TYPE = 'parental_tracking'
 
@@ -239,10 +241,9 @@ export async function listParentalInvoices(
 
 export async function getParentalInvoice(schoolIdValue: string, invoiceIdValue: string) {
   const schoolId = parseId(schoolIdValue, 'schoolId')
-  const invoiceId = parseId(invoiceIdValue, 'invoiceId')
   await schoolOrThrow(schoolId)
   const invoice = await prisma.school_invoices.findFirst({
-    where: { id: invoiceId, school_id: schoolId, invoice_type: INVOICE_TYPE },
+    where: { ...opaqueResourceWhere(invoiceIdValue), school_id: schoolId, invoice_type: INVOICE_TYPE },
     include: invoiceInclude(),
   })
   if (!invoice) throw new ParentalApiError('Parental tracking invoice not found in this school', 404)
@@ -261,7 +262,6 @@ export async function recordManualPayment(
   },
 ) {
   const schoolId = parseId(schoolIdValue, 'schoolId')
-  const invoiceId = parseId(invoiceIdValue, 'invoiceId')
   const actorId = parseId(actorUserId, 'actorUserId')
   const amount = parseAmount(input.amount)
   const paymentMethod = optionalText(input.payment_method, 'payment_method')
@@ -270,7 +270,7 @@ export async function recordManualPayment(
   }
   const transactionReference = optionalText(input.transaction_reference, 'transaction_reference')
   const notes = optionalText(input.notes, 'notes')
-  const invoice = await getParentalInvoice(schoolId.toString(), invoiceId.toString())
+  const invoice = await getParentalInvoice(schoolId.toString(), invoiceIdValue)
   if (invoice.status === 'cancelled') throw new ParentalApiError('A cancelled invoice cannot be paid', 409)
 
   const alreadyPaid = invoice.school_invoice_payments
@@ -315,4 +315,28 @@ export async function recordManualPayment(
     })
     return transaction.school_invoice_payments.findUniqueOrThrow({ where: { id: payment.id } })
   })
+}
+
+export async function createInvoiceDownloadToken(schoolIdValue: string, invoiceIdentifier: string) {
+  const invoice = await getParentalInvoice(schoolIdValue, invoiceIdentifier)
+  const issued = await issueActionToken('invoice_download', {
+    invoiceId: invoice.id.toString(),
+    resourcePublicId: invoice.public_id,
+  })
+  return {
+    token: issued.token,
+    expires_at: issued.expiresAt,
+    path: `/api/parental/invoices/download?token=${encodeURIComponent(issued.token)}`,
+    invoice: publicInvoiceView(invoice),
+  }
+}
+
+export async function consumeInvoiceDownloadToken(token: string) {
+  const action = await consumeActionToken(token, 'invoice_download')
+  if (!action.school_invoice_id || !action.resource_public_id) throw new ParentalApiError('Temporary link is invalid or expired', 401)
+  const invoice = await prisma.school_invoices.findFirst({
+    where: { id: action.school_invoice_id, public_id: action.resource_public_id, invoice_type: INVOICE_TYPE },
+  })
+  if (!invoice) throw new ParentalApiError('Temporary link is invalid or expired', 401)
+  return publicInvoiceView(invoice)
 }

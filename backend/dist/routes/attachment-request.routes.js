@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const attachment_request_controller_1 = require("../controllers/attachment-request.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const validate_middleware_1 = require("../middleware/validate.middleware");
+const schemas_1 = require("../validation/schemas");
+const router = (0, express_1.Router)(), read = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolScope)(), (0, auth_middleware_1.requirePermission)('VIEW_ATTACHMENT_REQUESTS')], decision = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolScope)(), (0, auth_middleware_1.requirePermission)('REVIEW_ATTACHMENT_REQUESTS')];
+router.get('/parental/schools/:schoolId/attachment-requests', ...read, (0, validate_middleware_1.validate)({ params: schemas_1.schoolParams, query: schemas_1.attachmentRequestQuery }), attachment_request_controller_1.index);
+router.get('/parental/schools/:schoolId/attachment-requests/:requestId', ...read, (0, validate_middleware_1.validate)({ params: schemas_1.attachmentRequestParams }), attachment_request_controller_1.show);
+router.post('/parental/schools/:schoolId/attachment-requests/:requestId/decision', ...decision, (0, validate_middleware_1.validate)({ params: schemas_1.attachmentRequestParams, body: schemas_1.attachmentDecisionBody }), attachment_request_controller_1.decide);
+router.post('/parental/schools/:schoolId/attachment-requests/:requestId/disable', ...decision, (0, validate_middleware_1.validate)({ params: schemas_1.attachmentRequestParams, body: schemas_1.attachmentDisableBody }), attachment_request_controller_1.disable);
+router.post('/parental/schools/:schoolId/attachment-requests/:requestId/documents', ...read, (0, validate_middleware_1.validate)({ params: schemas_1.attachmentRequestParams, body: schemas_1.attachmentDocumentBody }), attachment_request_controller_1.addDocument);
+router.delete('/parental/schools/:schoolId/attachment-requests/:requestId/documents/:documentId', ...read, (0, validate_middleware_1.validate)({ params: schemas_1.attachmentDocumentParams }), attachment_request_controller_1.removeDocument);
+exports.default = router;

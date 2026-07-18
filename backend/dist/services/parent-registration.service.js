@@ -8,14 +8,13 @@ exports.verifyParentRegistrationOtp = verifyParentRegistrationOtp;
 exports.finalizeParentRegistration = finalizeParentRegistration;
 const crypto_1 = require("crypto");
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
 const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
 const otp_provider_service_1 = require("./otp-provider.service");
 const abuse_protection_1 = require("../security/abuse-protection");
-const token_security_1 = require("../config/token-security");
 const otp_security_1 = require("../security/otp-security");
+const action_token_service_1 = require("./action-token.service");
 const PURPOSE = 'parent_registration';
 const CHANNELS = ['email', 'whatsapp', 'sms'];
 function positiveInteger(name, fallback) {
@@ -240,47 +239,39 @@ async function verifyParentRegistrationOtp(input) {
         title: 'Verification OTP inscription Parent',
         description: 'L OTP d inscription Parent a ete verifie.',
     });
-    const registrationToken = jsonwebtoken_1.default.sign({
-        token_type: PURPOSE,
-        verification_id: verification.id.toString(),
-        guardian_id: verification.guardian_id.toString(),
-        sub: verification.guardian_id.toString(),
-        jti: (0, crypto_1.randomUUID)(),
-    }, (0, token_security_1.parentRegistrationTokenSecret)(), {
-        algorithm: token_security_1.ACCESS_TOKEN_ALGORITHM,
-        expiresIn: (process.env.PARENT_REGISTRATION_TOKEN_TTL ?? '15m'),
-        issuer: token_security_1.PARENT_TOKEN_ISSUER,
-        audience: token_security_1.PARENT_TOKEN_AUDIENCE,
+    const issued = await (0, action_token_service_1.issueActionToken)('parent_activation', {
+        guardianId: verification.guardian_id.toString(),
+        resourcePublicId: verification.guardians.public_id,
     });
-    return { registration_token: registrationToken, expires_in_seconds: 900 };
+    return {
+        registration_token: issued.token,
+        expires_in_seconds: Math.max(1, Math.ceil((issued.expiresAt.getTime() - Date.now()) / 1000)),
+    };
 }
 async function finalizeParentRegistration(input) {
     const token = requiredString(input.registration_token, 'registration_token');
     const password = requiredString(input.password, 'password');
     if (password.length < 8)
         throw new parental_service_1.ParentalApiError('password must contain at least 8 characters', 400);
-    let payload;
+    let actionToken;
     try {
-        payload = jsonwebtoken_1.default.verify(token, (0, token_security_1.parentRegistrationTokenSecret)(), {
-            algorithms: [token_security_1.ACCESS_TOKEN_ALGORITHM], issuer: token_security_1.PARENT_TOKEN_ISSUER, audience: token_security_1.PARENT_TOKEN_AUDIENCE,
-        });
+        actionToken = await (0, action_token_service_1.consumeActionToken)(token, 'parent_activation');
     }
     catch {
         throw new parental_service_1.ParentalApiError('Registration token is invalid or expired', 401);
     }
-    if (payload.token_type !== PURPOSE || !payload.jti || payload.sub !== payload.guardian_id) {
+    if (!actionToken.guardian_id) {
         throw new parental_service_1.ParentalApiError('Registration token is invalid or expired', 401);
     }
-    const verificationId = parseId(payload.verification_id, 'verification_id');
-    const guardianId = parseId(payload.guardian_id, 'guardian_id');
+    const guardianId = actionToken.guardian_id;
     const verification = await client_2.default.contact_verifications.findFirst({
         where: {
-            id: verificationId,
             guardian_id: guardianId,
             purpose: PURPOSE,
             status: 'verified',
             consumed_at: null,
         },
+        orderBy: { verified_at: 'desc' },
         include: {
             guardians: {
                 include: {

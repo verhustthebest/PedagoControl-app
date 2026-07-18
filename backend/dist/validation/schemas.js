@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notificationQuery = exports.acknowledgementBody = exports.journalQuery = exports.paymentBody = exports.invoiceListQuery = exports.invoiceGenerateBody = exports.linkGuardianBody = exports.guardianListQuery = exports.updateGuardianBody = exports.createGuardianBody = exports.trackingBody = exports.studentListQuery = exports.updateStudentBody = exports.createStudentBody = exports.subscriptionBody = exports.settingsBody = exports.paginationQuery = exports.emptyQuery = exports.itemParams = exports.messageBody = exports.reportParams = exports.reportDecisionBody = exports.reportBody = exports.registerParentBody = exports.verifyOtpBody = exports.requestOtpBody = exports.loginBody = exports.invoiceParams = exports.guardianLinkParams = exports.guardianParams = exports.studentParams = exports.schoolParams = exports.phone = exports.email = exports.amount = exports.limit = exports.page = exports.time = exports.month = exports.date = exports.id = void 0;
+exports.attachmentDocumentBody = exports.attachmentDisableBody = exports.attachmentDecisionBody = exports.attachmentRequestQuery = exports.attachmentDocumentParams = exports.attachmentRequestParams = exports.notificationQuery = exports.acknowledgementBody = exports.journalQuery = exports.actionTokenQuery = exports.paymentBody = exports.invoiceListQuery = exports.invoiceGenerateBody = exports.linkGuardianBody = exports.guardianListQuery = exports.updateGuardianBody = exports.createGuardianBody = exports.trackingBody = exports.studentListQuery = exports.updateStudentBody = exports.createStudentBody = exports.subscriptionBody = exports.settingsBody = exports.paginationQuery = exports.emptyQuery = exports.itemParams = exports.messageBody = exports.reportParams = exports.reportDecisionBody = exports.reportBody = exports.registerParentBody = exports.verifyOtpBody = exports.requestOtpBody = exports.loginBody = exports.invoiceParams = exports.guardianLinkParams = exports.guardianParams = exports.studentParams = exports.schoolParams = exports.phone = exports.email = exports.amount = exports.limit = exports.page = exports.time = exports.month = exports.date = exports.resourceIdentifier = exports.publicId = exports.id = void 0;
+exports.guardianInvitationParams = exports.classListQuery = void 0;
 const zod_1 = require("zod");
 const text = (max) => zod_1.z.string().trim().min(1).max(max);
 const nullableText = (max) => zod_1.z.union([text(max), zod_1.z.literal('').transform(() => null), zod_1.z.null()]);
@@ -12,6 +13,8 @@ exports.id = zod_1.z.string().regex(/^[1-9]\d*$/).refine((value) => {
         return false;
     }
 }, 'Invalid identifier');
+exports.publicId = zod_1.z.string().uuid();
+exports.resourceIdentifier = zod_1.z.union([exports.id, exports.publicId]);
 exports.date = zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
     const [year, month, day] = value.split('-').map(Number);
     const parsed = new Date(Date.UTC(year, month - 1, day));
@@ -24,11 +27,11 @@ exports.limit = zod_1.z.string().regex(/^[1-9]\d*$/).refine((v) => Number(v) <= 
 exports.amount = zod_1.z.union([zod_1.z.number().finite().positive(), zod_1.z.string().regex(/^\d+(?:\.\d{1,2})?$/).refine(v => Number(v) > 0 && Number.isFinite(Number(v)))]);
 exports.email = zod_1.z.string().trim().toLowerCase().email().max(254);
 exports.phone = zod_1.z.string().trim().transform(v => v.replace(/[\s().-]/g, '')).pipe(zod_1.z.string().regex(/^\+?[1-9]\d{6,14}$/));
-exports.schoolParams = zod_1.z.object({ schoolId: exports.id }).strict();
-exports.studentParams = zod_1.z.object({ schoolId: exports.id, studentId: exports.id }).strict();
-exports.guardianParams = zod_1.z.object({ schoolId: exports.id, guardianId: exports.id }).strict();
-exports.guardianLinkParams = zod_1.z.object({ schoolId: exports.id, studentId: exports.id, guardianId: exports.id }).strict();
-exports.invoiceParams = zod_1.z.object({ schoolId: exports.id, invoiceId: exports.id }).strict();
+exports.schoolParams = zod_1.z.object({ schoolId: exports.resourceIdentifier }).strict();
+exports.studentParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, studentId: exports.resourceIdentifier }).strict();
+exports.guardianParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, guardianId: exports.resourceIdentifier }).strict();
+exports.guardianLinkParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, studentId: exports.resourceIdentifier, guardianId: exports.resourceIdentifier }).strict();
+exports.invoiceParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, invoiceId: exports.resourceIdentifier }).strict();
 exports.loginBody = zod_1.z.object({
     email: zod_1.z.string().trim().max(254).transform(v => v.includes('@') ? v.toLowerCase() : v.replace(/[\s().-]/g, '')),
     password: zod_1.z.string().min(1).max(256),
@@ -59,7 +62,7 @@ exports.subscriptionBody = zod_1.z.object({ unit_price_per_student: exports.amou
 const studentFields = {
     first_name: text(100), last_name: text(100), middle_name: text(100), gender: zod_1.z.enum(['M', 'F', 'm', 'f']).transform(v => v.toUpperCase()),
     birth_date: exports.date, birth_place: text(200), address: text(500), profile_photo: nullableText(2048).optional(),
-    status: zod_1.z.enum(['active', 'inactive']).optional(), academic_year_class_id: exports.id.optional(),
+    status: zod_1.z.enum(['active', 'inactive']).optional(), academic_year_class_id: exports.resourceIdentifier.optional(),
 };
 exports.createStudentBody = zod_1.z.object(studentFields).strict();
 exports.updateStudentBody = zod_1.z.object(studentFields).partial().strict();
@@ -77,6 +80,16 @@ exports.linkGuardianBody = zod_1.z.object({ guardian_id: exports.id, relationshi
 exports.invoiceGenerateBody = zod_1.z.object({ billing_month: exports.month }).strict();
 exports.invoiceListQuery = zod_1.z.object({ page: exports.page, limit: exports.limit, status: zod_1.z.enum(['draft', 'issued', 'partially_paid', 'paid', 'overdue', 'cancelled']).optional() }).strict();
 exports.paymentBody = zod_1.z.object({ amount: exports.amount, payment_method: zod_1.z.enum(['cash', 'bank_transfer', 'mobile_money']), transaction_reference: nullableText(200).optional(), notes: nullableText(2000).optional() }).strict();
+exports.actionTokenQuery = zod_1.z.object({ token: zod_1.z.string().min(80).max(200) }).strict();
 exports.journalQuery = zod_1.z.object({ date: exports.date.optional() }).strict();
 exports.acknowledgementBody = zod_1.z.object({ journal_date: exports.date, comment: text(2000).optional() }).strict();
 exports.notificationQuery = zod_1.z.object({ page: exports.page, limit: exports.limit, unread: zod_1.z.enum(['true', 'false']).optional() }).strict();
+exports.attachmentRequestParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, requestId: exports.publicId }).strict();
+exports.attachmentDocumentParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, requestId: exports.publicId, documentId: exports.publicId }).strict();
+exports.attachmentRequestQuery = zod_1.z.object({ status: zod_1.z.enum(['BROUILLON', 'EN_ATTENTE', 'APPROUVE', 'REFUSE', 'DESACTIVE']).optional(), search: zod_1.z.string().trim().max(200).optional(), from: exports.date.optional(), to: exports.date.optional(), page: exports.page, limit: exports.limit }).strict();
+exports.attachmentDecisionBody = zod_1.z.object({ decision: zod_1.z.enum(['APPROUVE', 'REFUSE']), reason: text(1000).optional() }).strict().superRefine((value, context) => { if (value.decision === 'REFUSE' && !value.reason)
+    context.addIssue({ code: 'custom', path: ['reason'], message: 'A refusal reason is required' }); });
+exports.attachmentDisableBody = zod_1.z.object({ reason: text(1000) }).strict();
+exports.attachmentDocumentBody = zod_1.z.object({ document_type: zod_1.z.enum(['identity', 'parentage', 'other']), file_name: text(255), mime_type: zod_1.z.enum(['application/pdf', 'image/jpeg', 'image/png']), file_size: zod_1.z.number().int().positive(), file_url: zod_1.z.string().url().max(2048).optional(), storage_key: text(500).optional() }).strict().refine(value => value.file_url || value.storage_key, { message: 'External storage reference required' });
+exports.classListQuery = zod_1.z.object({ search: zod_1.z.string().trim().max(200).optional(), academic_year: exports.publicId.optional(), section: zod_1.z.string().trim().max(100).optional(), page: exports.page, limit: exports.limit }).strict();
+exports.guardianInvitationParams = zod_1.z.object({ schoolId: exports.resourceIdentifier, guardianId: exports.publicId }).strict();

@@ -4,6 +4,8 @@ import {
   generateInvoice,
   indexInvoices,
   showInvoice,
+  createDownloadToken,
+  downloadInvoice,
 } from '../controllers/parental-billing.controller'
 import {
   authenticateBearerToken,
@@ -11,7 +13,8 @@ import {
   requireSchoolScope,
 } from '../middleware/auth.middleware'
 import { validate } from '../middleware/validate.middleware'
-import { invoiceGenerateBody, invoiceListQuery, invoiceParams, paymentBody, schoolParams } from '../validation/schemas'
+import { actionTokenQuery, invoiceGenerateBody, invoiceListQuery, invoiceParams, paymentBody, schoolParams } from '../validation/schemas'
+import { resolvePublicResource } from '../middleware/public-resource.middleware'
 
 const router = Router()
 const view = [
@@ -27,7 +30,9 @@ const payment = [
 
 router.post('/parental/schools/:schoolId/invoices/generate', ...view, validate({ params: schoolParams, body: invoiceGenerateBody }), generateInvoice)
 router.get('/parental/schools/:schoolId/invoices', ...view, validate({ params: schoolParams, query: invoiceListQuery }), indexInvoices)
-router.get('/parental/schools/:schoolId/invoices/:invoiceId', ...view, validate({ params: invoiceParams }), showInvoice)
-router.post('/parental/schools/:schoolId/invoices/:invoiceId/payments', ...payment, validate({ params: invoiceParams, body: paymentBody }), createPayment)
+router.get('/parental/schools/:schoolId/invoices/:invoiceId', ...view, resolvePublicResource('invoice', 'invoiceId'), validate({ params: invoiceParams }), showInvoice)
+router.post('/parental/schools/:schoolId/invoices/:invoiceId/payments', ...payment, resolvePublicResource('invoice', 'invoiceId'), validate({ params: invoiceParams, body: paymentBody }), createPayment)
+router.post('/parental/schools/:schoolId/invoices/:invoiceId/download-token', ...view, resolvePublicResource('invoice', 'invoiceId'), validate({ params: invoiceParams }), createDownloadToken)
+router.get('/parental/invoices/download', validate({ query: actionTokenQuery }), downloadInvoice)
 
 export default router
