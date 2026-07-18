@@ -6060,3 +6060,32 @@ td {
     gap: 8px;
   }
 }
+/* Centralized authentication and authorization states */
+.access-state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #f5f8ff;
+  color: #0b1f4d;
+  text-align: center;
+}
+
+.access-state section {
+  width: min(32rem, 100%);
+  padding: 2.5rem;
+  border: 1px solid #dbe5f5;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 1rem 3rem rgba(13, 48, 105, 0.1);
+}
+
+.access-state a {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.6rem;
+  background: #075ce5;
+  color: white;
+  text-decoration: none;
+}

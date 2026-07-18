@@ -6,7 +6,7 @@ import brandLogo from '../assets/pedago-brand.png'
 import startupMockup from '../assets/page-de-demarrage.png'
 import presentationPanel from '../assets/presentation-panel.png'
 import { managementProgramDraft } from '../data/managementPrograms'
-import { authApi, clearToken, setToken } from '../services/api'
+import { authApi, getMemorySession } from '../services/api'
 import { prepareManagementProgram, sendProgramToAdminGestionnaire } from '../services/managementProgramService'
 import { messagesApi, notificationsApi } from '../services/notifications'
 import type { AppNotification } from '../services/notifications'
@@ -174,12 +174,9 @@ function localDisplayDate() {
 
 function getStoredUserRole() {
   const fallback = { name: 'Utilisateur', role: 'Utilisateur' }
-  const rawUser = window.localStorage.getItem('controle_pedagogique_user')
-  const rawMock = window.localStorage.getItem('pedagoMockSession')
-
+  const user = getMemorySession().user
   try {
-    if (rawUser) {
-      const user = JSON.parse(rawUser) as { first_name?: string; last_name?: string; roles?: string[] }
+    if (user) {
       const role = user.roles?.[0] || ''
       const label = role === 'SUPER_ADMIN' ? 'Admin / Management'
         : role === 'ADMIN_GESTIONNAIRE' ? 'Promoteur'
@@ -189,13 +186,6 @@ function getStoredUserRole() {
       return { name: [user.first_name, user.last_name].filter(Boolean).join(' ') || label, role: label }
     }
 
-    if (rawMock) {
-      const mock = JSON.parse(rawMock) as { role?: string; username?: string }
-      if (mock.role?.includes('Prefet')) return { name: mock.username || 'Préfecture', role: 'Préfet / Directeur des Études' }
-      if (mock.role?.includes('Enseignant')) return { name: mock.username || 'Enseignant', role: 'Enseignant' }
-      if (mock.role?.includes('Management')) return { name: mock.username || 'Management', role: 'Admin / Management' }
-      return { name: mock.username || 'Promoteur', role: 'Promoteur' }
-    }
   } catch {
     return fallback
   }
@@ -333,10 +323,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   }, [])
 
   function logout() {
-    clearToken()
-    window.localStorage.removeItem('controle_pedagogique_user')
-    window.localStorage.removeItem('pedagoMockSession')
-    window.location.assign('/login')
+    void authApi.logout()
   }
 
   return (
@@ -376,22 +363,13 @@ function LoginScreen() {
 
   function redirectForRoles(roles: string[]) {
     if (roles.includes('SUPER_ADMIN')) return '/management/ecoles'
-    if (roles.includes('ADMIN_GESTIONNAIRE')) return '/directeur/rapports'
+    if (roles.includes('ADMIN_GESTIONNAIRE')) return '/admin'
+    if (roles.includes('INFORMATICIEN')) return '/informaticien'
+    if (roles.includes('PARENT')) return '/parent'
     if (roles.includes('PREFET')) return '/prefet/rapports'
     if (roles.includes('ENSEIGNANT')) return '/enseignant/cahier-texte'
-    return '/directeur/rapports'
-  }
-
-  function loginWithMockFallback() {
-    const account = demoAccounts.find((item) => item.username === username.trim().toLowerCase() && item.password === password)
-
-    if (!account) {
-      setError('Connexion impossible. Vérifiez vos identifiants.')
-      return
-    }
-
-    window.localStorage.setItem('pedagoMockSession', JSON.stringify({ username: account.username, role: account.role }))
-    window.location.assign(account.redirect)
+    if (roles.some((role) => ['DIRECTEUR', 'DIRECTION', 'PROMOTEUR', 'DIRECTEUR_ETUDES', 'DIRECTEUR_DES_ETUDES'].includes(role))) return '/directeur/rapports'
+    return '/acces-interdit'
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -402,16 +380,8 @@ function LoginScreen() {
 
     try {
       const session = await authApi.login(username.trim().toLowerCase(), password)
-      setToken(session.token)
-      window.localStorage.setItem('controle_pedagogique_user', JSON.stringify(session.user))
-      window.localStorage.removeItem('pedagoMockSession')
-      window.location.assign(redirectForRoles(session.roles || session.user.roles))
+      window.location.replace(redirectForRoles(session.roles || session.user.roles))
     } catch (apiError) {
-      if (apiError instanceof TypeError) {
-        loginWithMockFallback()
-        return
-      }
-
       setError(apiError instanceof Error ? apiError.message : 'Connexion échouée.')
     } finally {
       setLoading(false)
@@ -479,10 +449,7 @@ function DemoAccess() {
 
 function ManagementLayout({ title, crumb, children }: { title: string; crumb?: string; children: ReactNode }) {
   function logoutToLogin() {
-    clearToken()
-    window.localStorage.removeItem('controle_pedagogique_user')
-    window.localStorage.removeItem('pedagoMockSession')
-    window.location.assign('/login')
+    void authApi.logout()
   }
 
   return (
@@ -2387,10 +2354,7 @@ function TextBookHistoryTable() {
 
 function LogoutButton() {
   function handleLogout() {
-    clearToken()
-    window.localStorage.removeItem('controle_pedagogique_user')
-    window.localStorage.removeItem('pedagoMockSession')
-    window.location.assign('/login')
+    void authApi.logout()
   }
 
   return <button className="logout-card" type="button" onClick={handleLogout}><Icon name="login" /> Déconnexion <Icon name="chevron" /></button>
@@ -2398,10 +2362,7 @@ function LogoutButton() {
 
 function TeacherLogoutButton() {
   function handleLogout() {
-    clearToken()
-    window.localStorage.removeItem('controle_pedagogique_user')
-    window.localStorage.removeItem('pedagoMockSession')
-    window.location.assign('/login')
+    void authApi.logout()
   }
 
   return <button className="logout-card" type="button" onClick={handleLogout}><Icon name="login" /> Deconnexion <Icon name="chevron" /></button>

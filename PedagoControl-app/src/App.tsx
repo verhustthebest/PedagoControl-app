@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider, DIRECTION_ROLES, ProtectedRoute } from './auth'
 import { AccessibilityEnhancer } from './components'
 import { DirectorLayout, ManagementLayout, PrefectLayout, TeacherLayout } from './layouts'
-import { DemoAccess, LoginScreen, PresentationScreen } from './pages/auth'
+import { ForbiddenAccess, LoginScreen, PresentationScreen, UnauthenticatedAccess } from './pages/auth'
 import { AnnualRepartition, Dashboard, EvaluationControl, ProgressTracking, Reports, SchoolPrograms, SupervisionDetail } from './pages/director'
 import { TeacherDashboard, TeacherEvaluations, TeacherPrograms, TeacherProgress, TeacherTextBook } from './pages/enseignant'
 import {
@@ -42,14 +43,18 @@ import {
 function App() {
   return (
     <BrowserRouter>
-      <AccessibilityEnhancer />
-      <Routes>
+      <AuthProvider>
+        <AccessibilityEnhancer />
+        <Routes>
         <Route path="/" element={<Navigate to="/demarrage" replace />} />
         <Route path="/demarrage" element={<PresentationScreen />} />
         <Route path="/presentation" element={<PresentationScreen />} />
         <Route path="/login" element={<LoginScreen />} />
-        <Route path="/demo" element={<DemoAccess />} />
+        <Route path="/demo" element={<Navigate to="/login" replace />} />
+        <Route path="/non-authentifie" element={<UnauthenticatedAccess />} />
+        <Route path="/acces-interdit" element={<ForbiddenAccess />} />
 
+        <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
         <Route path="/management" element={<Navigate to="/management/ecoles" replace />} />
         <Route path="/management/ecoles" element={<ManagementLayout title="Ecoles clientes" crumb="Ecoles clientes"><ClientSchools /></ManagementLayout>} />
         <Route path="/management/ecoles/nouvelle" element={<ManagementLayout title="Creation ecole cliente" crumb="Creation ecole"><NewSchoolFlow /></ManagementLayout>} />
@@ -71,7 +76,9 @@ function App() {
         <Route path="/management/historique" element={<ManagementLayout title="Historique actions" crumb="Historique actions"><ManagementAudit /></ManagementLayout>} />
         <Route path="/management/aide" element={<ManagementLayout title="Aide et support" crumb="Aide et support"><ManagementSupport /></ManagementLayout>} />
         <Route path="/management/*" element={<Navigate to="/management/ecoles" replace />} />
+        </Route>
 
+        <Route element={<ProtectedRoute allowedRoles={DIRECTION_ROLES} />}>
         <Route path="/directeur" element={<DirectorLayout title="Dashboard Directeur" subtitle="Vue d'ensemble de l'execution des programmes scolaires"><Dashboard /></DirectorLayout>} />
         <Route path="/directeur/programmes" element={<DirectorLayout title="Programmes scolaires" crumb="Programmes scolaires"><SchoolPrograms /></DirectorLayout>} />
         <Route path="/directeur/repartition" element={<DirectorLayout title="Repartition annuelle" crumb="Repartition annuelle"><AnnualRepartition /></DirectorLayout>} />
@@ -85,7 +92,9 @@ function App() {
         <Route path="/directeur/messages" element={<DirectorLayout title="Messages" crumb="Messages"><Reports /></DirectorLayout>} />
         <Route path="/directeur/parametres" element={<DirectorLayout title="Parametres" crumb="Parametres"><Reports /></DirectorLayout>} />
         <Route path="/directeur/*" element={<Navigate to="/directeur" replace />} />
+        </Route>
 
+        <Route element={<ProtectedRoute allowedRoles={['PREFET']} />}>
         <Route path="/prefet" element={<PrefectLayout title="Dashboard Prefet" subtitle="Pilotage pedagogique et validation des activites scolaires"><PrefectDashboard /></PrefectLayout>} />
         <Route path="/prefet/validations" element={<PrefectLayout title="Validation des progressions" crumb="Validation des progressions"><PrefectValidations /></PrefectLayout>} />
         <Route path="/prefet/progressions/:id" element={<PrefectLayout title="Détail progression" crumb="Détail progression"><PrefectProgressionDetail /></PrefectLayout>} />
@@ -100,7 +109,9 @@ function App() {
         <Route path="/prefet/messages" element={<PrefectLayout title="Messages" crumb="Messages"><PrefectMessages /></PrefectLayout>} />
         <Route path="/prefet/parametres" element={<PrefectLayout title="Parametres pedagogiques" crumb="Parametres pedagogiques"><PrefectSettings /></PrefectLayout>} />
         <Route path="/prefet/*" element={<Navigate to="/prefet" replace />} />
+        </Route>
 
+        <Route element={<ProtectedRoute allowedRoles={['ENSEIGNANT']} />}>
         <Route path="/enseignant" element={<TeacherLayout title="Tableau de bord Enseignant" subtitle="Bienvenue, suivez vos programmes et cahiers de textes"><TeacherDashboard /></TeacherLayout>} />
         <Route path="/enseignant/mes-programmes" element={<TeacherLayout title="Mes programmes" crumb="Mes programmes"><TeacherPrograms /></TeacherLayout>} />
         <Route path="/enseignant/ma-progression" element={<TeacherLayout title="Ma progression" crumb="Ma progression"><TeacherProgress /></TeacherLayout>} />
@@ -111,7 +122,19 @@ function App() {
         <Route path="/enseignant/messages" element={<TeacherLayout title="Messages" crumb="Messages"><TeacherDashboard /></TeacherLayout>} />
         <Route path="/enseignant/profil" element={<TeacherLayout title="Mon profil" crumb="Mon profil"><TeacherDashboard /></TeacherLayout>} />
         <Route path="/enseignant/*" element={<Navigate to="/enseignant" replace />} />
-      </Routes>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['ADMIN_GESTIONNAIRE']} />}>
+          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={['INFORMATICIEN']} />}>
+          <Route path="/informaticien/*" element={<Navigate to="/" replace />} />
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={['PARENT']} />}>
+          <Route path="/parent/*" element={<Navigate to="/" replace />} />
+        </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
