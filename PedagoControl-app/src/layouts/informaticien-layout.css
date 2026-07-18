@@ -3,3 +3,6 @@
 @media(max-width:768px){.admin-kpis,.parent-grid{grid-template-columns:1fr}.resource-toolbar{align-items:stretch;flex-direction:column}.resource-toolbar label{width:100%}}
 @media(max-width:375px){.admin-main{padding:12px}.admin-button{width:100%;text-align:center}.admin-card{padding:13px}}
 @media(min-width:1440px){.admin-main{max-width:1600px;margin:0 auto}}
+.technical-journal-filters{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto}.technical-journal-filters label{min-width:0}.technical-journal-filters select,.technical-journal-filters input{width:100%;box-sizing:border-box}
+@media(max-width:1024px){.technical-journal-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:768px){.technical-journal-filters{display:flex;flex-direction:column}}
