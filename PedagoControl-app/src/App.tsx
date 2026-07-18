@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, DIRECTION_ROLES, ProtectedRoute } from './auth'
 import { AccessibilityEnhancer } from './components'
-import { AdminLayout, DirectorLayout, ManagementLayout, ParentLayout, PrefectLayout, TeacherLayout } from './layouts'
+import { AdminLayout, DirectorLayout, InformaticienLayout, ManagementLayout, ParentLayout, PrefectLayout, TeacherLayout } from './layouts'
+import { InformaticienAttachments, InformaticienDashboard, InformaticienGuardians, InformaticienJournals, InformaticienNotifications, InformaticienProfile, InformaticienStudents } from './pages/informaticien'
 import { ParentChildProfile, ParentChildren, ParentDashboard, ParentJournalDetail, ParentJournals, ParentNotifications, ParentProfile } from './pages/parent'
 import { AdminDashboardPage, ParentalConfigurationPage, ParentalDashboardPage } from './pages/admin'
 import { StudentFormPage, StudentListPage, StudentProfilePage } from './pages/admin/students'
@@ -146,7 +147,15 @@ function App() {
           <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['INFORMATICIEN']} />}>
-          <Route path="/informaticien/*" element={<Navigate to="/" replace />} />
+          <Route path="/informaticien" element={<InformaticienLayout><InformaticienDashboard /></InformaticienLayout>} />
+          <Route path="/informaticien/eleves" element={<InformaticienLayout><InformaticienStudents /></InformaticienLayout>} />
+          <Route path="/informaticien/eleves/:publicId" element={<InformaticienLayout><InformaticienProfile /></InformaticienLayout>} />
+          <Route path="/informaticien/parents" element={<InformaticienLayout><InformaticienGuardians /></InformaticienLayout>} />
+          <Route path="/informaticien/parents/:publicId" element={<InformaticienLayout><InformaticienProfile parent /></InformaticienLayout>} />
+          <Route path="/informaticien/rattachements" element={<InformaticienLayout><InformaticienAttachments /></InformaticienLayout>} />
+          <Route path="/informaticien/journaux" element={<InformaticienLayout><InformaticienJournals /></InformaticienLayout>} />
+          <Route path="/informaticien/notifications" element={<InformaticienLayout><InformaticienNotifications /></InformaticienLayout>} />
+          <Route path="/informaticien/*" element={<Navigate to="/informaticien" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['PARENT']} />}>
           <Route path="/parent" element={<ParentLayout><ParentDashboard /></ParentLayout>} />
