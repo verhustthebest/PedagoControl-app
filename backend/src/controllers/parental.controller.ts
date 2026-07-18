@@ -38,7 +38,6 @@ function handleError(response: Response, error: unknown, fallbackMessage: string
     return response.status(error.statusCode).json({ message: error.message })
   }
 
-  console.error(fallbackMessage, error)
   return response.status(500).json({ message: fallbackMessage })
 }
 

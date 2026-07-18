@@ -6,9 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const client_1 = __importDefault(require("../prisma/client"));
+const seed_security_1 = require("./seed-security");
 dotenv_1.default.config();
 async function main() {
-    const passwordHash = await bcrypt_1.default.hash('Admin12345', 10);
+    (0, seed_security_1.assertSeedAllowed)('admin');
+    const passwordHash = await bcrypt_1.default.hash((0, seed_security_1.seedPassword)('ADMIN_SEED_PASSWORD'), 10);
+    const email = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase();
+    if (!email)
+        throw new Error('ADMIN_SEED_EMAIL is required');
     const role = await client_1.default.roles.upsert({
         where: { name: 'SUPER_ADMIN' },
         update: {
@@ -24,7 +29,7 @@ async function main() {
         },
     });
     const user = await client_1.default.users.upsert({
-        where: { email: 'admin@test.com' },
+        where: { email },
         update: {
             first_name: 'Admin',
             last_name: 'PÉDAGOGIQUE',
@@ -34,7 +39,7 @@ async function main() {
         create: {
             first_name: 'Admin',
             last_name: 'PÉDAGOGIQUE',
-            email: 'admin@test.com',
+            email,
             password_hash: passwordHash,
             is_active: true,
         },
@@ -52,11 +57,11 @@ async function main() {
             role_id: role.id,
         },
     });
-    console.log('Seed admin ready: admin@test.com / SUPER_ADMIN');
+    console.log('Seed admin completed without printing credentials');
 }
 main()
     .catch((error) => {
-    console.error('Seed admin failed', error);
+    console.error('Seed admin failed');
     process.exitCode = 1;
 })
     .finally(async () => {

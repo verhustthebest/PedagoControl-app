@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express'
 import { findAuthUserById, verifyAuthToken } from '../services/auth.service'
 import type { AuthUser } from '../services/auth.service'
-import { randomUUID } from 'crypto'
+import { assertActiveSession, revokeSession } from '../services/auth-session.service'
+import { securityLog } from './request-context.middleware'
 import {
   hasAnyRole,
   hasUsableSchoolContext,
@@ -10,6 +11,7 @@ import {
 
 export type AuthenticatedRequest = Request & {
   user?: AuthUser
+  session_id?: string
 }
 
 export async function authenticateBearerToken(request: AuthenticatedRequest, response: Response, next: NextFunction) {
@@ -23,18 +25,20 @@ export async function authenticateBearerToken(request: AuthenticatedRequest, res
 
   try {
     const payload = verifyAuthToken(token)
-    const user = await findAuthUserById(payload.sub)
+    const [user, sessionActive] = await Promise.all([
+      findAuthUserById(payload.sub), assertActiveSession(payload.sid, payload.sub),
+    ])
 
-    if (!user || user.school_id !== payload.school_id) {
+    if (!user && sessionActive) await revokeSession(payload.sid)
+    if (!user || !sessionActive || user.school_id !== payload.school_id) {
       return response.status(401).json({ message: 'Authentication required' })
     }
 
     request.user = user
+    request.session_id = payload.sid
     return next()
   } catch {
-    const requestId = request.header('X-Request-ID')?.slice(0, 100) || randomUUID()
-    response.setHeader('X-Request-ID', requestId)
-    console.warn('[SECURITY] access token rejected', { request_id: requestId })
+    securityLog(request, 'access_token_rejected', 'denied')
     return response.status(401).json({ message: 'Authentication required' })
   }
 }

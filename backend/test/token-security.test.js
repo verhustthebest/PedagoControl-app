@@ -19,7 +19,7 @@ function environment(values, callback) {
 }
 
 function accessToken(overrides = {}, options = {}) {
-  return jwt.sign({ roles: ['ENSEIGNANT'], school_id: '1', token_type: 'access', jti: 'test-jti', ...overrides }, accessSecret, {
+  return jwt.sign({ roles: ['ENSEIGNANT'], school_id: '1', token_type: 'access', jti: 'test-jti', sid: 'c60f813c-5dea-4f03-a14f-b672825041e5', ...overrides }, accessSecret, {
     algorithm: 'HS256', expiresIn: '15m', issuer: 'test-issuer', audience: 'test-audience', subject: '42', ...options,
   })
 }

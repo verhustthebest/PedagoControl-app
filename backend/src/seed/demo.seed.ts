@@ -1,10 +1,12 @@
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import prisma from '../prisma/client'
+import { assertSeedAllowed, seedPassword } from './seed-security'
 
 dotenv.config()
 
-const password = 'Demo12345'
+assertSeedAllowed('demo')
+const password = seedPassword('DEMO_SEED_PASSWORD')
 const schoolCode = 'DEMO-SCHOOL'
 const academicYearName = '2024-2025'
 const className = '5eme'
@@ -709,15 +711,12 @@ async function main() {
     referenceId: annualProgram.id,
   })
 
-  console.log('Seed demo ready:')
-  console.log(`- promoteur@demo.com / ${password} / ADMIN_GESTIONNAIRE`)
-  console.log(`- prefet@demo.com / ${password} / PREFET`)
-  console.log(`- enseignant@demo.com / ${password} / ENSEIGNANT`)
+  console.log('Seed demo completed without printing credentials')
 }
 
 main()
   .catch((error) => {
-    console.error('Seed demo failed', error)
+    console.error('Seed demo failed')
     process.exitCode = 1
   })
   .finally(async () => {

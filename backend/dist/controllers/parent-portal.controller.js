@@ -19,7 +19,6 @@ function serialize(value) {
 function handleError(response, error, fallback) {
     if (error instanceof parental_service_1.ParentalApiError)
         return response.status(error.statusCode).json({ message: error.message });
-    console.error(fallback, error);
     return response.status(500).json({ message: fallback });
 }
 async function ownChildren(request, response) {

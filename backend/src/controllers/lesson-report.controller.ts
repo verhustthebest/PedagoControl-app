@@ -26,7 +26,6 @@ export async function teacherReports(request: AuthenticatedRequest, response: Re
     const reports = await getTeacherReports(user)
     return response.json({ reports })
   } catch (error) {
-    console.error('Unable to fetch teacher reports', error)
     return response.status(500).json({ message: 'Unable to fetch teacher reports' })
   }
 }
@@ -39,7 +38,6 @@ export async function teacherReportsToday(request: AuthenticatedRequest, respons
     const reports = await getTeacherReportsToday(user)
     return response.json({ reports })
   } catch (error) {
-    console.error('Unable to fetch teacher reports today', error)
     return response.status(500).json({ message: 'Unable to fetch teacher reports today' })
   }
 }
@@ -54,7 +52,6 @@ export async function submitTeacherReport(request: AuthenticatedRequest, respons
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to submit teacher report'
     const status = message.includes('required') || message.includes('not found') ? 400 : 500
-    console.error('Unable to submit teacher report', error)
     return response.status(status).json({ message })
   }
 }
@@ -67,7 +64,6 @@ export async function prefetReportsPending(request: AuthenticatedRequest, respon
     const reports = await getPendingReports(user)
     return response.json({ reports })
   } catch (error) {
-    console.error('Unable to fetch pending reports', error)
     return response.status(500).json({ message: 'Unable to fetch pending reports' })
   }
 }
@@ -88,7 +84,6 @@ export async function decidePrefetReport(request: AuthenticatedRequest, response
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to decide report'
     const status = message.includes('decision must') ? 400 : message.includes('not found') ? 404 : 500
-    console.error('Unable to decide report', error)
     return response.status(status).json({ message })
   }
 }
@@ -101,7 +96,6 @@ export async function supervisionReports(request: AuthenticatedRequest, response
     const supervision = await getSupervisionReports(user)
     return response.json(supervision)
   } catch (error) {
-    console.error('Unable to fetch supervision reports', error)
     return response.status(500).json({ message: 'Unable to fetch supervision reports' })
   }
 }

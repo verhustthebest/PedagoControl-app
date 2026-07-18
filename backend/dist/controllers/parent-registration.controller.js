@@ -16,7 +16,6 @@ function handleError(response, error, fallback) {
     }
     if (error instanceof parental_service_1.ParentalApiError)
         return response.status(error.statusCode).json({ message: error.message });
-    console.error(fallback, error);
     return response.status(500).json({ message: fallback });
 }
 async function requestOtp(request, response) {
@@ -31,7 +30,7 @@ async function requestOtp(request, response) {
     }
     catch (error) {
         if (error instanceof abuse_protection_1.RateLimitError) {
-            console.warn('[SECURITY] OTP request rate limited', { ip, contact: (0, abuse_protection_1.maskContact)(contact), school });
+            response.locals.security_action = 'otp_rate_limited';
             return handleError(response, error, 'Unable to request registration OTP');
         }
         if (error instanceof parental_service_1.ParentalApiError && (error.statusCode === 404 || error.statusCode === 409)) {
@@ -49,10 +48,11 @@ async function verifyOtp(request, response) {
     }
     catch (error) {
         if (error instanceof abuse_protection_1.RateLimitError) {
-            console.warn('[SECURITY] OTP verification rate limited', { ip, verification: (0, abuse_protection_1.fingerprint)(input.verification_id) });
+            response.locals.security_action = 'otp_verification_rate_limited';
             return handleError(response, error, 'Unable to verify registration OTP');
         }
         if (error instanceof parental_service_1.ParentalApiError && error.statusCode < 500) {
+            response.locals.security_action = 'otp_verification_refused';
             return response.status(error.statusCode === 429 ? 429 : 400).json({ message: 'Unable to verify code' });
         }
         return handleError(response, error, 'Unable to verify registration OTP');
@@ -67,7 +67,7 @@ async function registerParent(request, response) {
     }
     catch (error) {
         if (error instanceof abuse_protection_1.RateLimitError) {
-            console.warn('[SECURITY] Parent registration rate limited', { ip, token: (0, abuse_protection_1.fingerprint)(input.registration_token) });
+            response.locals.security_action = 'parent_registration_rate_limited';
             return handleError(response, error, 'Unable to finalize Parent registration');
         }
         if (error instanceof parental_service_1.ParentalApiError && error.statusCode < 500) {

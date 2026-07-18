@@ -20,6 +20,7 @@ type JwtPayload = {
   school_id: string | null
   token_type: 'access'
   jti: string
+  sid: string
 }
 
 export function isAccountEligible(user: { is_active: boolean; school_id: bigint | null; schools?: { status: string } | null; activeRoleCount: number }) {
@@ -106,12 +107,21 @@ export async function loginWithEmailAndPassword(email: string, password: string)
   }
 
   const authUser = formatUser(user)
+  return {
+    user: authUser,
+    roles: authUser.roles,
+    school_id: authUser.school_id,
+  }
+}
+
+export function signAccessToken(authUser: AuthUser, sessionId: string) {
   const payload: JwtPayload = {
     sub: authUser.id,
     roles: authUser.roles,
     school_id: authUser.school_id,
     token_type: 'access',
     jti: randomUUID(),
+    sid: sessionId,
   }
   const token = jwt.sign(payload, accessTokenSecret(), {
     algorithm: ACCESS_TOKEN_ALGORITHM,
@@ -119,12 +129,7 @@ export async function loginWithEmailAndPassword(email: string, password: string)
     issuer: ACCESS_TOKEN_ISSUER(), audience: ACCESS_TOKEN_AUDIENCE(),
   })
 
-  return {
-    token,
-    user: authUser,
-    roles: authUser.roles,
-    school_id: authUser.school_id,
-  }
+  return token
 }
 
 export async function findAuthUserById(userId: string) {
@@ -163,7 +168,7 @@ export function verifyAuthToken(token: string) {
   const payload = jwt.verify(token, accessTokenSecret(), {
     algorithms: [ACCESS_TOKEN_ALGORITHM], issuer: ACCESS_TOKEN_ISSUER(), audience: ACCESS_TOKEN_AUDIENCE(),
   }) as JwtPayload
-  if (payload.token_type !== 'access' || !payload.sub || !payload.jti || !Array.isArray(payload.roles)) {
+  if (payload.token_type !== 'access' || !payload.sub || !payload.jti || !payload.sid || !Array.isArray(payload.roles)) {
     throw new Error('Invalid access token')
   }
   return payload

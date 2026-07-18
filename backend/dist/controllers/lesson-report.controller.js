@@ -23,7 +23,6 @@ async function teacherReports(request, response) {
         return response.json({ reports });
     }
     catch (error) {
-        console.error('Unable to fetch teacher reports', error);
         return response.status(500).json({ message: 'Unable to fetch teacher reports' });
     }
 }
@@ -36,7 +35,6 @@ async function teacherReportsToday(request, response) {
         return response.json({ reports });
     }
     catch (error) {
-        console.error('Unable to fetch teacher reports today', error);
         return response.status(500).json({ message: 'Unable to fetch teacher reports today' });
     }
 }
@@ -51,7 +49,6 @@ async function submitTeacherReport(request, response) {
     catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to submit teacher report';
         const status = message.includes('required') || message.includes('not found') ? 400 : 500;
-        console.error('Unable to submit teacher report', error);
         return response.status(status).json({ message });
     }
 }
@@ -64,7 +61,6 @@ async function prefetReportsPending(request, response) {
         return response.json({ reports });
     }
     catch (error) {
-        console.error('Unable to fetch pending reports', error);
         return response.status(500).json({ message: 'Unable to fetch pending reports' });
     }
 }
@@ -83,7 +79,6 @@ async function decidePrefetReport(request, response) {
     catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to decide report';
         const status = message.includes('decision must') ? 400 : message.includes('not found') ? 404 : 500;
-        console.error('Unable to decide report', error);
         return response.status(status).json({ message });
     }
 }
@@ -96,7 +91,6 @@ async function supervisionReports(request, response) {
         return response.json(supervision);
     }
     catch (error) {
-        console.error('Unable to fetch supervision reports', error);
         return response.status(500).json({ message: 'Unable to fetch supervision reports' });
     }
 }

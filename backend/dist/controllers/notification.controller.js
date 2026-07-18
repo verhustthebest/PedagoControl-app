@@ -24,7 +24,6 @@ async function notifications(request, response) {
         return response.json({ notifications: items });
     }
     catch (error) {
-        console.error('Unable to fetch notifications', error);
         return response.status(500).json({ message: 'Unable to fetch notifications' });
     }
 }
@@ -37,7 +36,6 @@ async function unreadNotificationCount(request, response) {
         return response.json({ count });
     }
     catch (error) {
-        console.error('Unable to fetch unread notification count', error);
         return response.status(500).json({ message: 'Unable to fetch unread notification count' });
     }
 }
@@ -63,7 +61,6 @@ async function readAllNotifications(request, response) {
         return response.json({ count });
     }
     catch (error) {
-        console.error('Unable to mark all notifications read', error);
         return response.status(500).json({ message: 'Unable to mark all notifications read' });
     }
 }
@@ -76,7 +73,6 @@ async function messages(request, response) {
         return response.json({ messages: items });
     }
     catch (error) {
-        console.error('Unable to fetch messages', error);
         return response.status(500).json({ message: 'Unable to fetch messages' });
     }
 }

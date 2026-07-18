@@ -8,7 +8,6 @@ import { ParentalApiError } from '../services/parental.service'
 import {
   fingerprint,
   normalizeIdentifier,
-  maskContact,
   otpAbuseGuard,
   publicOtpRequestResponse,
   RateLimitError,
@@ -24,7 +23,6 @@ function handleError(response: Response, error: unknown, fallback: string) {
     return response.status(429).json({ message: 'Too many requests. Please try again later.' })
   }
   if (error instanceof ParentalApiError) return response.status(error.statusCode).json({ message: error.message })
-  console.error(fallback, error)
   return response.status(500).json({ message: fallback })
 }
 
@@ -42,7 +40,7 @@ export async function requestOtp(request: Request, response: Response) {
     ))
   } catch (error) {
     if (error instanceof RateLimitError) {
-      console.warn('[SECURITY] OTP request rate limited', { ip, contact: maskContact(contact), school })
+      response.locals.security_action = 'otp_rate_limited'
       return handleError(response, error, 'Unable to request registration OTP')
     }
     if (error instanceof ParentalApiError && (error.statusCode === 404 || error.statusCode === 409)) {
@@ -60,10 +58,11 @@ export async function verifyOtp(request: Request, response: Response) {
     return response.json(await verifyParentRegistrationOtp(request.body))
   } catch (error) {
     if (error instanceof RateLimitError) {
-      console.warn('[SECURITY] OTP verification rate limited', { ip, verification: fingerprint(input.verification_id) })
+      response.locals.security_action = 'otp_verification_rate_limited'
       return handleError(response, error, 'Unable to verify registration OTP')
     }
     if (error instanceof ParentalApiError && error.statusCode < 500) {
+      response.locals.security_action = 'otp_verification_refused'
       return response.status(error.statusCode === 429 ? 429 : 400).json({ message: 'Unable to verify code' })
     }
     return handleError(response, error, 'Unable to verify registration OTP')
@@ -78,7 +77,7 @@ export async function registerParent(request: Request, response: Response) {
     return response.status(201).json(serialize(await finalizeParentRegistration(request.body)))
   } catch (error) {
     if (error instanceof RateLimitError) {
-      console.warn('[SECURITY] Parent registration rate limited', { ip, token: fingerprint(input.registration_token) })
+      response.locals.security_action = 'parent_registration_rate_limited'
       return handleError(response, error, 'Unable to finalize Parent registration')
     }
     if (error instanceof ParentalApiError && error.statusCode < 500) {

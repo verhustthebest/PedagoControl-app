@@ -53,7 +53,6 @@ async function getSchools(request, response) {
         }));
     }
     catch (error) {
-        console.error('Unable to fetch schools', error);
         return response.status(500).json({ message: 'Unable to fetch schools' });
     }
 }

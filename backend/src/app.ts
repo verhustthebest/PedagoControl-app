@@ -13,14 +13,17 @@ import parentalStudentRoutes from './routes/parental-student.routes'
 import schoolRoutes from './routes/school.routes'
 import { globalApiRateLimit } from './middleware/rate-limit.middleware'
 import { resolveTrustProxyHops } from './config/network'
-import { configureHttpBoundary, httpErrorHandler } from './config/http'
-import { validateTokenConfiguration } from './config/token-security'
+import { configureHttpBoundary } from './config/http'
+import { validateRuntimeEnvironment } from './config/environment'
+import { requestContext } from './middleware/request-context.middleware'
+import { globalErrorHandler, notFound } from './middleware/error.middleware'
 
 dotenv.config()
-validateTokenConfiguration()
+validateRuntimeEnvironment()
 
 const app = express()
 app.set('trust proxy', resolveTrustProxyHops())
+app.use(requestContext)
 configureHttpBoundary(app)
 app.use('/api', globalApiRateLimit)
 
@@ -35,6 +38,7 @@ app.use('/api', parentalBillingRoutes)
 app.use('/api', parentalGuardianRoutes)
 app.use('/api', parentalStudentRoutes)
 app.use('/api', schoolRoutes)
-app.use(httpErrorHandler)
+app.use(notFound)
+app.use(globalErrorHandler)
 
 export default app

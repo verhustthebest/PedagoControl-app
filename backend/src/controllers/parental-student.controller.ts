@@ -48,7 +48,6 @@ function handleError(response: Response, error: unknown, fallback: string) {
     return response.status(400).json({ message: 'Invalid request payload' })
   }
 
-  console.error(fallback, error)
   return response.status(500).json({ message: fallback })
 }
 

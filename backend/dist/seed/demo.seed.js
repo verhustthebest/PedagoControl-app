@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const client_1 = __importDefault(require("../prisma/client"));
+const seed_security_1 = require("./seed-security");
 dotenv_1.default.config();
-const password = 'Demo12345';
+(0, seed_security_1.assertSeedAllowed)('demo');
+const password = (0, seed_security_1.seedPassword)('DEMO_SEED_PASSWORD');
 const schoolCode = 'DEMO-SCHOOL';
 const academicYearName = '2024-2025';
 const className = '5eme';
@@ -619,14 +621,11 @@ async function main() {
         description: 'Donnees demo idempotentes creees pour les rapports quotidiens.',
         referenceId: annualProgram.id,
     });
-    console.log('Seed demo ready:');
-    console.log(`- promoteur@demo.com / ${password} / ADMIN_GESTIONNAIRE`);
-    console.log(`- prefet@demo.com / ${password} / PREFET`);
-    console.log(`- enseignant@demo.com / ${password} / ENSEIGNANT`);
+    console.log('Seed demo completed without printing credentials');
 }
 main()
     .catch((error) => {
-    console.error('Seed demo failed', error);
+    console.error('Seed demo failed');
     process.exitCode = 1;
 })
     .finally(async () => {

@@ -26,7 +26,6 @@ export async function notifications(request: AuthenticatedRequest, response: Res
     const items = await getUserNotifications(user)
     return response.json({ notifications: items })
   } catch (error) {
-    console.error('Unable to fetch notifications', error)
     return response.status(500).json({ message: 'Unable to fetch notifications' })
   }
 }
@@ -39,7 +38,6 @@ export async function unreadNotificationCount(request: AuthenticatedRequest, res
     const count = await getUnreadNotificationCount(user)
     return response.json({ count })
   } catch (error) {
-    console.error('Unable to fetch unread notification count', error)
     return response.status(500).json({ message: 'Unable to fetch unread notification count' })
   }
 }
@@ -65,7 +63,6 @@ export async function readAllNotifications(request: AuthenticatedRequest, respon
     const count = await markAllNotificationsRead(user)
     return response.json({ count })
   } catch (error) {
-    console.error('Unable to mark all notifications read', error)
     return response.status(500).json({ message: 'Unable to mark all notifications read' })
   }
 }
@@ -78,7 +75,6 @@ export async function messages(request: AuthenticatedRequest, response: Response
     const items = await getUserMessages(user)
     return response.json({ messages: items })
   } catch (error) {
-    console.error('Unable to fetch messages', error)
     return response.status(500).json({ message: 'Unable to fetch messages' })
   }
 }

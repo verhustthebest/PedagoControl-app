@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isAccountEligible = isAccountEligible;
 exports.loginWithEmailAndPassword = loginWithEmailAndPassword;
+exports.signAccessToken = signAccessToken;
 exports.findAuthUserById = findAuthUserById;
 exports.verifyAuthToken = verifyAuthToken;
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -73,24 +74,27 @@ async function loginWithEmailAndPassword(email, password) {
         return null;
     }
     const authUser = formatUser(user);
+    return {
+        user: authUser,
+        roles: authUser.roles,
+        school_id: authUser.school_id,
+    };
+}
+function signAccessToken(authUser, sessionId) {
     const payload = {
         sub: authUser.id,
         roles: authUser.roles,
         school_id: authUser.school_id,
         token_type: 'access',
         jti: (0, crypto_1.randomUUID)(),
+        sid: sessionId,
     };
     const token = jsonwebtoken_1.default.sign(payload, (0, token_security_1.accessTokenSecret)(), {
         algorithm: token_security_1.ACCESS_TOKEN_ALGORITHM,
         expiresIn: (0, token_security_1.ACCESS_TOKEN_TTL)(),
         issuer: (0, token_security_1.ACCESS_TOKEN_ISSUER)(), audience: (0, token_security_1.ACCESS_TOKEN_AUDIENCE)(),
     });
-    return {
-        token,
-        user: authUser,
-        roles: authUser.roles,
-        school_id: authUser.school_id,
-    };
+    return token;
 }
 async function findAuthUserById(userId) {
     const user = await client_1.default.users.findUnique({
@@ -126,7 +130,7 @@ function verifyAuthToken(token) {
     const payload = jsonwebtoken_1.default.verify(token, (0, token_security_1.accessTokenSecret)(), {
         algorithms: [token_security_1.ACCESS_TOKEN_ALGORITHM], issuer: (0, token_security_1.ACCESS_TOKEN_ISSUER)(), audience: (0, token_security_1.ACCESS_TOKEN_AUDIENCE)(),
     });
-    if (payload.token_type !== 'access' || !payload.sub || !payload.jti || !Array.isArray(payload.roles)) {
+    if (payload.token_type !== 'access' || !payload.sub || !payload.jti || !payload.sid || !Array.isArray(payload.roles)) {
         throw new Error('Invalid access token');
     }
     return payload;

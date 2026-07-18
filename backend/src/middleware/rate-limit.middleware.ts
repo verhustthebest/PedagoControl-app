@@ -14,6 +14,8 @@ const globalLimiter = new SlidingWindowLimiter(
 export function globalApiRateLimit(request: Request, response: Response, next: NextFunction) {
   const result = globalLimiter.consume(`global:${request.ip}`)
   if (result.allowed) return next()
+  response.locals = response.locals ?? {}
+  response.locals.security_action = 'rate_limit'
   response.setHeader('Retry-After', result.retryAfterSeconds)
   return response.status(429).json({ message: 'Too many requests. Please try again later.' })
 }

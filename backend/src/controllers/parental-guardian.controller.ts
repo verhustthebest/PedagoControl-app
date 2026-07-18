@@ -25,7 +25,6 @@ function serialize(value: unknown) {
 
 function handleError(response: Response, error: unknown, fallback: string) {
   if (error instanceof ParentalApiError) return response.status(error.statusCode).json({ message: error.message })
-  console.error(fallback, error)
   return response.status(500).json({ message: fallback })
 }
 

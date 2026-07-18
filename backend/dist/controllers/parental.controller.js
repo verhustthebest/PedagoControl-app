@@ -28,7 +28,6 @@ function handleError(response, error, fallbackMessage) {
     if (error instanceof parental_service_1.ParentalApiError) {
         return response.status(error.statusCode).json({ message: error.message });
     }
-    console.error(fallbackMessage, error);
     return response.status(500).json({ message: fallbackMessage });
 }
 async function showParentalSettings(request, response) {

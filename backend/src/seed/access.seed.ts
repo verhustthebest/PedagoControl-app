@@ -181,7 +181,7 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error('Seed access failed', error)
+    console.error('Seed access failed')
     process.exitCode = 1
   })
   .finally(async () => {

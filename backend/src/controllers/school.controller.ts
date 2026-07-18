@@ -52,7 +52,6 @@ export async function getSchools(request: AuthenticatedRequest, response: Respon
       pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
     }))
   } catch (error) {
-    console.error('Unable to fetch schools', error)
     return response.status(500).json({ message: 'Unable to fetch schools' })
   }
 }
