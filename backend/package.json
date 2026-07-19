@@ -8,6 +8,7 @@
     "build": "prisma generate && tsc",
     "test": "npm run build --silent && node --test test/*.test.js",
     "start": "node dist/server.js",
+    "scheduler:parent-contributions": "node dist/commands/run-parent-contribution-automation.js",
     "seed": "ts-node-dev --transpile-only --exit-child src/seed/admin.seed.ts",
     "seed:demo": "ts-node-dev --transpile-only --exit-child src/seed/demo.seed.ts",
     "seed:access": "ts-node-dev --transpile-only --exit-child src/seed/access.seed.ts"

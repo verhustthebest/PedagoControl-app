@@ -9,63 +9,75 @@ exports.createPayment = createPayment;
 exports.paymentHistory = paymentHistory;
 exports.ownView = ownView;
 exports.auditView = auditView;
+exports.runAutomation = runAutomation;
+const parent_contribution_automation_service_1 = require("../services/parent-contribution-automation.service");
 const parent_contribution_service_1 = require("../services/parent-contribution.service");
 const parental_service_1 = require("../services/parental.service");
-const q = (v) => typeof v === 'string' ? v : undefined, fail = (r, e) => e instanceof parental_service_1.ParentalApiError ? r.status(e.statusCode).json({ message: e.message }) : r.status(500).json({ message: 'Unable to process contribution' });
-const school = (r) => r.params.schoolId;
-async function showSetting(r, s) { try {
-    return s.json({ setting: (0, parent_contribution_service_1.settingDto)(await (0, parent_contribution_service_1.getContributionSetting)(school(r))) });
+const queryString = (value) => typeof value === 'string' ? value : undefined;
+const schoolId = (request) => request.params.schoolId;
+const fail = (response, error) => error instanceof parental_service_1.ParentalApiError
+    ? response.status(error.statusCode).json({ message: error.message })
+    : response.status(500).json({ message: 'Unable to process contribution' });
+async function showSetting(request, response) { try {
+    return response.json({ setting: (0, parent_contribution_service_1.settingDto)(await (0, parent_contribution_service_1.getContributionSetting)(schoolId(request))) });
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function saveSetting(r, s) { try {
-    return s.json({ setting: (0, parent_contribution_service_1.settingDto)(await (0, parent_contribution_service_1.saveContributionSetting)(school(r), r.user.id, r.body)) });
+async function saveSetting(request, response) { try {
+    return response.json({ setting: (0, parent_contribution_service_1.settingDto)(await (0, parent_contribution_service_1.saveContributionSetting)(schoolId(request), request.user.id, request.body)) });
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function generateDues(r, s) { try {
-    return s.status(201).json(await (0, parent_contribution_service_1.generateContributionDues)(school(r), r.body.period));
+async function generateDues(request, response) { try {
+    return response.status(201).json(await (0, parent_contribution_service_1.generateContributionDues)(schoolId(request), request.body.period));
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function indexDues(r, s) { try {
-    return s.json(await (0, parent_contribution_service_1.listContributionDues)(school(r), { page: q(r.query.page), limit: q(r.query.limit), period: q(r.query.period), status: q(r.query.status), student: q(r.query.student) }));
+async function indexDues(request, response) { try {
+    return response.json(await (0, parent_contribution_service_1.listContributionDues)(schoolId(request), { page: queryString(request.query.page), limit: queryString(request.query.limit), period: queryString(request.query.period), status: queryString(request.query.status), student: queryString(request.query.student) }));
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function showDue(r, s) { try {
-    return s.json({ due: (0, parent_contribution_service_1.dueDto)(await (0, parent_contribution_service_1.getContributionDue)(school(r), r.params.dueId)) });
+async function showDue(request, response) { try {
+    return response.json({ due: (0, parent_contribution_service_1.dueDto)(await (0, parent_contribution_service_1.getContributionDue)(schoolId(request), request.params.dueId)) });
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function createPayment(r, s) { try {
-    const payment = await (0, parent_contribution_service_1.recordContributionPayment)(school(r), r.params.dueId, r.user.id, r.body);
-    return s.status(201).json({ payment: { public_id: payment.public_id, amount: payment.amount.toString(), currency: payment.currency, payment_method: payment.payment_method, reference: payment.reference, notes: payment.notes, paid_at: payment.paid_at } });
+async function createPayment(request, response) { try {
+    const payment = await (0, parent_contribution_service_1.recordContributionPayment)(schoolId(request), request.params.dueId, request.user.id, request.body);
+    return response.status(201).json({ payment: { public_id: payment.public_id, amount: payment.amount.toString(), currency: payment.currency, payment_method: payment.payment_method, reference: payment.reference, notes: payment.notes, paid_at: payment.paid_at } });
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function paymentHistory(r, s) { try {
-    const due = (0, parent_contribution_service_1.dueDto)(await (0, parent_contribution_service_1.getContributionDue)(school(r), r.params.dueId));
-    return s.json({ payments: due.payments });
+async function paymentHistory(request, response) { try {
+    const due = (0, parent_contribution_service_1.dueDto)(await (0, parent_contribution_service_1.getContributionDue)(schoolId(request), request.params.dueId));
+    return response.json({ payments: due.payments });
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function ownView(r, s) { try {
-    return s.json(await (0, parent_contribution_service_1.ownContributions)(r.user.id));
+async function ownView(request, response) { try {
+    return response.json(await (0, parent_contribution_service_1.ownContributions)(request.user.id));
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
 } }
-async function auditView(r, s) { try {
-    return s.json(await (0, parent_contribution_service_1.auditContributions)({ page: q(r.query.page), limit: q(r.query.limit) }));
+async function auditView(request, response) { try {
+    return response.json(await (0, parent_contribution_service_1.auditContributions)({ page: queryString(request.query.page), limit: queryString(request.query.limit) }));
 }
-catch (e) {
-    return fail(s, e);
+catch (error) {
+    return fail(response, error);
+} }
+/** Déclenchement manuel global, réservé au SUPER_ADMIN par la route. */
+async function runAutomation(_request, response) { try {
+    return response.json(await (0, parent_contribution_automation_service_1.runParentContributionAutomation)());
+}
+catch (error) {
+    return fail(response, error);
 } }

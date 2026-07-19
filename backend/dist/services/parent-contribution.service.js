@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getContributionSetting = exports.dueDto = exports.settingDto = void 0;
+exports.getContributionSetting = exports.dueDto = exports.settingDto = exports.contributionPeriod = void 0;
 exports.contributionStatus = contributionStatus;
 exports.saveContributionSetting = saveContributionSetting;
 exports.generateContributionDues = generateContributionDues;
@@ -16,14 +16,20 @@ const client_1 = require("@prisma/client");
 const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
 const pageOf = (v) => v ? Number(v) : 1, limitOf = (v) => v ? Number(v) : 20;
-const period = (value) => { const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value); if (!m)
-    throw new parental_service_1.ParentalApiError('Invalid period', 400); const start = new Date(Date.UTC(+m[1], +m[2] - 1, 1)), end = new Date(Date.UTC(+m[1], +m[2], 0)); return { start, end }; };
+/** Retourne la période facturable. Juillet et août sont volontairement exclus. */
+const contributionPeriod = (value) => { const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value); if (!m)
+    throw new parental_service_1.ParentalApiError('Invalid period', 400); const month = +m[2]; if (month === 7 || month === 8)
+    return null; const start = new Date(Date.UTC(+m[1], month - 1, 1)), end = month === 6 ? new Date(Date.UTC(+m[1], 5, 15)) : new Date(Date.UTC(+m[1], month, 0)); return { start, end }; };
+exports.contributionPeriod = contributionPeriod;
+const period = (value) => { const result = (0, exports.contributionPeriod)(value); if (!result)
+    throw new parental_service_1.ParentalApiError('Period is outside the billing season', 409); return result; };
 const dueInclude = { students: { select: { public_id: true, first_name: true, last_name: true, matricule: true } }, payments: { orderBy: { paid_at: 'desc' }, select: { public_id: true, amount: true, currency: true, payment_method: true, reference: true, notes: true, paid_at: true } } };
 /** Calcule un statut d'affichage sans modifier les snapshots financiers historiques. */
-function contributionStatus(due, now = new Date()) { if (due.status === 'SUSPENDU' || due.status === 'PRIS_EN_CHARGE')
+function contributionStatus(due, now = new Date()) { if (due.status === 'PRIS_EN_CHARGE')
     return due.status; if (due.amount_paid.greaterThanOrEqualTo(due.amount_due))
     return 'EN_REGLE'; if (due.amount_paid.greaterThan(0))
-    return 'PARTIEL'; const grace = new Date(due.due_date); grace.setUTCDate(grace.getUTCDate() + due.grace_days_snapshot); return now.getTime() > grace.getTime() ? 'EN_RETARD' : 'A_RENOUVELER'; }
+    return 'PARTIEL'; const grace = new Date(due.due_date); grace.setUTCDate(grace.getUTCDate() + due.grace_days_snapshot); if (now.getTime() > grace.getTime())
+    return 'SUSPENDU'; return now.getTime() > due.due_date.getTime() ? 'EN_RETARD' : 'A_RENOUVELER'; }
 const settingDto = (s) => s ? { public_id: s.public_id, mode: s.mode, monthly_amount: s.monthly_amount.toString(), currency: s.currency, due_day: s.due_day, grace_days: s.grace_days, reminder_days: s.reminder_days, updated_at: s.updated_at } : null;
 exports.settingDto = settingDto;
 const dueDto = (d, now = new Date()) => ({ public_id: d.public_id, period_start: d.period_start, period_end: d.period_end, due_date: d.due_date, mode: d.mode_snapshot, amount_due: d.amount_due.toString(), amount_paid: d.amount_paid.toString(), balance: d.balance.toString(), currency: d.currency, status: contributionStatus(d, now), days_remaining: Math.ceil((d.due_date.getTime() - now.getTime()) / 86400000), student: d.students, payments: (d.payments ?? []).map((p) => ({ public_id: p.public_id, amount: p.amount.toString(), currency: p.currency, payment_method: p.payment_method, reference: p.reference, notes: p.notes, paid_at: p.paid_at })) });
