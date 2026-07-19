@@ -1,65 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendRegistrationOtp = sendRegistrationOtp;
-const parental_service_1 = require("./parental.service");
 const abuse_protection_1 = require("../security/abuse-protection");
-function isDevelopmentSimulationEnabled() {
-    return process.env.NODE_ENV !== 'production' && process.env.OTP_USE_SIMULATED_PROVIDER !== 'false';
-}
-async function sendEmail(input) {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.OTP_EMAIL_FROM;
-    if (!apiKey || !from) {
-        throw new parental_service_1.ParentalApiError('Email OTP provider is not configured', 503);
-    }
-    const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            from,
-            to: [input.destination],
-            subject: `Code d inscription - ${input.schoolName}`,
-            text: `Votre code de verification est ${input.code}. Ne le partagez avec personne.`,
-        }),
-    });
-    if (!response.ok)
-        throw new parental_service_1.ParentalApiError('Email OTP provider rejected the message', 502);
-}
-async function sendTwilio(input) {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const from = input.channel === 'whatsapp' ? process.env.TWILIO_WHATSAPP_FROM : process.env.TWILIO_SMS_FROM;
-    if (!accountSid || !authToken || !from) {
-        throw new parental_service_1.ParentalApiError(`${input.channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} OTP provider is not configured`, 503);
-    }
-    const to = input.channel === 'whatsapp' ? `whatsapp:${input.destination}` : input.destination;
-    const sender = input.channel === 'whatsapp' && !from.startsWith('whatsapp:') ? `whatsapp:${from}` : from;
-    const body = new URLSearchParams({
-        To: to,
-        From: sender,
-        Body: `Votre code Pedago Control est ${input.code}. Ne le partagez avec personne.`,
-    });
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body,
-    });
-    if (!response.ok) {
-        throw new parental_service_1.ParentalApiError(`${input.channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} OTP provider rejected the message`, 502);
-    }
-}
-async function sendRegistrationOtp(input) {
-    if (isDevelopmentSimulationEnabled()) {
-        console.log(`[OTP DEV] delivery simulated channel=${input.channel} destination=${(0, abuse_protection_1.maskContact)(input.destination)}`);
-        return;
-    }
-    if (input.channel === 'email')
-        return sendEmail(input);
-    return sendTwilio(input);
-}
+const notification_delivery_service_1 = require("./notification-delivery.service");
+/** Envoie l'OTP via l'architecture commune sans jamais journaliser le code complet. */
+async function sendRegistrationOtp(input) { const result = await (0, notification_delivery_service_1.deliverNotification)({ channel: input.channel === 'email' ? 'email' : 'sms', to: input.destination, subject: `Code d'inscription - ${input.schoolName}`, text: `Votre code de vérification est ${input.code}. Ne le partagez avec personne.` }); console.info(JSON.stringify({ event: 'otp_delivery', channel: input.channel, destination: (0, abuse_protection_1.maskContact)(input.destination), status: result.status, provider: result.provider })); return result; }
