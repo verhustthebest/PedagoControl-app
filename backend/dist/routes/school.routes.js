@@ -7,5 +7,7 @@ const access_policy_1 = require("../security/access-policy");
 const validate_middleware_1 = require("../middleware/validate.middleware");
 const schemas_1 = require("../validation/schemas");
 const router = (0, express_1.Router)();
-router.get('/schools', auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(access_policy_1.SCHOOL_LIST_ROLES), (0, validate_middleware_1.validate)({ query: schemas_1.paginationQuery }), school_controller_1.getSchools);
+const managementAccess = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(access_policy_1.SCHOOL_LIST_ROLES)];
+router.get('/schools', ...managementAccess, (0, validate_middleware_1.validate)({ query: schemas_1.schoolListQuery }), school_controller_1.getSchools);
+router.get('/schools/:schoolId', ...managementAccess, (0, validate_middleware_1.validate)({ params: schemas_1.schoolPublicParams }), (0, auth_middleware_1.requireSchoolScope)(), school_controller_1.getSchool);
 exports.default = router;

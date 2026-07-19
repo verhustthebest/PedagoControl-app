@@ -1,57 +1,11 @@
 import type { Response } from 'express'
-import prisma from '../prisma/client'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware'
+import { schoolDto } from '../dto/school.dto'
 import { isSuperAdmin } from '../security/access-policy'
+import { findSchoolByInternalScope, listSchools } from '../services/school.service'
 
-function serializeBigInt(value: unknown) {
-  return JSON.parse(
-    JSON.stringify(value, (_, item) => (typeof item === 'bigint' ? item.toString() : item)),
-  )
-}
+function query(value:unknown){return typeof value==='string'?value:undefined}
 
-function positiveInteger(value: unknown, fallback: number, maximum?: number) {
-  if (value === undefined) return fallback
-  const raw = Array.isArray(value) ? value[0] : value
-  const parsed = Number(raw)
-  if (!Number.isInteger(parsed) || parsed <= 0 || (maximum !== undefined && parsed > maximum)) return null
-  return parsed
-}
+export async function getSchools(request:AuthenticatedRequest,response:Response){if(!request.user)return response.status(401).json({message:'Authentication required'});const page=Number(query(request.query.page)||1),limit=Number(query(request.query.limit)||20);try{const result=await listSchools({page,limit,search:query(request.query.search),status:query(request.query.status),schoolId:isSuperAdmin(request.user)?undefined:BigInt(request.user.school_id as string)});return response.json({schools:result.schools.map(schoolDto),pagination:{page,limit,total:result.total,total_pages:Math.ceil(result.total/limit)}})}catch{return response.status(500).json({message:'Unable to fetch schools'})}}
 
-export async function getSchools(request: AuthenticatedRequest, response: Response) {
-  if (!request.user) return response.status(401).json({ message: 'Authentication required' })
-
-  const page = positiveInteger(request.query.page, 1)
-  const limit = positiveInteger(request.query.limit, 20, 100)
-  if (!page || !limit) return response.status(400).json({ message: 'Invalid pagination' })
-
-  try {
-    const where = isSuperAdmin(request.user)
-      ? {}
-      : { id: BigInt(request.user.school_id as string) }
-    const [schools, total] = await prisma.$transaction([
-      prisma.schools.findMany({
-        where,
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          promoter_name: true,
-          phone: true,
-          status: true,
-          created_at: true,
-        },
-        orderBy: { created_at: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.schools.count({ where }),
-    ])
-
-    return response.json(serializeBigInt({
-      schools,
-      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
-    }))
-  } catch (error) {
-    return response.status(500).json({ message: 'Unable to fetch schools' })
-  }
-}
+export async function getSchool(request:AuthenticatedRequest,response:Response){try{const school=await findSchoolByInternalScope(BigInt(request.params.schoolId as string));if(!school)return response.status(404).json({message:'Resource not found'});return response.json({school:schoolDto(school)})}catch{return response.status(500).json({message:'Unable to fetch school'})}}

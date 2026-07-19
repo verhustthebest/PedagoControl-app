@@ -1,58 +1,25 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSchools = getSchools;
-const client_1 = __importDefault(require("../prisma/client"));
+exports.getSchool = getSchool;
+const school_dto_1 = require("../dto/school.dto");
 const access_policy_1 = require("../security/access-policy");
-function serializeBigInt(value) {
-    return JSON.parse(JSON.stringify(value, (_, item) => (typeof item === 'bigint' ? item.toString() : item)));
+const school_service_1 = require("../services/school.service");
+function query(value) { return typeof value === 'string' ? value : undefined; }
+async function getSchools(request, response) { if (!request.user)
+    return response.status(401).json({ message: 'Authentication required' }); const page = Number(query(request.query.page) || 1), limit = Number(query(request.query.limit) || 20); try {
+    const result = await (0, school_service_1.listSchools)({ page, limit, search: query(request.query.search), status: query(request.query.status), schoolId: (0, access_policy_1.isSuperAdmin)(request.user) ? undefined : BigInt(request.user.school_id) });
+    return response.json({ schools: result.schools.map(school_dto_1.schoolDto), pagination: { page, limit, total: result.total, total_pages: Math.ceil(result.total / limit) } });
 }
-function positiveInteger(value, fallback, maximum) {
-    if (value === undefined)
-        return fallback;
-    const raw = Array.isArray(value) ? value[0] : value;
-    const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0 || (maximum !== undefined && parsed > maximum))
-        return null;
-    return parsed;
+catch {
+    return response.status(500).json({ message: 'Unable to fetch schools' });
+} }
+async function getSchool(request, response) { try {
+    const school = await (0, school_service_1.findSchoolByInternalScope)(BigInt(request.params.schoolId));
+    if (!school)
+        return response.status(404).json({ message: 'Resource not found' });
+    return response.json({ school: (0, school_dto_1.schoolDto)(school) });
 }
-async function getSchools(request, response) {
-    if (!request.user)
-        return response.status(401).json({ message: 'Authentication required' });
-    const page = positiveInteger(request.query.page, 1);
-    const limit = positiveInteger(request.query.limit, 20, 100);
-    if (!page || !limit)
-        return response.status(400).json({ message: 'Invalid pagination' });
-    try {
-        const where = (0, access_policy_1.isSuperAdmin)(request.user)
-            ? {}
-            : { id: BigInt(request.user.school_id) };
-        const [schools, total] = await client_1.default.$transaction([
-            client_1.default.schools.findMany({
-                where,
-                select: {
-                    id: true,
-                    code: true,
-                    name: true,
-                    promoter_name: true,
-                    phone: true,
-                    status: true,
-                    created_at: true,
-                },
-                orderBy: { created_at: 'desc' },
-                skip: (page - 1) * limit,
-                take: limit,
-            }),
-            client_1.default.schools.count({ where }),
-        ]);
-        return response.json(serializeBigInt({
-            schools,
-            pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
-        }));
-    }
-    catch (error) {
-        return response.status(500).json({ message: 'Unable to fetch schools' });
-    }
-}
+catch {
+    return response.status(500).json({ message: 'Unable to fetch school' });
+} }

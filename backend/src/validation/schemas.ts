@@ -49,6 +49,8 @@ export const messageBody = z.object({ title: text(200).optional(), message: text
 export const itemParams = z.object({ id }).strict()
 export const emptyQuery = z.object({}).strict()
 export const paginationQuery = z.object({ page, limit }).strict()
+export const schoolListQuery = z.object({ page, limit, search: z.string().trim().max(150).optional(), status: z.string().trim().regex(/^[a-z_]{2,30}$/).optional() }).strict()
+export const schoolPublicParams = z.object({ schoolId: publicId }).strict()
 
 export const settingsBody = z.object({
   is_enabled: z.boolean().optional(), attachment_requires_validation: z.boolean().optional(),
