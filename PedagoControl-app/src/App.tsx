@@ -3,8 +3,9 @@ import { AuthProvider, DIRECTION_ROLES, ProtectedRoute } from './auth'
 import { AccessibilityEnhancer } from './components'
 import { AdminLayout, DirectorLayout, InformaticienLayout, ManagementLayout, ParentLayout, PrefectLayout, TeacherLayout } from './layouts'
 import { ConnectedInformaticienJournals, InformaticienAttachments, InformaticienDashboard, InformaticienGuardians, InformaticienJournalDetail, InformaticienNotifications, InformaticienProfile, InformaticienStudents } from './pages/informaticien'
-import { ParentChildProfile, ParentChildren, ParentDashboard, ParentJournalDetail, ParentJournals, ParentNotifications, ParentProfile } from './pages/parent'
+import { ParentChildProfile, ParentChildren, ParentContributionDetailPage, ParentDashboard, ParentJournalDetail, ParentJournals, ParentNotifications, ParentProfile, ParentSubscriptionPage } from './pages/parent'
 import { AdminDashboardPage, ParentalConfigurationPage, ParentalDashboardPage } from './pages/admin'
+import { ContributionConfigurationPage, ContributionDueDetailPage, ContributionDuesPage } from './pages/admin/contributions'
 import { StudentFormPage, StudentListPage, StudentProfilePage } from './pages/admin/students'
 import { GuardianFormPage, GuardianListPage, GuardianProfilePage } from './pages/admin/guardians'
 import { AttachWizardPage, AttachmentRequestDetailPage, AttachmentRequestsPage } from './pages/admin/attachments'
@@ -134,6 +135,9 @@ function App() {
           <Route path="/admin" element={<AdminLayout><AdminDashboardPage /></AdminLayout>} />
           <Route path="/admin/suivi-parental" element={<AdminLayout><ParentalDashboardPage /></AdminLayout>} />
           <Route path="/admin/suivi-parental/configuration" element={<AdminLayout><ParentalConfigurationPage /></AdminLayout>} />
+          <Route path="/admin/suivi-parental/contribution" element={<AdminLayout><ContributionConfigurationPage /></AdminLayout>} />
+          <Route path="/admin/suivi-parental/echeances" element={<AdminLayout><ContributionDuesPage /></AdminLayout>} />
+          <Route path="/admin/suivi-parental/echeances/:publicId" element={<AdminLayout><ContributionDueDetailPage /></AdminLayout>} />
           <Route path="/admin/eleves" element={<AdminLayout><StudentListPage /></AdminLayout>} />
           <Route path="/admin/eleves/nouveau" element={<AdminLayout><StudentFormPage /></AdminLayout>} />
           <Route path="/admin/eleves/:publicId" element={<AdminLayout><StudentProfilePage /></AdminLayout>} />
@@ -166,6 +170,9 @@ function App() {
           <Route path="/parent/enfants/:publicId/journaux/:date" element={<ParentLayout><ParentJournalDetail /></ParentLayout>} />
           <Route path="/parent/notifications" element={<ParentLayout><ParentNotifications /></ParentLayout>} />
           <Route path="/parent/profil" element={<ParentLayout><ParentProfile /></ParentLayout>} />
+          <Route path="/parent/abonnement" element={<ParentLayout><ParentSubscriptionPage /></ParentLayout>} />
+          <Route path="/parent/abonnement/historique" element={<ParentLayout><ParentSubscriptionPage history /></ParentLayout>} />
+          <Route path="/parent/abonnement/echeances/:publicId" element={<ParentLayout><ParentContributionDetailPage /></ParentLayout>} />
           <Route path="/parent/*" element={<Navigate to="/parent" replace />} />
         </Route>
         </Routes>
