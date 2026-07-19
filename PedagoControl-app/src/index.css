@@ -48,3 +48,4 @@ textarea:focus-visible,
 #root {
   min-height: 100vh;
 }
+.notification-delivery{display:inline-flex;width:max-content;max-width:100%;margin-top:6px;padding:4px 8px;border-radius:999px;background:#edf1f7;color:#53617a;font-size:.72rem;font-weight:850;white-space:normal}.notification-delivery.prepared{background:#fff1d4;color:#8a5900}.notification-delivery.simulated{background:#eee9ff;color:#6542a6}.notification-delivery.sent{background:#e4efff;color:#0758ef}.notification-delivery.delivered{background:#e1f7e9;color:#14753c}.notification-delivery.failed{background:#ffe4e6;color:#b4232d}

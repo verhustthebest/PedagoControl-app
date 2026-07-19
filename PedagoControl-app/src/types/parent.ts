@@ -3,6 +3,7 @@ export type ParentChild={relationship_type:string;is_primary:boolean;student:{pu
 export type ParentLesson={lesson_session_id:string;subject:string;teacher:{first_name:string;last_name:string};summary?:string|null;homework?:string|null;observations?:string|null;validation_status:string;start_time?:string|null;end_time?:string|null}
 export type ParentAcknowledgement={acknowledged_at:string;lesson_count_snapshot:number;journal_snapshot:unknown;comment?:string|null}
 export type ParentJournal={student:{public_id:string;first_name:string;last_name:string};journal_date:string;lessons:ParentLesson[];acknowledgement:ParentAcknowledgement|null}
-export type ParentNotification={title:string;message:string;notification_type:string;reference_table?:string|null;is_read:boolean;created_at:string}
+import type{NotificationDeliveryStatus}from'../components/common/NotificationDeliveryBadge'
+export type ParentNotification={title:string;message:string;notification_type:string;reference_table?:string|null;is_read:boolean;created_at:string;delivery_status?:NotificationDeliveryStatus|null}
 export type ParentPage<T>={items:T[];page:number;total:number;pages:number}
 export type JournalHistoryItem={date:string;journal:ParentJournal}

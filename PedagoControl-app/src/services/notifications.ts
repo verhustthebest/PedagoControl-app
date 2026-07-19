@@ -1,4 +1,5 @@
 import { apiRequest } from './api'
+import type { NotificationDeliveryStatus } from '../components/common/NotificationDeliveryBadge'
 
 export type AppNotification = {
   id: string
@@ -10,6 +11,7 @@ export type AppNotification = {
   is_read: boolean
   read_at?: string | null
   created_at: string
+  delivery_status?: NotificationDeliveryStatus | null
 }
 
 export const notificationsApi = {

@@ -10,6 +10,7 @@ import { authApi, getMemorySession } from '../services/api'
 import { prepareManagementProgram, sendProgramToAdminGestionnaire } from '../services/managementProgramService'
 import { messagesApi, notificationsApi } from '../services/notifications'
 import type { AppNotification } from '../services/notifications'
+import { NotificationDeliveryBadge } from './common/NotificationDeliveryBadge'
 import { reportsApi } from '../services/reports'
 import type { PrefectDecision, UiLessonReport } from '../services/reports'
 import '../App.css'
@@ -293,7 +294,7 @@ function HeaderFeedDropdown({ icon, title, initialCount, items }: { icon: string
         {(usesNotificationApi || usesMessagesApi) && notifications.length > 0 ? notifications.map((notification) => (
           <article key={notification.id} className={notification.is_read ? 'read' : 'unread'} onClick={() => void markRead(notification)}>
             <span><Icon name={notification.is_read ? 'checkCircle' : 'bell'} /></span>
-            <p><strong>{notification.title}</strong><small>{notification.message}</small><em>{notification.is_read ? 'Lu' : 'Non lu'}</em></p>
+            <p><strong>{notification.title}</strong><small>{notification.message}</small><NotificationDeliveryBadge status={notification.delivery_status}/><em>{notification.is_read ? 'Lu' : 'Non lu'}</em></p>
             <time>{formatNotificationDate(notification.created_at)}</time>
           </article>
         )) : apiFailed ? items.map(([itemIcon, itemTitle, preview, time]) => (
@@ -994,23 +995,11 @@ function ManagementUsers() {
 }
 
 function ManagementNotifications() {
-  return <ManagementDataScreen
-    intro="Centre de Supervision Management : echeances, paiements, programmes et alertes systeme."
-    kpis={[
-      { icon: 'bell', value: '12', label: 'Notifications', detail: 'Non lues', tone: 'red' },
-      { icon: 'clock', value: '7', label: 'Echeances', detail: '30 prochains jours', tone: 'orange' },
-      { icon: 'file', value: '4', label: 'Paiements', detail: 'Relances', tone: 'blue' },
-      { icon: 'book', value: '3', label: 'Programmes', detail: 'Corrections', tone: 'purple' },
-      { icon: 'checkCircle', value: '21', label: 'Traitees', detail: 'Cette semaine', tone: 'green' },
-    ]}
-    filters={['Type', 'Priorite', 'Statut', 'Date']}
-    columns={['Date', 'Type', 'Titre', 'Ecole', 'Priorite', 'Canal', 'Statut']}
-    rows={[
-      ['01/07/2026', 'Paiement', 'Solde en retard', 'EP Lumiere', 'Haute', 'Portail', 'status:En retard'],
-      ['01/07/2026', 'Programme', 'Accuse reception attendu', 'Institut Nzambe Malamu', 'Moyenne', 'Portail', 'status:En attente'],
-      ['30/06/2026', 'Souscription', 'Expiration proche', 'CS Les Elites', 'Moyenne', 'Email', 'status:Bientot expire'],
-    ]}
-  />
+  const [items,setItems]=useState<AppNotification[]>([])
+  const [loading,setLoading]=useState(true)
+  const [error,setError]=useState('')
+  useEffect(()=>{void notificationsApi.list().then(setItems).catch((reason:unknown)=>setError(reason instanceof Error?reason.message:'Chargement impossible')).finally(()=>setLoading(false))},[])
+  return <section className="management-data-page"><div className="management-page-head"><p>Centre de supervision des notifications réellement enregistrées.</p></div>{loading?<div className="management-card">Chargement sécurisé…</div>:error?<div className="management-card">{error}</div>:!items.length?<div className="management-card">Aucune notification disponible.</div>:<div className="management-card"><div className="resource-table-wrap"><table className="resource-table"><thead><tr><th>Date</th><th>Type</th><th>Titre</th><th>Message</th><th>Livraison</th><th>Lecture</th></tr></thead><tbody>{items.map(item=><tr key={item.id}><td>{formatNotificationDate(item.created_at)}</td><td>{item.notification_type}</td><td>{item.title}</td><td>{item.message}</td><td><NotificationDeliveryBadge status={item.delivery_status}/>{!item.delivery_status&&'Non renseigné'}</td><td>{item.is_read?'Lue':'Non lue'}</td></tr>)}</tbody></table></div></div>}</section>
 }
 
 function ManagementSupport() {
