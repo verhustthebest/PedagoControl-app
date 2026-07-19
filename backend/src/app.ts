@@ -15,6 +15,7 @@ import schoolClassRoutes from './routes/school-class.routes'
 import attachmentRequestRoutes from './routes/attachment-request.routes'
 import technicalJournalRoutes from './routes/technical-journal.routes'
 import parentContributionRoutes from './routes/parent-contribution.routes'
+import notificationTestRoutes from './routes/notification-test.routes'
 import { globalApiRateLimit } from './middleware/rate-limit.middleware'
 import { resolveTrustProxyHops } from './config/network'
 import { configureHttpBoundary } from './config/http'
@@ -35,6 +36,7 @@ app.use('/api', authRoutes)
 app.use('/api', healthRoutes)
 app.use('/api', lessonReportRoutes)
 app.use('/api', notificationRoutes)
+app.use('/api', notificationTestRoutes)
 app.use('/api', parentalRoutes)
 app.use('/api', parentRegistrationRoutes)
 app.use('/api', parentPortalRoutes)

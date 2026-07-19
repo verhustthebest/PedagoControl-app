@@ -18,3 +18,4 @@ export {
   NewSchoolFlow,
 } from '../../components/management'
 export { ManagementParentalBillingDetail, ManagementParentalBillingGenerate, ManagementParentalBillingList } from './ManagementParentalBilling'
+export { ManagementNotificationTests } from './ManagementNotificationTests'

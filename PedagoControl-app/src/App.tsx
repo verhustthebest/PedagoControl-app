@@ -18,6 +18,7 @@ import {
   ManagementAutomaticDistribution,
   ManagementChapterStructure,
   ManagementNotifications,
+  ManagementNotificationTests,
   ManagementPayments,
   ManagementParentalBillingDetail,
   ManagementParentalBillingGenerate,
@@ -86,6 +87,7 @@ function App() {
         <Route path="/management/audit" element={<ManagementLayout title="Audit" crumb="Audit"><ManagementAudit /></ManagementLayout>} />
         <Route path="/management/utilisateurs" element={<ManagementLayout title="Utilisateurs Management" crumb="Utilisateurs"><ManagementUsers /></ManagementLayout>} />
         <Route path="/management/notifications" element={<ManagementLayout title="Notifications" crumb="Notifications"><ManagementNotifications /></ManagementLayout>} />
+        <Route path="/management/notifications/tests" element={<ManagementLayout title="Tests e-mail et SMS" crumb="Notifications"><ManagementNotificationTests /></ManagementLayout>} />
         <Route path="/management/historique" element={<ManagementLayout title="Historique actions" crumb="Historique actions"><ManagementAudit /></ManagementLayout>} />
         <Route path="/management/aide" element={<ManagementLayout title="Aide et support" crumb="Aide et support"><ManagementSupport /></ManagementLayout>} />
         <Route path="/management/*" element={<Navigate to="/management/ecoles" replace />} />

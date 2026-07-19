@@ -20,6 +20,7 @@ const school_class_routes_1 = __importDefault(require("./routes/school-class.rou
 const attachment_request_routes_1 = __importDefault(require("./routes/attachment-request.routes"));
 const technical_journal_routes_1 = __importDefault(require("./routes/technical-journal.routes"));
 const parent_contribution_routes_1 = __importDefault(require("./routes/parent-contribution.routes"));
+const notification_test_routes_1 = __importDefault(require("./routes/notification-test.routes"));
 const rate_limit_middleware_1 = require("./middleware/rate-limit.middleware");
 const network_1 = require("./config/network");
 const http_1 = require("./config/http");
@@ -37,6 +38,7 @@ app.use('/api', auth_routes_1.default);
 app.use('/api', health_routes_1.default);
 app.use('/api', lesson_report_routes_1.default);
 app.use('/api', notification_routes_1.default);
+app.use('/api', notification_test_routes_1.default);
 app.use('/api', parental_routes_1.default);
 app.use('/api', parent_registration_routes_1.default);
 app.use('/api', parent_portal_routes_1.default);

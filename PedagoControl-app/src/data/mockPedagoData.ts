@@ -40,6 +40,7 @@ export const managementNavItems = [
   { to: '/management/parametres', icon: 'settings', label: 'Parametres' },
   { to: '/management/audit', icon: 'shield', label: 'Audit' },
   { to: '/management/notifications', icon: 'bell', label: 'Supervision', badge: '12' },
+  { to: '/management/notifications/tests', icon: 'message', label: 'Tests notifications' },
   { to: '/management/historique', icon: 'clock', label: 'Historique actions' },
   { to: '/management/aide', icon: 'info', label: 'Aide & support' },
 ]

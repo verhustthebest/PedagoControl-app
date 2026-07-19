@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const notification_test_controller_1 = require("../controllers/notification-test.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const rate_limit_middleware_1 = require("../middleware/rate-limit.middleware");
+const validate_middleware_1 = require("../middleware/validate.middleware");
+const schemas_1 = require("../validation/schemas");
+const router = (0, express_1.Router)();
+const disabledInProduction = (_request, response, next) => process.env.NODE_ENV === 'production' ? response.status(404).json({ message: 'Resource not found' }) : next();
+const access = [disabledInProduction, auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireRole)('SUPER_ADMIN')];
+router.get('/notifications/tests/config', ...access, notification_test_controller_1.notificationTestConfig);
+router.post('/notifications/tests/send', ...access, rate_limit_middleware_1.notificationTestRateLimit, (0, validate_middleware_1.validate)({ body: schemas_1.notificationTestBody }), notification_test_controller_1.sendTest);
+exports.default = router;

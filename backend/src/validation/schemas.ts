@@ -87,6 +87,7 @@ export const actionTokenQuery = z.object({ token: z.string().min(80).max(200) })
 export const journalQuery = z.object({ date: date.optional() }).strict()
 export const acknowledgementBody = z.object({ journal_date: date, comment: text(2000).optional() }).strict()
 export const notificationQuery = z.object({ page, limit, unread: z.enum(['true', 'false']).optional() }).strict()
+export const notificationTestBody=z.object({workflow:z.enum(['PARENT_OTP','PARENT_INVITATION','ATTACHMENT_DECISION','PARENT_CONTRIBUTION_REMINDER','SCHOOL_INVOICE']),channel:z.enum(['email','sms']),destination:z.string().trim().min(7).max(254)}).strict()
 
 export const attachmentRequestParams = z.object({ schoolId: resourceIdentifier, requestId: publicId }).strict()
 export const attachmentDocumentParams = z.object({ schoolId: resourceIdentifier, requestId: publicId, documentId: publicId }).strict()

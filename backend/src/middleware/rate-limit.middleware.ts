@@ -19,3 +19,6 @@ export function globalApiRateLimit(request: Request, response: Response, next: N
   response.setHeader('Retry-After', result.retryAfterSeconds)
   return response.status(429).json({ message: 'Too many requests. Please try again later.' })
 }
+const notificationTestLimiter=new SlidingWindowLimiter(positiveInteger('NOTIFICATION_TEST_RATE_LIMIT_MAX',10),positiveInteger('NOTIFICATION_TEST_RATE_LIMIT_WINDOW_MINUTES',15)*60_000)
+/** Limite dédiée aux envois réels de diagnostic. */
+export function notificationTestRateLimit(request:Request,response:Response,next:NextFunction){const user=(request as Request&{user?:{id?:string}}).user;const result=notificationTestLimiter.consume(`notification-test:${user?.id||request.ip}`);if(result.allowed)return next();response.locals.security_action='notification_test_rate_limit';response.setHeader('Retry-After',result.retryAfterSeconds);return response.status(429).json({message:'Too many requests. Please try again later.'})}
