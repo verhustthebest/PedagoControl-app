@@ -17,3 +17,4 @@ export {
   ManagementUsers,
   NewSchoolFlow,
 } from '../../components/management'
+export { ManagementParentalBillingDetail, ManagementParentalBillingGenerate, ManagementParentalBillingList } from './ManagementParentalBilling'

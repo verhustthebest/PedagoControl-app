@@ -27,6 +27,7 @@ export const managementNavItems = [
   { to: '/management/ecoles', icon: 'home', label: 'Ecoles clientes' },
   { to: '/management/souscriptions', icon: 'pie', label: 'Souscriptions' },
   { to: '/management/paiements', icon: 'file', label: 'Paiements' },
+  { to: '/management/facturation-suivi-parental', icon: 'file', label: 'Facturation Suivi parental' },
   { to: '/management/programmes/planification', icon: 'book', label: 'Planification programmes' },
   { to: '/management/programmes/chapitres', icon: 'clipboard', label: 'Structure chapitres' },
   { to: '/management/programmes/repartition', icon: 'calendar', label: 'Repartition automatique' },

@@ -1,0 +1,11 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const read=(path:string)=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+test('les trois routes Management sont protégées par le bloc SUPER_ADMIN',()=>{const app=read('src/App.tsx');for(const route of ['/management/facturation-suivi-parental','/management/facturation-suivi-parental/generer','/management/facturation-suivi-parental/:publicId'])assert.ok(app.includes(route));const block=app.slice(app.indexOf("allowedRoles={['SUPER_ADMIN']}"),app.indexOf("allowedRoles={DIRECTION_ROLES}"));assert.ok(block.includes('ManagementParentalBillingList'));assert.ok(block.includes('ManagementParentalBillingGenerate'));assert.ok(block.includes('ManagementParentalBillingDetail'))})
+test('le service utilise les API réelles et les public_id externes',()=>{const service=read('src/services/managementBilling.ts');assert.match(service,/school\.public_id\|\|school\.id/);assert.match(service,/\/invoices\/generate/);assert.match(service,/invoice\.public_id/);assert.doesNotMatch(service,/mockPedagoData|localStorage|sessionStorage/)})
+test('liste recherche et filtres école mois statut',()=>{const page=read('src/pages/management/ManagementParentalBilling.tsx');for(const marker of ['setSearch','setSchool','setBillingMonth','setStatus'])assert.ok(page.includes(marker))})
+test('snapshots et historique sont affichés sans recalcul',()=>{const page=read('src/pages/management/ManagementParentalBilling.tsx');for(const marker of ['student_count_snapshot','unit_price','total_amount','invoice.payments'])assert.ok(page.includes(marker));assert.doesNotMatch(page,/student_count_snapshot\s*\*/)})
+test('PDF et email sont explicitement indisponibles sans faux bouton',()=>{const page=read('src/pages/management/ManagementParentalBilling.tsx');assert.match(page,/PDF réel et envoi e-mail indisponibles/);assert.doesNotMatch(page,/download-token|Télécharger le PDF|Envoyer par e-mail/)})
+test('responsive couvre mobile tablette ordinateur et grand écran',()=>{const css=read('src/pages/management/management-parental-billing.css');for(const width of ['1024px','768px','480px'])assert.ok(css.includes(width));assert.match(css,/overflow:auto/);assert.match(css,/max-width:1500px/)})

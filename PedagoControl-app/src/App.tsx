@@ -19,6 +19,9 @@ import {
   ManagementChapterStructure,
   ManagementNotifications,
   ManagementPayments,
+  ManagementParentalBillingDetail,
+  ManagementParentalBillingGenerate,
+  ManagementParentalBillingList,
   ManagementProgramPlanning,
   ManagementProgramValidation,
   ManagementReports,
@@ -68,6 +71,9 @@ function App() {
         <Route path="/management/souscriptions" element={<ManagementLayout title="Souscriptions" crumb="Souscriptions"><ManagementSubscriptions /></ManagementLayout>} />
         <Route path="/management/abonnements" element={<Navigate to="/management/souscriptions" replace />} />
         <Route path="/management/paiements" element={<ManagementLayout title="Paiements" crumb="Paiements"><ManagementPayments /></ManagementLayout>} />
+        <Route path="/management/facturation-suivi-parental" element={<ManagementLayout title="Facturation du Suivi parental" crumb="Factures écoles"><ManagementParentalBillingList /></ManagementLayout>} />
+        <Route path="/management/facturation-suivi-parental/generer" element={<ManagementLayout title="Générer une facture" crumb="Suivi parental"><ManagementParentalBillingGenerate /></ManagementLayout>} />
+        <Route path="/management/facturation-suivi-parental/:publicId" element={<ManagementLayout title="Détail de la facture" crumb="Suivi parental"><ManagementParentalBillingDetail /></ManagementLayout>} />
         <Route path="/management/programmes/planification" element={<ManagementLayout title="Planification annuelle des programmes" crumb="Planification annuelle"><ManagementProgramPlanning /></ManagementLayout>} />
         <Route path="/management/programmes/chapitres" element={<ManagementLayout title="Structure des chapitres" crumb="Structure chapitres"><ManagementChapterStructure /></ManagementLayout>} />
         <Route path="/management/programmes/repartition" element={<ManagementLayout title="Repartition annuelle automatique" crumb="Repartition annuelle"><ManagementAutomaticDistribution /></ManagementLayout>} />
