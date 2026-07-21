@@ -12,6 +12,7 @@ async function withServer(environment, values, callback) {
   app.get('/api/check', (_request, response) => response.json({ ok: true }))
   app.post('/api/echo', (request, response) => response.json(request.body))
   app.post('/api/auth/login', (_request, response) => response.json({ ok: true }))
+  app.post('/api/auth/refresh', (_request, response) => response.json({ ok: true }))
   app.post('/api/parental/auth/request-otp', (_request, response) => response.json({ ok: true }))
   app.use(httpErrorHandler)
   const server = await new Promise(resolve => {
@@ -66,6 +67,18 @@ test('OPTIONS preflight returns explicit methods and headers', async () => {
     assert.equal(response.status, 204)
     assert.match(response.headers.get('access-control-allow-methods'), /POST/)
     assert.match(response.headers.get('access-control-allow-headers').toLowerCase(), /authorization/)
+  })
+})
+
+test('auth refresh preflight accepts the configured CSRF header', async () => {
+  await withServer('development', { FRONTEND_URLS: 'https://frontend.example', CSRF_HEADER_NAME: 'X-CSRF-Token' }, async base => {
+    const response = await fetch(`${base}/api/auth/refresh`, { method: 'OPTIONS', headers: { Origin: 'https://frontend.example', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type,authorization,x-csrf-token' } })
+    assert.equal(response.status, 204)
+    assert.equal(response.headers.get('access-control-allow-origin'), 'https://frontend.example')
+    assert.equal(response.headers.get('access-control-allow-credentials'), 'true')
+    const headers = response.headers.get('access-control-allow-headers').toLowerCase()
+    for (const expected of ['content-type', 'authorization', 'x-csrf-token']) assert.match(headers, new RegExp(expected))
+    assert.notEqual(response.headers.get('access-control-allow-origin'), '*')
   })
 })
 

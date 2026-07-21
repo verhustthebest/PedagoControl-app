@@ -4,7 +4,7 @@ import express, { type Express } from 'express'
 import helmet from 'helmet'
 
 const METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-const HEADERS = ['Authorization', 'Content-Type', 'Accept', 'X-Requested-With']
+const BASE_HEADERS = ['Authorization', 'Content-Type', 'Accept', 'X-Requested-With']
 
 export function frontendOrigins(environment = process.env.NODE_ENV, configured = process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL) {
   const origins = new Set((configured ?? '').split(',').map(value => value.trim()).filter(Boolean))
@@ -15,12 +15,14 @@ export function frontendOrigins(environment = process.env.NODE_ENV, configured =
   return origins
 }
 
-export function corsOptions(environment = process.env.NODE_ENV, configured = process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL): CorsOptions {
+export function corsOptions(environment = process.env.NODE_ENV, configured = process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL, csrfHeader = process.env.CSRF_HEADER_NAME || 'X-CSRF-Token'): CorsOptions {
   const allowed = frontendOrigins(environment, configured)
+  // Le nom configuré doit être identique à celui contrôlé par les routes refresh/logout.
+  const allowedHeaders = [...BASE_HEADERS, csrfHeader]
   return {
     credentials: true,
     methods: METHODS,
-    allowedHeaders: HEADERS,
+    allowedHeaders,
     optionsSuccessStatus: 204,
     maxAge: 600,
     origin(origin, callback) {

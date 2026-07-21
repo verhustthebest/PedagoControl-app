@@ -7,21 +7,27 @@ dotenv.config()
 
 async function main() {
   assertSeedAllowed('admin')
-  const passwordHash = await bcrypt.hash(seedPassword('ADMIN_SEED_PASSWORD'), 10)
+
+  const password = seedPassword('ADMIN_SEED_PASSWORD')
+  const passwordHash = await bcrypt.hash(password, 10)
+
   const email = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase()
-  if (!email) throw new Error('ADMIN_SEED_EMAIL is required')
+
+  if (!email) {
+    throw new Error('ADMIN_SEED_EMAIL is required')
+  }
 
   const role = await prisma.roles.upsert({
     where: { name: 'SUPER_ADMIN' },
     update: {
       label: 'Super Administrateur',
-      description: 'Acces complet a CONTRÔLE PÉDAGOGIQUE',
+      description: 'Accès complet à CONTRÔLE PÉDAGOGIQUE',
       is_active: true,
     },
     create: {
       name: 'SUPER_ADMIN',
       label: 'Super Administrateur',
-      description: 'Acces complet a CONTRÔLE PÉDAGOGIQUE',
+      description: 'Accès complet à CONTRÔLE PÉDAGOGIQUE',
       is_active: true,
     },
   })
@@ -61,8 +67,21 @@ async function main() {
 }
 
 main()
-  .catch((error) => {
-    console.error('Seed admin failed')
+  .catch((error: unknown) => {
+    const message =
+      error instanceof Error ? error.message : 'Erreur technique inconnue'
+
+    const code =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error
+        ? String((error as { code?: unknown }).code ?? '')
+        : ''
+
+    console.error(
+      `Seed admin failed${code ? ` [${code}]` : ''}: ${message}`,
+    )
+
     process.exitCode = 1
   })
   .finally(async () => {
