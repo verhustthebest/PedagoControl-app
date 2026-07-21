@@ -7,13 +7,13 @@ export function ProtectedRoute({ allowedRoles, children }: {
   allowedRoles: readonly string[]
   children?: ReactNode
 }) {
-  const { loading, authenticated, user, roles } = useAuth()
+  const { loading, authenticated, sessionExpired, user, roles } = useAuth()
   const location = useLocation()
   const decision = protectedRouteDecision(loading, authenticated && Boolean(user), roles, allowedRoles)
 
   if (decision === 'loading') return <main className="access-state"><p>Vérification sécurisée de la session…</p></main>
   if (decision === 'unauthenticated') {
-    return <Navigate to="/non-authentifie" replace state={{ from: location.pathname }} />
+    return <Navigate to={sessionExpired ? '/non-authentifie' : '/login'} replace state={{ from: location.pathname }} />
   }
   if (decision === 'forbidden') return <Navigate to="/acces-interdit" replace />
   return children ?? <Outlet />

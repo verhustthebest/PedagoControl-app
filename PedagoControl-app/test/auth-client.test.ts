@@ -61,6 +61,27 @@ test('session restoration performs csrf, refresh, then authenticated me', async 
   assert.equal(getMemorySession().user?.email, user.email)
 })
 
+test('startup refresh 401 is a silent disconnected state without redirect or event', async () => {
+  const redirects = browser()
+  let unauthenticatedEvents = 0
+  window.addEventListener('pedago:unauthenticated', () => { unauthenticatedEvents += 1 })
+  let refreshes = 0
+  globalThis.fetch = async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/csrf')) return json(200, { csrfToken: 'csrf-startup' })
+    refreshes += 1
+    return json(401, { message: 'Authentication required' })
+  }
+
+  const session = await restoreSession('https://api.example/api')
+
+  assert.equal(session, null)
+  assert.equal(refreshes, 1)
+  assert.equal(unauthenticatedEvents, 0)
+  assert.deepEqual(redirects, [])
+  assert.equal(getMemorySession().user, null)
+})
+
 test('concurrent 401 responses share exactly one refresh rotation and retry once', async () => {
   establishMemorySession(loginResponse)
   let refreshes = 0
@@ -92,16 +113,16 @@ test('a repeated 401 does not create a refresh loop', async () => {
   }
   await assert.rejects(() => apiRequest('/private', {}, 'https://api.example/api'))
   assert.equal(refreshes, 1)
-  assert.deepEqual(redirects, ['/login'])
+  assert.deepEqual(redirects, ['/non-authentifie'])
 })
 
-test('refresh failure clears memory and redirects to login', async () => {
+test('refresh failure during use clears memory and redirects to session-expired page', async () => {
   const redirects = browser()
   establishMemorySession(loginResponse)
   globalThis.fetch = async () => json(401, {})
   await assert.rejects(() => apiRequest('/private', {}, 'https://api.example/api'))
   assert.equal(getMemorySession().user, null)
-  assert.equal(redirects.at(-1), '/login')
+  assert.equal(redirects.at(-1), '/non-authentifie')
 })
 
 test('403 redirects to access denied without disconnecting', async () => {

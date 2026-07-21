@@ -37,6 +37,7 @@ export type LoginResponse = {
 type MemorySession = { accessToken: string | null; csrfToken: string | null; user: AuthUser | null }
 const memory: MemorySession = { accessToken: null, csrfToken: null, user: null }
 let refreshLock: Promise<MemorySession> | null = null
+let restoreLock: Promise<MemorySession | null> | null = null
 
 export function cleanupLegacyAuthStorage(storage: Pick<Storage, 'removeItem'> | null = typeof window === 'undefined' ? null : window.localStorage) {
   for (const key of LEGACY_AUTH_KEYS) storage?.removeItem(key)
@@ -63,20 +64,28 @@ async function raw(endpoint: string, options: RequestInit = {}, baseUrl = API_UR
   return fetch(`${baseUrl}${endpoint}`, { credentials: 'include', ...options })
 }
 
-export async function restoreSession(baseUrl = API_URL): Promise<MemorySession> {
-  try {
-    const csrfResponse = await raw('/auth/csrf', { method: 'GET' }, baseUrl)
-    const csrfData = await readJson(csrfResponse)
-    if (!csrfResponse.ok || !csrfData?.csrfToken) throw new Error('Session unavailable')
-    memory.csrfToken = csrfData.csrfToken
-    return await refreshSession(baseUrl)
-  } catch (error) {
-    clearMemorySession()
-    throw error
-  }
+/**
+ * Restaure au plus une fois la session au démarrage. L'absence de cookie refresh
+ * est un état anonyme normal : elle ne déclenche ni événement ni erreur publique.
+ */
+export function restoreSession(baseUrl = API_URL): Promise<MemorySession | null> {
+  if (restoreLock) return restoreLock
+  restoreLock = (async () => {
+    try {
+      const csrfResponse = await raw('/auth/csrf', { method: 'GET' }, baseUrl)
+      const csrfData = await readJson(csrfResponse)
+      if (!csrfResponse.ok || !csrfData?.csrfToken) return null
+      memory.csrfToken = csrfData.csrfToken
+      return await refreshSession(baseUrl, false)
+    } catch {
+      clearMemorySession()
+      return null
+    }
+  })().finally(() => { restoreLock = null })
+  return restoreLock
 }
 
-export function refreshSession(baseUrl = API_URL): Promise<MemorySession> {
+export function refreshSession(baseUrl = API_URL, notifyExpiration = true): Promise<MemorySession> {
   if (refreshLock) return refreshLock
   refreshLock = (async () => {
     if (!memory.csrfToken) throw new Error('Session unavailable')
@@ -96,7 +105,8 @@ export function refreshSession(baseUrl = API_URL): Promise<MemorySession> {
     return memory
   })().catch((error) => {
     clearMemorySession()
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_UNAUTHENTICATED_EVENT))
+    // Seule une expiration pendant l'utilisation doit afficher l'écran dédié.
+    if (notifyExpiration && typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_UNAUTHENTICATED_EVENT))
     throw error
   }).finally(() => { refreshLock = null })
   return refreshLock
@@ -114,7 +124,7 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
       return apiRequest<T>(endpoint, { ...options, retryAuth: false }, baseUrl)
     } catch {
       clearMemorySession()
-      redirect('/login')
+      redirect('/non-authentifie')
       throw new Error('Authentication required')
     }
   }
@@ -124,7 +134,7 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
     if (response.status === 401 && options.auth !== false) {
       clearMemorySession()
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_UNAUTHENTICATED_EVENT))
-      redirect('/login')
+      redirect('/non-authentifie')
     } else if (response.status === 403) {
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_FORBIDDEN_EVENT))
       redirect('/acces-interdit')
