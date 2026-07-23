@@ -188,6 +188,7 @@
   align-items: center;
   gap: 12px;
 }
+.login-form h1{justify-content:center;text-align:center;color:#c5222d}
 
 .login-box label {
   display: block;
@@ -271,6 +272,7 @@
   color: #334066;
   font-size: 14px;
 }
+.login-box label.remember{display:inline-flex;margin:0;align-items:center}.login-box label.remember>span{display:inline;margin:0;line-height:16px}
 
 .remember input {
   width: 16px;
@@ -1183,6 +1185,8 @@
   font: inherit;
   font-weight: 750;
 }
+.geo-other{display:flex;gap:8px}.geo-other input{min-width:0;flex:1}.geo-other button{border:0;border-radius:7px;background:#0758ef;color:#fff;padding:0 14px;font-weight:700}.geo-other button:disabled{opacity:.55}
+.new-school-grid .invalid{border-color:#c62828;box-shadow:0 0 0 2px #c6282818}.field-error{display:block;color:#b4232d;font-size:11px}.wizard-message{grid-column:1/-1;margin:12px 0;padding:12px;border-radius:8px;background:#eef4ff;color:#173d78}.wizard-summary{display:grid;gap:7px;padding:15px;border-radius:8px;background:#f5f8fd}.management-steps .done b{background:#168342;color:#fff}
 
 .schools-table-wrap {
   overflow-x: auto;

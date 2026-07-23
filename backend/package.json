@@ -12,6 +12,8 @@
     "seed": "ts-node-dev --transpile-only --exit-child src/seed/admin.seed.ts",
     "seed:demo": "ts-node-dev --transpile-only --exit-child src/seed/demo.seed.ts",
     "seed:access": "ts-node-dev --transpile-only --exit-child src/seed/access.seed.ts"
+    ,"db:reset-local-schools": "ts-node-dev --transpile-only --exit-child src/commands/reset-local-school-data.ts",
+    "geo:import-rdc": "ts-node-dev --transpile-only --exit-child src/commands/import-geonames-rdc.ts"
   },
   "keywords": [],
   "author": "",

@@ -16,7 +16,7 @@ function run(schema, location, value) {
 test('unknown fields are rejected with a generic 400 response', () => {
   const result = run(schemas.loginBody, 'body', { email: 'user@example.com', password: 'secret', role: 'SUPER_ADMIN' })
   assert.equal(result.status, 400)
-  assert.equal(result.payload.message, 'Invalid request')
+  assert.equal(result.payload.message, 'Les données envoyées sont invalides.')
   assert.equal(result.payload.errors[0].code, 'unrecognized_keys')
 })
 

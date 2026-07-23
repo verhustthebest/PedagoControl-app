@@ -14,7 +14,7 @@ export function validate(schemas: Schemas) {
         response.locals = response.locals ?? {}
         response.locals.security_action = 'validation_refused'
         return response.status(400).json({
-          message: 'Invalid request',
+          message: 'Les données envoyées sont invalides.',
           errors: result.error.issues.map(issue => ({ location, field: issue.path.join('.'), code: issue.code })),
         })
       }

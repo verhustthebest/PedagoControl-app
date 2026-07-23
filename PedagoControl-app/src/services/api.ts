@@ -8,7 +8,8 @@ type ApiRequestOptions = RequestInit & { auth?: boolean; retryAuth?: boolean }
 export class ApiError extends Error {
   readonly status: number
   readonly requestId?: string
-  constructor(message: string, status: number, requestId?: string) { super(message); this.name = 'ApiError'; this.status = status; this.requestId = requestId }
+  readonly validationErrors: Array<{ field: string; code: string }>
+  constructor(message: string, status: number, requestId?: string, validationErrors: Array<{ field: string; code: string }> = []) { super(message); this.name = 'ApiError'; this.status = status; this.requestId = requestId; this.validationErrors = validationErrors }
 }
 
 export function apiErrorMessage(error: unknown) {
@@ -139,7 +140,7 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_FORBIDDEN_EVENT))
       redirect('/acces-interdit')
     }
-    throw new ApiError(data?.message || 'Erreur API', response.status, data?.request_id)
+    throw new ApiError(data?.message || 'Erreur API', response.status, data?.request_id, Array.isArray(data?.errors) ? data.errors : [])
   }
   return data as T
 }
@@ -161,9 +162,9 @@ async function endSession(endpoint: '/auth/logout' | '/auth/logout-all') {
 }
 
 export const authApi = {
-  login: async (email: string, password: string) => {
+  login: async (email: string, password: string, rememberMe = false) => {
     const response = await apiRequest<LoginResponse>('/auth/login', {
-      method: 'POST', auth: false, retryAuth: false, credentials: 'include', body: JSON.stringify({ email, password }),
+      method: 'POST', auth: false, retryAuth: false, credentials: 'include', body: JSON.stringify({ email, password, remember_me: rememberMe }),
     })
     establishMemorySession(response)
     return response

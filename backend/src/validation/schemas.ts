@@ -30,6 +30,7 @@ export const invoiceParams = z.object({ schoolId: resourceIdentifier, invoiceId:
 export const loginBody = z.object({
   email: z.string().trim().max(254).transform(v => v.includes('@') ? v.toLowerCase() : v.replace(/[\s().-]/g, '')),
   password: z.string().min(1).max(256),
+  remember_me: z.boolean().optional().default(false),
 }).strict()
 export const requestOtpBody = z.object({ school_code: text(50), contact: z.string().trim().max(254), channel: z.enum(['email', 'whatsapp', 'sms']) }).strict()
 export const verifyOtpBody = z.object({ verification_id: id, otp: z.string().regex(/^\d{6}$/) }).strict()
@@ -51,6 +52,26 @@ export const emptyQuery = z.object({}).strict()
 export const paginationQuery = z.object({ page, limit }).strict()
 export const schoolListQuery = z.object({ page, limit, search: z.string().trim().max(150).optional(), status: z.string().trim().regex(/^[a-z_]{2,30}$/).optional() }).strict()
 export const schoolPublicParams = z.object({ schoolId: publicId }).strict()
+export const geographyParentParams = z.object({ parentId: publicId }).strict()
+export const geographyNameBody = z.object({ name: text(120) }).strict()
+const schoolType = z.enum(['Complexe scolaire', 'Collège', 'Lycée', 'Groupe scolaire', 'Institut', 'E.P', 'E.P 1', 'E.P 2', 'E.P 3'])
+const schoolInformation = z.object({
+  name: text(150), school_type: schoolType, phone, email, address: text(500), province_id: publicId,
+  city_id: publicId, commune_id: publicId, neighborhood_id: publicId.optional(), geographic_reference: nullableText(500).optional(),
+}).strict()
+const schoolResponsible = z.object({ first_name: text(100), last_name: text(100), email, phone: phone.optional() }).strict()
+const schoolAcademic = z.object({ year_name: text(100), start_date: date, end_date: date, teacher_limit: z.number().int().min(1).max(10000) }).strict()
+const schoolSubscription = z.object({ subscription_code: text(30), billing_period: z.enum(['monthly', 'annual']) }).strict()
+const schoolAccount = z.object({ first_name: text(100), last_name: text(100), email, phone: phone.optional(), password: z.string().min(10).max(256) }).strict()
+const draftIdentity = { draft_id: publicId.optional() }
+export const schoolDraftBody = z.discriminatedUnion('current_step', [
+  z.object({ ...draftIdentity, current_step:z.literal(1), data:z.object({ school:schoolInformation }).strict() }).strict(),
+  z.object({ ...draftIdentity, current_step:z.literal(2), data:z.object({ school:schoolInformation, responsible:schoolResponsible }).strict() }).strict(),
+  z.object({ ...draftIdentity, current_step:z.literal(3), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic }).strict() }).strict(),
+  z.object({ ...draftIdentity, current_step:z.literal(4), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic, subscription:schoolSubscription }).strict() }).strict(),
+  z.object({ ...draftIdentity, current_step:z.literal(5), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic, subscription:schoolSubscription, account:schoolAccount.omit({password:true}) }).strict() }).strict(),
+])
+export const schoolOnboardingBody = z.object({ draft_id: publicId, school: schoolInformation, responsible: schoolResponsible, academic: schoolAcademic, subscription: schoolSubscription, account: schoolAccount }).strict()
 
 export const settingsBody = z.object({
   is_enabled: z.boolean().optional(), attachment_requires_validation: z.boolean().optional(),

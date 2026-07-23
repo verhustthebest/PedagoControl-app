@@ -63,6 +63,7 @@ import {
   demoAccounts,
   navItems,
   managementNavItems,
+  managementTechnicalNavItems,
   clientSchools,
   subjects,
   alerts,
@@ -375,12 +376,11 @@ function LoginScreen() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    void remember
     setError('')
     setLoading(true)
 
     try {
-      const session = await authApi.login(username.trim().toLowerCase(), password)
+      const session = await authApi.login(username.trim().toLowerCase(), password, remember)
       window.location.replace(redirectForRoles(session.roles || session.user.roles))
     } catch (apiError) {
       setError(apiError instanceof Error ? apiError.message : 'Connexion échouée.')
@@ -470,6 +470,12 @@ function ManagementLayout({ title, crumb, children }: { title: string; crumb?: s
               {item.badge && <b>{item.badge}</b>}
             </NavLink>
           ))}
+          {managementTechnicalNavItems.length > 0 && <>
+            <span className="management-menu-label">Outils techniques</span>
+            {managementTechnicalNavItems.map((item) => <NavLink key={item.label} to={item.to} className={({ isActive }) => `management-nav-link${isActive ? ' active' : ''}`}>
+              <Icon name={item.icon} /><span>{item.label}</span>
+            </NavLink>)}
+          </>}
         </nav>
         <div className="management-secure"><Icon name="shield" /><strong>Compte securise</strong><span>Derniere connexion<br />24/05/2025 a 10:30</span><em>En ligne</em></div>
         <button className="management-logout" type="button" onClick={logoutToLogin}><Icon name="login" /> Deconnexion</button>

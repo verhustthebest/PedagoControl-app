@@ -401,6 +401,12 @@ model schools {
   promoter_email                String                          @db.VarChar(150)
   phone                         String?                         @db.VarChar(50)
   address                       String
+  school_type                   String?                         @db.VarChar(50)
+  province_id                   BigInt?
+  city_id                       BigInt?
+  commune_id                    BigInt?
+  neighborhood_id               BigInt?
+  geographic_reference          String?
   status                        String                          @default("active") @db.VarChar(30)
   created_at                    DateTime                        @default(now()) @db.Timestamp(6)
   updated_at                    DateTime                        @default(now()) @db.Timestamp(6)
@@ -418,6 +424,78 @@ model schools {
   students                      students[]
   parent_contribution_settings  parent_contribution_settings?
   parent_contribution_dues      parent_contribution_dues[]
+  province                      geo_provinces?                  @relation(fields: [province_id], references: [id], onDelete: SetNull)
+  city                          geo_cities?                     @relation(fields: [city_id], references: [id], onDelete: SetNull)
+  commune                       geo_communes?                   @relation(fields: [commune_id], references: [id], onDelete: SetNull)
+  neighborhood                  geo_neighborhoods?              @relation(fields: [neighborhood_id], references: [id], onDelete: SetNull)
+
+  @@index([province_id])
+  @@index([city_id])
+  @@index([commune_id])
+  @@index([neighborhood_id])
+}
+
+model geo_provinces {
+  id        BigInt       @id @default(autoincrement())
+  public_id String       @unique @default(uuid()) @db.Uuid
+  name      String       @db.VarChar(120)
+  name_key  String       @unique @db.VarChar(120)
+  cities    geo_cities[]
+  schools   schools[]
+}
+
+model geo_cities {
+  id          BigInt         @id @default(autoincrement())
+  public_id   String         @unique @default(uuid()) @db.Uuid
+  province_id BigInt
+  name        String         @db.VarChar(120)
+  name_key    String         @db.VarChar(120)
+  province    geo_provinces  @relation(fields: [province_id], references: [id], onDelete: Cascade)
+  communes    geo_communes[]
+  schools     schools[]
+
+  @@unique([province_id, name_key])
+  @@index([province_id])
+}
+
+model geo_communes {
+  id            BigInt              @id @default(autoincrement())
+  public_id     String              @unique @default(uuid()) @db.Uuid
+  city_id       BigInt
+  name          String              @db.VarChar(120)
+  name_key      String              @db.VarChar(120)
+  city          geo_cities          @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  neighborhoods geo_neighborhoods[]
+  schools       schools[]
+
+  @@unique([city_id, name_key])
+  @@index([city_id])
+}
+
+model geo_neighborhoods {
+  id         BigInt       @id @default(autoincrement())
+  public_id  String       @unique @default(uuid()) @db.Uuid
+  commune_id BigInt
+  name       String       @db.VarChar(120)
+  name_key   String       @db.VarChar(120)
+  commune    geo_communes @relation(fields: [commune_id], references: [id], onDelete: Cascade)
+  schools    schools[]
+
+  @@unique([commune_id, name_key])
+  @@index([commune_id])
+}
+
+model school_creation_drafts {
+  id                       BigInt   @id @default(autoincrement())
+  public_id                String   @unique @default(uuid()) @db.Uuid
+  created_by_user_id       BigInt
+  payload                  Json
+  status                   String   @default("draft") @db.VarChar(20)
+  created_school_public_id String?  @db.Uuid
+  created_at               DateTime @default(now()) @db.Timestamp(6)
+  updated_at               DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([created_by_user_id, status])
 }
 
 model school_parental_settings {

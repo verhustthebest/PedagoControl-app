@@ -12,7 +12,7 @@ const request_context_middleware_1 = require("../middleware/request-context.midd
 const abuse_protection_1 = require("../security/abuse-protection");
 const PUBLIC_LOGIN_ERROR = 'Authentication failed';
 async function login(request, response) {
-    const { email, password } = request.body;
+    const { email, password, remember_me } = request.body;
     if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
         return response.status(400).json({ message: PUBLIC_LOGIN_ERROR });
     }
@@ -28,7 +28,7 @@ async function login(request, response) {
             return response.status(401).json({ message: PUBLIC_LOGIN_ERROR });
         }
         abuse_protection_1.loginAbuseGuard.succeeded(ip, identifier);
-        const session = await (0, auth_session_service_1.createAuthSession)(credentials.user.id, request);
+        const session = await (0, auth_session_service_1.createAuthSession)(credentials.user.id, request, remember_me === true);
         const accessToken = (0, auth_service_1.signAccessToken)(credentials.user, session.sessionId);
         (0, auth_session_service_1.setRefreshCookie)(response, session.refreshToken, session.expiresAt);
         return response.json({

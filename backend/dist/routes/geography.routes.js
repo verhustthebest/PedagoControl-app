@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const geography_controller_1 = require("../controllers/geography.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const validate_middleware_1 = require("../middleware/validate.middleware");
+const schemas_1 = require("../validation/schemas");
+const router = (0, express_1.Router)();
+const management = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(['SUPER_ADMIN'])];
+router.get('/geography/provinces', ...management, geography_controller_1.provinces);
+router.get('/geography/provinces/:parentId/cities', ...management, (0, validate_middleware_1.validate)({ params: schemas_1.geographyParentParams }), geography_controller_1.cities);
+router.post('/geography/provinces/:parentId/cities', ...management, (0, validate_middleware_1.validate)({ params: schemas_1.geographyParentParams, body: schemas_1.geographyNameBody }), geography_controller_1.addCity);
+router.get('/geography/cities/:parentId/communes', ...management, (0, validate_middleware_1.validate)({ params: schemas_1.geographyParentParams }), geography_controller_1.communes);
+router.post('/geography/cities/:parentId/communes', ...management, (0, validate_middleware_1.validate)({ params: schemas_1.geographyParentParams, body: schemas_1.geographyNameBody }), geography_controller_1.addCommune);
+router.get('/geography/communes/:parentId/neighborhoods', ...management, (0, validate_middleware_1.validate)({ params: schemas_1.geographyParentParams }), geography_controller_1.neighborhoods);
+router.post('/geography/communes/:parentId/neighborhoods', ...management, (0, validate_middleware_1.validate)({ params: schemas_1.geographyParentParams, body: schemas_1.geographyNameBody }), geography_controller_1.addNeighborhood);
+exports.default = router;

@@ -13,6 +13,10 @@ const ttlDays = () => {
   const value = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30)
   return Number.isInteger(value) && value > 0 && value <= 365 ? value : 30
 }
+const shortTtlHours = () => {
+  const value = Number(process.env.SESSION_REFRESH_TTL_HOURS ?? 8)
+  return Number.isInteger(value) && value > 0 && value <= 24 ? value : 8
+}
 export const refreshCookieName = () => process.env.REFRESH_COOKIE_NAME || 'pedago_refresh'
 
 function secureCookie() {
@@ -77,10 +81,10 @@ export function requestOriginAllowed(request: Request) {
   try { return frontendOrigins().has(new URL(raw).origin) } catch { return false }
 }
 
-export async function createAuthSession(userId: string, request: Request) {
+export async function createAuthSession(userId: string, request: Request, persistent = true) {
   const refreshSecret = opaque()
   const csrfToken = opaque()
-  const expiresAt = new Date(Date.now() + ttlDays() * 86_400_000)
+  const expiresAt = new Date(Date.now() + (persistent ? ttlDays() * 86_400_000 : shortTtlHours() * 3_600_000))
   const session = await prisma.auth_sessions.create({ data: {
     user_id: BigInt(userId), refresh_token_hash: hash(refreshSecret), csrf_token_hash: hash(csrfToken),
     expires_at: expiresAt, ...metadata(request),

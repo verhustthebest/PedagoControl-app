@@ -40,10 +40,14 @@ export const managementNavItems = [
   { to: '/management/parametres', icon: 'settings', label: 'Parametres' },
   { to: '/management/audit', icon: 'shield', label: 'Audit' },
   { to: '/management/notifications', icon: 'bell', label: 'Supervision', badge: '12' },
-  { to: '/management/notifications/tests', icon: 'message', label: 'Tests notifications' },
   { to: '/management/historique', icon: 'clock', label: 'Historique actions' },
   { to: '/management/aide', icon: 'info', label: 'Aide & support' },
 ]
+
+export const managementTechnicalNavItems = import.meta.env.MODE !== 'production'
+  && (import.meta.env.DEV || import.meta.env.VITE_NOTIFICATION_MODE === 'test_live')
+  ? [{ to: '/management/notifications/tests', icon: 'message', label: 'Tests notifications' }]
+  : []
 
 export const clientSchools = [
   { code: 'PED-2026-0001', name: 'Complexe Scolaire La Reussite', responsible: 'Jean-Pierre KIALA', phone: '+243 81 234 5678', province: 'Kinshasa', city: 'Kinshasa', commune: 'Limete', category: 'Ecole moyenne', teachersAllowed: 15, period: '01/09/2026 - 28/02/2027', endDate: '28/02/2027', balance: '205,00 $', status: 'Actif' },

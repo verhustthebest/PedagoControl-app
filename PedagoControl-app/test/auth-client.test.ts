@@ -43,6 +43,14 @@ test('login uses credentials include and keeps tokens only in memory', async () 
   assert.equal(getMemorySession().user?.id, '1')
 })
 
+test('remember me is sent to the Backend without browser token storage', async () => {
+  let body = ''
+  globalThis.fetch = async (_url, options) => { body = String(options?.body); return json(200, loginResponse) }
+  await authApi.login('ada@example.com', 'password', true)
+  assert.equal(JSON.parse(body).remember_me, true)
+  assert.equal(getMemorySession().accessToken, 'access-one')
+})
+
 test('session restoration performs csrf, refresh, then authenticated me', async () => {
   const calls: string[] = []
   globalThis.fetch = async (input, init) => {

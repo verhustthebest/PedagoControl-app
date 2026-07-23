@@ -32,6 +32,10 @@ const ttlDays = () => {
     const value = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30);
     return Number.isInteger(value) && value > 0 && value <= 365 ? value : 30;
 };
+const shortTtlHours = () => {
+    const value = Number(process.env.SESSION_REFRESH_TTL_HOURS ?? 8);
+    return Number.isInteger(value) && value > 0 && value <= 24 ? value : 8;
+};
 const refreshCookieName = () => process.env.REFRESH_COOKIE_NAME || 'pedago_refresh';
 exports.refreshCookieName = refreshCookieName;
 function secureCookie() {
@@ -97,10 +101,10 @@ function requestOriginAllowed(request) {
         return false;
     }
 }
-async function createAuthSession(userId, request) {
+async function createAuthSession(userId, request, persistent = true) {
     const refreshSecret = opaque();
     const csrfToken = opaque();
-    const expiresAt = new Date(Date.now() + ttlDays() * 86400000);
+    const expiresAt = new Date(Date.now() + (persistent ? ttlDays() * 86400000 : shortTtlHours() * 3600000));
     const session = await client_1.default.auth_sessions.create({ data: {
             user_id: BigInt(userId), refresh_token_hash: hash(refreshSecret), csrf_token_hash: hash(csrfToken),
             expires_at: expiresAt, ...metadata(request),

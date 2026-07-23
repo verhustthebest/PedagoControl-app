@@ -17,7 +17,7 @@ import {
 const PUBLIC_LOGIN_ERROR = 'Authentication failed'
 
 export async function login(request: Request, response: Response) {
-  const { email, password } = request.body as { email?: unknown; password?: unknown }
+  const { email, password, remember_me } = request.body as { email?: unknown; password?: unknown; remember_me?: boolean }
 
   if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
     return response.status(400).json({ message: PUBLIC_LOGIN_ERROR })
@@ -37,7 +37,7 @@ export async function login(request: Request, response: Response) {
     }
 
     loginAbuseGuard.succeeded(ip, identifier)
-    const session = await createAuthSession(credentials.user.id, request)
+    const session = await createAuthSession(credentials.user.id, request, remember_me === true)
     const accessToken = signAccessToken(credentials.user, session.sessionId)
     setRefreshCookie(response, session.refreshToken, session.expiresAt)
     return response.json({

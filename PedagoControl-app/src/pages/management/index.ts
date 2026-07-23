@@ -15,7 +15,7 @@ export {
   ManagementSubscriptions,
   ManagementSupport,
   ManagementUsers,
-  NewSchoolFlow,
 } from '../../components/management'
+export { NewSchoolFlow } from './NewSchoolFlow'
 export { ManagementParentalBillingDetail, ManagementParentalBillingGenerate, ManagementParentalBillingList } from './ManagementParentalBilling'
 export { ManagementNotificationTests } from './ManagementNotificationTests'
