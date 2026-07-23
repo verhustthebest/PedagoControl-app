@@ -1,5 +1,4 @@
 ﻿export {
-  ClientSchools,
   ManagementAudit,
   ManagementChapterStructure,
   ManagementNotifications,

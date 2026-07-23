@@ -1,11 +1,14 @@
 import { apiRequest } from './api'
 
-export type SubscriptionOption = { code:string;name:string;description:string|null;min_teachers:number;max_teachers:number|null;monthly_price:string;annual_price:string|null }
+export type SubscriptionOption = {
+  code:string;name:string;description:string|null;min_teachers:number;max_teachers:number|null;
+  monthly_price:string;annual_price:string|null;trial_days:number|null;billing_periods:string[]
+}
 export type SchoolOnboardingData = {
   school: Record<string, string>
   responsible: Record<string, string>
-  academic: { year_name:string;start_date:string;end_date:string;teacher_limit:number }
-  subscription: { subscription_code:string;billing_period:'monthly'|'annual' }
+  academic: { year_name:string;start_date:string;end_date:string;teacher_limit:number;parental_enabled:boolean }
+  subscription: { subscription_code:string;billing_period:'monthly'|'quarterly'|'annual' }
   account: Record<string, string>
 }
 export const SCHOOL_WIZARD_STORAGE_KEY = 'pedago_school_onboarding_draft'

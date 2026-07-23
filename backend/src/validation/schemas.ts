@@ -2,6 +2,12 @@ import { z } from 'zod'
 
 const text = (max: number) => z.string().trim().min(1).max(max)
 const nullableText = (max: number) => z.union([text(max), z.literal('').transform(() => null), z.null()])
+const isAtLeastYearsOld = (value: string, years: number) => {
+  const birth = new Date(`${value}T00:00:00.000Z`)
+  const today = new Date()
+  const limit = new Date(Date.UTC(today.getUTCFullYear() - years, today.getUTCMonth(), today.getUTCDate()))
+  return birth <= limit
+}
 
 export const id = z.string().regex(/^[1-9]\d*$/).refine((value) => {
   try { return BigInt(value) > 0n } catch { return false }
@@ -59,9 +65,14 @@ const schoolInformation = z.object({
   name: text(150), school_type: schoolType, phone, email, address: text(500), province_id: publicId,
   city_id: publicId, commune_id: publicId, neighborhood_id: publicId.optional(), geographic_reference: nullableText(500).optional(),
 }).strict()
-const schoolResponsible = z.object({ first_name: text(100), last_name: text(100), email, phone: phone.optional() }).strict()
-const schoolAcademic = z.object({ year_name: text(100), start_date: date, end_date: date, teacher_limit: z.number().int().min(1).max(10000) }).strict()
-const schoolSubscription = z.object({ subscription_code: text(30), billing_period: z.enum(['monthly', 'annual']) }).strict()
+const adultBirthDate = date.refine(value => isAtLeastYearsOld(value, 18), 'La personne doit être âgée d’au moins 18 ans.')
+const schoolResponsible = z.object({ first_name: text(100), last_name: text(100), birth_date: adultBirthDate, email, phone: phone.optional() }).strict()
+const schoolAcademic = z.object({
+  year_name: text(100), start_date: date, end_date: date,
+  teacher_limit: z.number().int().min(1).max(10000),
+  parental_enabled: z.boolean(),
+}).strict()
+const schoolSubscription = z.object({ subscription_code: text(30), billing_period: z.enum(['monthly', 'quarterly', 'annual']) }).strict()
 const schoolAccount = z.object({ first_name: text(100), last_name: text(100), email, phone: phone.optional(), password: z.string().min(10).max(256) }).strict()
 const draftIdentity = { draft_id: publicId.optional() }
 export const schoolDraftBody = z.discriminatedUnion('current_step', [
@@ -72,6 +83,15 @@ export const schoolDraftBody = z.discriminatedUnion('current_step', [
   z.object({ ...draftIdentity, current_step:z.literal(5), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic, subscription:schoolSubscription, account:schoolAccount.omit({password:true}) }).strict() }).strict(),
 ])
 export const schoolOnboardingBody = z.object({ draft_id: publicId, school: schoolInformation, responsible: schoolResponsible, academic: schoolAcademic, subscription: schoolSubscription, account: schoolAccount }).strict()
+export const schoolStaffBody = z.object({
+  first_name: text(100),
+  last_name: text(100),
+  birth_date: adultBirthDate,
+  email,
+  phone: phone.optional(),
+  password: z.string().min(10).max(256),
+  role: z.enum(['PREFET', 'ENSEIGNANT', 'DIRECTEUR', 'PROMOTEUR', 'INFORMATICIEN']),
+}).strict()
 
 export const settingsBody = z.object({
   is_enabled: z.boolean().optional(), attachment_requires_validation: z.boolean().optional(),

@@ -1517,6 +1517,49 @@
   gap: 14px;
 }
 
+.new-school-actions .wizard-button {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wizard-cancel { background: #dc2626; color: #fff; }
+.wizard-previous { background: #fef3c7; color: #78350f; }
+.wizard-next { background: #7dd3fc; color: #0c4a6e; }
+.wizard-create { background: #2563eb; color: #fff; }
+.wizard-button:disabled { cursor: wait; opacity: .65; }
+
+.module-choice {
+  display: grid;
+  gap: .65rem;
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.module-choice label {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+}
+
+@media (max-width: 480px) {
+  .new-school-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .new-school-actions .wizard-button {
+    width: 100%;
+  }
+}
+
 .new-school-actions .blue-button,
 .new-school-actions .secondary-button {
   width: 100%;

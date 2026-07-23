@@ -1,5 +1,4 @@
 export {
-  ClientSchools,
   ManagementAudit,
   ManagementAutomaticDistribution,
   ManagementChapterStructure,
@@ -17,5 +16,6 @@ export {
   ManagementUsers,
 } from '../../components/management'
 export { NewSchoolFlow } from './NewSchoolFlow'
+export { ClientSchools } from './ClientSchools'
 export { ManagementParentalBillingDetail, ManagementParentalBillingGenerate, ManagementParentalBillingList } from './ManagementParentalBilling'
 export { ManagementNotificationTests } from './ManagementNotificationTests'

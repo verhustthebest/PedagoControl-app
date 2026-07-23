@@ -846,6 +846,8 @@ model subscriptions {
   max_teachers         Int?
   monthly_price        Decimal                @db.Decimal(10, 2)
   annual_price         Decimal?               @db.Decimal(10, 2)
+  trial_days           Int?
+  billing_periods      String[]               @default(["monthly"])
   is_active            Boolean                @default(true)
   created_at           DateTime               @default(now()) @db.Timestamp(6)
   updated_at           DateTime               @default(now()) @db.Timestamp(6)
@@ -887,11 +889,13 @@ model user_roles {
 
 model users {
   id                                                                          BigInt                         @id @default(autoincrement())
+  public_id                                                                   String                         @unique @default(uuid()) @db.Uuid
   school_id                                                                   BigInt?
   first_name                                                                  String                         @db.VarChar(100)
   last_name                                                                   String                         @db.VarChar(100)
   email                                                                       String                         @unique @db.VarChar(150)
   phone                                                                       String?                        @db.VarChar(30)
+  birth_date                                                                  DateTime?                      @db.Date
   password_hash                                                               String
   profile_photo                                                               String?
   is_active                                                                   Boolean                        @default(true)

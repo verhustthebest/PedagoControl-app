@@ -9,6 +9,7 @@ exports.finalizeSchool = finalizeSchool;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const node_crypto_1 = require("node:crypto");
 const client_1 = __importDefault(require("../prisma/client"));
+const notification_delivery_service_1 = require("./notification-delivery.service");
 async function saveSchoolDraft(userId, input) {
     const payload = { ...input.data, current_step: input.current_step };
     if (input.draft_id) {
@@ -20,7 +21,10 @@ async function saveSchoolDraft(userId, input) {
     return client_1.default.school_creation_drafts.create({ data: { created_by_user_id: BigInt(userId), payload }, select: { public_id: true, status: true, updated_at: true } });
 }
 const listSubscriptionCatalog = () => client_1.default.subscriptions.findMany({
-    where: { is_active: true }, select: { code: true, name: true, description: true, min_teachers: true, max_teachers: true, monthly_price: true, annual_price: true }, orderBy: { monthly_price: 'asc' },
+    where: { is_active: true }, select: {
+        code: true, name: true, description: true, min_teachers: true, max_teachers: true, monthly_price: true,
+        annual_price: true, trial_days: true, billing_periods: true,
+    }, orderBy: { monthly_price: 'asc' },
 });
 exports.listSubscriptionCatalog = listSubscriptionCatalog;
 /** Création transactionnelle et idempotente : le brouillon est réclamé avant toute écriture métier. */
@@ -45,6 +49,11 @@ async function finalizeSchool(userId, input) {
             const catalog = await transaction.subscriptions.findFirst({ where: { code: input.subscription.subscription_code, is_active: true } });
             if (!catalog)
                 throw new Error('INVALID_SUBSCRIPTION');
+            if (!catalog.billing_periods.includes(input.subscription.billing_period))
+                throw new Error('INVALID_BILLING_PERIOD');
+            if (input.academic.teacher_limit < catalog.min_teachers || (catalog.max_teachers !== null && input.academic.teacher_limit > catalog.max_teachers)) {
+                throw new Error('INVALID_TEACHER_QUOTA');
+            }
             const role = await transaction.roles.findUnique({ where: { name: 'ADMIN_GESTIONNAIRE' } });
             if (!role?.is_active)
                 throw new Error('INVALID_ROLE');
@@ -58,14 +67,40 @@ async function finalizeSchool(userId, input) {
                     city_id: city.id, commune_id: commune.id, neighborhood_id: neighborhood?.id, geographic_reference: input.school.geographic_reference || null,
                 } });
             await transaction.academic_years.create({ data: { school_id: school.id, name: input.academic.year_name, start_date: start, end_date: end } });
-            const baseAmount = input.subscription.billing_period === 'annual' && catalog.annual_price ? catalog.annual_price : catalog.monthly_price;
-            await transaction.school_subscriptions.create({ data: { school_id: school.id, subscription_id: catalog.id, teacher_limit: input.academic.teacher_limit, billing_period: input.subscription.billing_period, amount_to_pay: baseAmount, start_date: start, end_date: end } });
+            const baseAmount = input.subscription.billing_period === 'annual' && catalog.annual_price
+                ? catalog.annual_price
+                : input.subscription.billing_period === 'quarterly'
+                    ? catalog.monthly_price.mul(3)
+                    : catalog.monthly_price;
+            const subscriptionEnd = catalog.trial_days
+                ? new Date(start.getTime() + catalog.trial_days * 86400000)
+                : end;
+            await transaction.school_subscriptions.create({ data: {
+                    school_id: school.id, subscription_id: catalog.id, teacher_limit: input.academic.teacher_limit,
+                    billing_period: input.subscription.billing_period, amount_to_pay: baseAmount, start_date: start,
+                    end_date: subscriptionEnd,
+                } });
+            await transaction.school_parental_settings.create({ data: {
+                    school_id: school.id, is_enabled: input.academic.parental_enabled,
+                    created_by_user_id: BigInt(userId), updated_by_user_id: BigInt(userId),
+                } });
             const user = await transaction.users.create({ data: { school_id: school.id, first_name: input.account.first_name, last_name: input.account.last_name, email: input.account.email, phone: input.account.phone, password_hash: passwordHash } });
             await transaction.user_roles.create({ data: { user_id: user.id, role_id: role.id } });
+            await transaction.notifications.create({ data: {
+                    recipient_user_id: BigInt(userId), sender_user_id: BigInt(userId),
+                    title: 'Nouvelle école créée',
+                    message: `${school.name} est maintenant disponible. Le compte Admin école a été créé.`,
+                    notification_type: 'school_created', reference_table: 'schools', reference_id: school.id,
+                } });
             await transaction.school_creation_drafts.update({ where: { id: draft.id }, data: { status: 'completed', created_school_public_id: school.public_id, updated_at: new Date() } });
-            return school.public_id;
+            return { public_id: school.public_id, name: school.name };
         });
-        return { kind: 'created', public_id: result, repeated: false };
+        // Le message ne contient jamais le mot de passe initial ; le fournisseur décide du statut réel.
+        const delivery = await (0, notification_delivery_service_1.deliverNotification)({
+            channel: 'email', to: input.responsible.email, subject: 'Votre école PEDAGO CONTROL',
+            text: `${result.name} a été créée. Connectez-vous avec votre adresse professionnelle et le mot de passe transmis par un canal sécurisé.`,
+        });
+        return { kind: 'created', public_id: result.public_id, repeated: false, notification_status: delivery.status };
     }
     catch (error) {
         await client_1.default.school_creation_drafts.updateMany({ where: { id: draft.id, status: 'creating' }, data: { status: 'draft', updated_at: new Date() } });

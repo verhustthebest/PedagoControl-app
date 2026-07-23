@@ -15,6 +15,10 @@ export async function createSchoolOnboarding(request: AuthenticatedRequest, resp
     const result = await finalizeSchool(request.user!.id, request.body)
     if (result.kind === 'not_found') return response.status(404).json({ message: 'Resource not found' })
     if (result.kind === 'conflict') return response.status(409).json({ message: 'Operation already in progress' })
-    return response.status(result.repeated ? 200 : 201).json({ school: { public_id: result.public_id }, repeated: result.repeated })
+    return response.status(result.repeated ? 200 : 201).json({
+      school: { public_id: result.public_id },
+      repeated: result.repeated,
+      ...('notification_status' in result ? { notification_status: result.notification_status } : {}),
+    })
   } catch { return response.status(400).json({ message: 'Unable to create school with the supplied configuration' }) }
 }

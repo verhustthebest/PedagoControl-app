@@ -108,6 +108,14 @@ function parseBirthDate(value: unknown, required: boolean) {
   ) {
     throw new ParentalApiError('birth_date is invalid', 400)
   }
+  const today = new Date()
+  const minimumBirthDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 33, today.getUTCDate()))
+  if (date > minimumBirthDate) {
+    throw new ParentalApiError(
+      'L’élève n’a pas encore atteint l’âge requis pour être inscrit à l’école.',
+      400,
+    )
+  }
   return date
 }
 

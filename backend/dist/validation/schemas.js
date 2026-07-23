@@ -1,10 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notificationQuery = exports.acknowledgementBody = exports.journalQuery = exports.actionTokenQuery = exports.paymentBody = exports.invoiceListQuery = exports.invoiceGenerateBody = exports.linkGuardianBody = exports.guardianListQuery = exports.updateGuardianBody = exports.createGuardianBody = exports.trackingBody = exports.studentListQuery = exports.updateStudentBody = exports.createStudentBody = exports.subscriptionBody = exports.settingsBody = exports.schoolOnboardingBody = exports.schoolDraftBody = exports.geographyNameBody = exports.geographyParentParams = exports.schoolPublicParams = exports.schoolListQuery = exports.paginationQuery = exports.emptyQuery = exports.itemParams = exports.messageBody = exports.reportParams = exports.reportDecisionBody = exports.reportBody = exports.registerParentBody = exports.verifyOtpBody = exports.requestOtpBody = exports.loginBody = exports.invoiceParams = exports.guardianLinkParams = exports.guardianParams = exports.studentParams = exports.schoolParams = exports.phone = exports.email = exports.amount = exports.limit = exports.page = exports.time = exports.month = exports.date = exports.resourceIdentifier = exports.publicId = exports.id = void 0;
-exports.contributionAutomationBody = exports.contributionPaymentBody = exports.contributionListQuery = exports.contributionDueParams = exports.contributionGenerateBody = exports.contributionSettingBody = exports.technicalJournalParams = exports.technicalJournalQuery = exports.guardianInvitationParams = exports.classListQuery = exports.attachmentDocumentBody = exports.attachmentDisableBody = exports.attachmentDecisionBody = exports.attachmentRequestQuery = exports.attachmentDocumentParams = exports.attachmentRequestParams = exports.notificationTestBody = void 0;
+exports.acknowledgementBody = exports.journalQuery = exports.actionTokenQuery = exports.paymentBody = exports.invoiceListQuery = exports.invoiceGenerateBody = exports.linkGuardianBody = exports.guardianListQuery = exports.updateGuardianBody = exports.createGuardianBody = exports.trackingBody = exports.studentListQuery = exports.updateStudentBody = exports.createStudentBody = exports.subscriptionBody = exports.settingsBody = exports.schoolStaffBody = exports.schoolOnboardingBody = exports.schoolDraftBody = exports.geographyNameBody = exports.geographyParentParams = exports.schoolPublicParams = exports.schoolListQuery = exports.paginationQuery = exports.emptyQuery = exports.itemParams = exports.messageBody = exports.reportParams = exports.reportDecisionBody = exports.reportBody = exports.registerParentBody = exports.verifyOtpBody = exports.requestOtpBody = exports.loginBody = exports.invoiceParams = exports.guardianLinkParams = exports.guardianParams = exports.studentParams = exports.schoolParams = exports.phone = exports.email = exports.amount = exports.limit = exports.page = exports.time = exports.month = exports.date = exports.resourceIdentifier = exports.publicId = exports.id = void 0;
+exports.contributionAutomationBody = exports.contributionPaymentBody = exports.contributionListQuery = exports.contributionDueParams = exports.contributionGenerateBody = exports.contributionSettingBody = exports.technicalJournalParams = exports.technicalJournalQuery = exports.guardianInvitationParams = exports.classListQuery = exports.attachmentDocumentBody = exports.attachmentDisableBody = exports.attachmentDecisionBody = exports.attachmentRequestQuery = exports.attachmentDocumentParams = exports.attachmentRequestParams = exports.notificationTestBody = exports.notificationQuery = void 0;
 const zod_1 = require("zod");
 const text = (max) => zod_1.z.string().trim().min(1).max(max);
 const nullableText = (max) => zod_1.z.union([text(max), zod_1.z.literal('').transform(() => null), zod_1.z.null()]);
+const isAtLeastYearsOld = (value, years) => {
+    const birth = new Date(`${value}T00:00:00.000Z`);
+    const today = new Date();
+    const limit = new Date(Date.UTC(today.getUTCFullYear() - years, today.getUTCMonth(), today.getUTCDate()));
+    return birth <= limit;
+};
 exports.id = zod_1.z.string().regex(/^[1-9]\d*$/).refine((value) => {
     try {
         return BigInt(value) > 0n;
@@ -62,9 +68,14 @@ const schoolInformation = zod_1.z.object({
     name: text(150), school_type: schoolType, phone: exports.phone, email: exports.email, address: text(500), province_id: exports.publicId,
     city_id: exports.publicId, commune_id: exports.publicId, neighborhood_id: exports.publicId.optional(), geographic_reference: nullableText(500).optional(),
 }).strict();
-const schoolResponsible = zod_1.z.object({ first_name: text(100), last_name: text(100), email: exports.email, phone: exports.phone.optional() }).strict();
-const schoolAcademic = zod_1.z.object({ year_name: text(100), start_date: exports.date, end_date: exports.date, teacher_limit: zod_1.z.number().int().min(1).max(10000) }).strict();
-const schoolSubscription = zod_1.z.object({ subscription_code: text(30), billing_period: zod_1.z.enum(['monthly', 'annual']) }).strict();
+const adultBirthDate = exports.date.refine(value => isAtLeastYearsOld(value, 18), 'La personne doit être âgée d’au moins 18 ans.');
+const schoolResponsible = zod_1.z.object({ first_name: text(100), last_name: text(100), birth_date: adultBirthDate, email: exports.email, phone: exports.phone.optional() }).strict();
+const schoolAcademic = zod_1.z.object({
+    year_name: text(100), start_date: exports.date, end_date: exports.date,
+    teacher_limit: zod_1.z.number().int().min(1).max(10000),
+    parental_enabled: zod_1.z.boolean(),
+}).strict();
+const schoolSubscription = zod_1.z.object({ subscription_code: text(30), billing_period: zod_1.z.enum(['monthly', 'quarterly', 'annual']) }).strict();
 const schoolAccount = zod_1.z.object({ first_name: text(100), last_name: text(100), email: exports.email, phone: exports.phone.optional(), password: zod_1.z.string().min(10).max(256) }).strict();
 const draftIdentity = { draft_id: exports.publicId.optional() };
 exports.schoolDraftBody = zod_1.z.discriminatedUnion('current_step', [
@@ -75,6 +86,15 @@ exports.schoolDraftBody = zod_1.z.discriminatedUnion('current_step', [
     zod_1.z.object({ ...draftIdentity, current_step: zod_1.z.literal(5), data: zod_1.z.object({ school: schoolInformation, responsible: schoolResponsible, academic: schoolAcademic, subscription: schoolSubscription, account: schoolAccount.omit({ password: true }) }).strict() }).strict(),
 ]);
 exports.schoolOnboardingBody = zod_1.z.object({ draft_id: exports.publicId, school: schoolInformation, responsible: schoolResponsible, academic: schoolAcademic, subscription: schoolSubscription, account: schoolAccount }).strict();
+exports.schoolStaffBody = zod_1.z.object({
+    first_name: text(100),
+    last_name: text(100),
+    birth_date: adultBirthDate,
+    email: exports.email,
+    phone: exports.phone.optional(),
+    password: zod_1.z.string().min(10).max(256),
+    role: zod_1.z.enum(['PREFET', 'ENSEIGNANT', 'DIRECTEUR', 'PROMOTEUR', 'INFORMATICIEN']),
+}).strict();
 exports.settingsBody = zod_1.z.object({
     is_enabled: zod_1.z.boolean().optional(), attachment_requires_validation: zod_1.z.boolean().optional(),
     attachment_request_expiry_days: zod_1.z.number().int().min(1).max(365).optional(),
