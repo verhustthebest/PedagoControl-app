@@ -2,6 +2,7 @@ import { randomInt } from 'crypto'
 import bcrypt from 'bcrypt'
 import { Prisma } from '@prisma/client'
 import prisma from '../prisma/client'
+import { normalizeDrcPhone, PHONE_CONFLICT_MESSAGE } from '../security/phone-identity'
 import { ParentalApiError } from './parental.service'
 import { type OtpChannel, sendRegistrationOtp } from './otp-provider.service'
 import { RateLimitError } from '../security/abuse-protection'
@@ -319,7 +320,7 @@ export async function finalizeParentRegistration(input: {
   const role = await prisma.roles.findFirst({ where: { name: 'PARENT', is_active: true } })
   if (!role) throw new ParentalApiError('PARENT role is not configured', 503)
   const email = guardian.email?.trim().toLowerCase() ?? `parent.guardian.${guardian.id}@phone.pedagocontrol.local`
-  const phone = guardian.phone?.trim() ?? null
+  const phone = guardian.phone ? normalizeDrcPhone(guardian.phone) : null
   const duplicate = await prisma.users.findFirst({
     where: {
       OR: [
@@ -329,7 +330,7 @@ export async function finalizeParentRegistration(input: {
     },
     select: { id: true },
   })
-  if (duplicate) throw new ParentalApiError('A user already uses this email or phone', 409)
+  if (duplicate) throw new ParentalApiError(phone ? PHONE_CONFLICT_MESSAGE : 'A user already uses this email', 409)
   const passwordHash = await bcrypt.hash(password, 10)
 
   try {

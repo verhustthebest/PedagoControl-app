@@ -2,7 +2,7 @@ import { apiRequest } from './api'
 
 export type SubscriptionOption = {
   code:string;name:string;description:string|null;min_teachers:number;max_teachers:number|null;
-  monthly_price:string;annual_price:string|null;trial_days:number|null;billing_periods:string[]
+  monthly_price:string;annual_price:string|null;trial_days:number|null;billing_periods:string[];configured_teacher_limit:number|null
 }
 export type SchoolOnboardingData = {
   school: Record<string, string>
@@ -26,7 +26,7 @@ export function clearSchoolWizardSnapshot(){if(typeof window!=='undefined')windo
 function draftData(current_step:number,data:SchoolOnboardingData){
   const groups:Record<string,unknown>={school:withoutEmptyValues(data.school)}
   if(current_step>=2)groups.responsible=withoutEmptyValues(data.responsible)
-  if(current_step>=3)groups.academic=withoutEmptyValues(data.academic as unknown as Record<string,unknown>)
+  if(current_step>=3)groups.academic=withoutEmptyValues({...data.academic,...(current_step===3?{teacher_limit:undefined}:{})} as unknown as Record<string,unknown>)
   if(current_step>=4)groups.subscription=withoutEmptyValues(data.subscription)
   if(current_step>=5)groups.account=withoutEmptyValues({...data.account,password:undefined})
   return groups

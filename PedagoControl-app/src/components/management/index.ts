@@ -9,7 +9,6 @@
   ManagementSentPrograms,
   ManagementSettings,
   ManagementStatistics,
-  ManagementSubscriptions,
   ManagementSupport,
   ManagementUsers,
   NewSchoolFlow,

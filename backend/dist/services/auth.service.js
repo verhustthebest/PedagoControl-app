@@ -33,6 +33,10 @@ function formatUser(user) {
                 .filter((rolePermission) => rolePermission.permissions.is_active)
                 .map((rolePermission) => rolePermission.permissions.code))),
         ],
+        modules: {
+            pedagogical_control: true,
+            parental_tracking: Boolean(user.schools?.school_parental_settings?.is_enabled),
+        },
     };
 }
 async function loginWithEmailAndPassword(email, password) {
@@ -45,7 +49,7 @@ async function loginWithEmailAndPassword(email, password) {
             ],
         },
         include: {
-            schools: { select: { status: true } },
+            schools: { select: { status: true, school_parental_settings: { select: { is_enabled: true } } } },
             user_roles: {
                 include: {
                     roles: {
@@ -100,7 +104,7 @@ async function findAuthUserById(userId) {
     const user = await client_1.default.users.findUnique({
         where: { id: BigInt(userId) },
         include: {
-            schools: { select: { status: true } },
+            schools: { select: { status: true, school_parental_settings: { select: { is_enabled: true } } } },
             user_roles: {
                 include: {
                     roles: {

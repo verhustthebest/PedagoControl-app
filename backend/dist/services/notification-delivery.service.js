@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notificationMode = notificationMode;
+exports.channelNotificationMode = channelNotificationMode;
 exports.isRecipientAllowed = isRecipientAllowed;
 exports.deliverNotification = deliverNotification;
 const normalizePhone = (value) => value.replace(/[\s().-]/g, '');
@@ -8,7 +9,15 @@ const list = (value, normalizer) => new Set((value || '').split(',').map(item =>
 /** Mode explicite. Un environnement de production ne peut jamais retomber silencieusement en sandbox. */
 function notificationMode(environment = process.env) { const value = environment.NOTIFICATION_MODE || (environment.NODE_ENV === 'production' ? 'production' : 'sandbox'); if (!['sandbox', 'test_live', 'production'].includes(value))
     throw new Error('NOTIFICATION_MODE is invalid'); return value; }
-function isRecipientAllowed(message, environment = process.env) { if (notificationMode(environment) !== 'test_live')
+/** Le mode est résolu par canal ; NOTIFICATION_MODE reste un fallback de compatibilité. */
+function channelNotificationMode(channel, environment = process.env) {
+    const configured = channel === 'email' ? environment.EMAIL_NOTIFICATION_MODE : environment.SMS_NOTIFICATION_MODE;
+    const value = configured || notificationMode(environment);
+    if (!['sandbox', 'test_live', 'production'].includes(value))
+        throw new Error(`${channel.toUpperCase()}_NOTIFICATION_MODE is invalid`);
+    return value;
+}
+function isRecipientAllowed(message, environment = process.env) { if (channelNotificationMode(message.channel, environment) !== 'test_live')
     return true; const allowed = message.channel === 'email' ? list(environment.NOTIFICATION_TEST_EMAIL_ALLOWLIST, item => item.toLowerCase()) : list(environment.NOTIFICATION_TEST_PHONE_ALLOWLIST, normalizePhone); const recipient = message.channel === 'email' ? message.to.trim().toLowerCase() : normalizePhone(message.to); return allowed.has(recipient); }
 function testMessage(message, mode) { return mode === 'test_live' ? { ...message, subject: message.subject ? `[TEST PEDAGO CONTROL] ${message.subject}` : '[TEST PEDAGO CONTROL]', text: `[TEST PEDAGO CONTROL] ${message.text}` } : message; }
 const acceptedId = async (response) => { const body = await response.json().catch(() => null); return typeof body?.id === 'string' ? body.id : typeof body?.messageId === 'string' ? body.messageId : undefined; };
@@ -26,7 +35,7 @@ async function sendInfobip(message, environment, fetcher) { const key = environm
     return { status: 'FAILED', channel: 'sms', provider: 'infobip', reason: 'provider_rejected' }; const body = await response.json().catch(() => null); const accepted = body?.messages?.[0]; if (!accepted?.messageId || accepted.status?.groupName === 'REJECTED')
     return { status: 'FAILED', channel: 'sms', provider: 'infobip', reason: 'provider_rejected' }; return { status: 'SENT', channel: 'sms', provider: 'infobip', provider_message_id: accepted.messageId }; }
 /** Point d'entrée interchangeable et testable. DELIVERED reste réservé aux futurs webhooks fournisseurs. */
-async function deliverNotification(raw, options = {}) { const environment = options.environment || process.env, mode = notificationMode(environment), message = testMessage(raw, mode); if (!isRecipientAllowed(message, environment))
-    return { status: 'PREPARED', channel: message.channel, provider: message.channel === 'email' ? 'resend' : 'infobip', reason: 'recipient_not_allowed' }; if (message.channel === 'email')
+async function deliverNotification(raw, options = {}) { const environment = options.environment || process.env, mode = channelNotificationMode(raw.channel, environment), message = testMessage(raw, mode); if (!isRecipientAllowed(message, environment))
+    return { status: 'PREPARED', channel: message.channel, provider: message.channel === 'email' ? (mode === 'sandbox' ? 'mailtrap' : 'resend') : 'infobip', reason: 'recipient_not_allowed' }; if (message.channel === 'email')
     return mode === 'sandbox' ? sendMailtrap(message, environment, options.fetcher || fetch) : sendResend(message, environment, options.fetcher || fetch); if (mode === 'sandbox')
     return { status: 'SIMULATED', channel: 'sms', provider: 'simulated' }; return sendInfobip(message, environment, options.fetcher || fetch); }

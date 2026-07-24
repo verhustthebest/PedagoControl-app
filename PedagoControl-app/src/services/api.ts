@@ -24,6 +24,7 @@ export type AuthUser = {
   email: string
   school_id: string | null
   roles: string[]
+  modules?: { pedagogical_control: boolean; parental_tracking: boolean }
 }
 
 export type LoginResponse = {

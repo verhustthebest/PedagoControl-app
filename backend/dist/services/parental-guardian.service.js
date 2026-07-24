@@ -12,6 +12,7 @@ exports.setStudentGuardianEnabled = setStudentGuardianEnabled;
 const client_1 = require("@prisma/client");
 const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
+const phone_identity_1 = require("../security/phone-identity");
 const guardianInclude = {
     student_guardians: {
         include: {
@@ -59,7 +60,15 @@ function normalizeEmail(value) {
     return email;
 }
 function normalizePhone(value) {
-    return nullableText(value, 'phone');
+    const phone = nullableText(value, 'phone');
+    if (!phone)
+        return null;
+    try {
+        return (0, phone_identity_1.normalizeDrcPhone)(phone);
+    }
+    catch {
+        throw new parental_service_1.ParentalApiError('Le numéro doit être un numéro congolais valide au format +243.', 400);
+    }
 }
 function parsePage(value, fallback, maximum) {
     if (value === undefined)
@@ -165,7 +174,7 @@ async function createGuardian(schoolIdValue, actorUserId, input) {
                 select: { id: true },
             });
             if (duplicate)
-                throw new parental_service_1.ParentalApiError('A guardian with this phone or email already exists', 409);
+                throw new parental_service_1.ParentalApiError(phone ? phone_identity_1.PHONE_CONFLICT_MESSAGE : 'A guardian with this email already exists', 409);
             const guardian = await transaction.guardians.create({
                 data: {
                     school_id: schoolId,
@@ -224,7 +233,7 @@ async function updateGuardian(schoolIdValue, guardianIdValue, actorUserId, input
             select: { id: true },
         });
         if (duplicate)
-            throw new parental_service_1.ParentalApiError('A guardian with this phone or email already exists', 409);
+            throw new parental_service_1.ParentalApiError(phone ? phone_identity_1.PHONE_CONFLICT_MESSAGE : 'A guardian with this email already exists', 409);
         const guardian = await transaction.guardians.update({
             where: { id: guardianId },
             data: {

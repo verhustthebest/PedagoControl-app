@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import prisma from '../prisma/client'
 import { deliverNotification } from './notification-delivery.service'
+import { assertPhoneAvailable } from '../security/phone-identity'
 
 type OnboardingInput = {
   draft_id: string
@@ -10,7 +11,7 @@ type OnboardingInput = {
   responsible: { first_name:string;last_name:string;birth_date:string;email:string;phone?:string }
   academic: { year_name:string;start_date:string;end_date:string;teacher_limit:number;parental_enabled:boolean }
   subscription: { subscription_code:string;billing_period:'monthly'|'quarterly'|'annual' }
-  account: { first_name:string;last_name:string;email:string;phone?:string;password:string }
+  account: { first_name:string;last_name:string;email:string;phone:string;password:string }
 }
 
 export async function saveSchoolDraft(userId: string, input: { draft_id?: string; current_step:number; data: Prisma.InputJsonValue }) {
@@ -31,7 +32,7 @@ export const listSubscriptionCatalog = () => prisma.subscriptions.findMany({
 })
 
 /** Création transactionnelle et idempotente : le brouillon est réclamé avant toute écriture métier. */
-export async function finalizeSchool(userId: string, input: OnboardingInput) {
+export async function finalizeSchool(userId: string, input: OnboardingInput, requestId?:string) {
   const draft = await prisma.school_creation_drafts.findFirst({ where: { public_id: input.draft_id, created_by_user_id: BigInt(userId) } })
   if (!draft) return { kind: 'not_found' as const }
   if (draft.status === 'completed' && draft.created_school_public_id) return { kind: 'created' as const, public_id: draft.created_school_public_id, repeated: true }
@@ -46,10 +47,16 @@ export async function finalizeSchool(userId: string, input: OnboardingInput) {
       const commune = await transaction.geo_communes.findFirst({ where: { public_id: input.school.commune_id, city_id: city?.id } })
       const neighborhood = input.school.neighborhood_id ? await transaction.geo_neighborhoods.findFirst({ where: { public_id: input.school.neighborhood_id, commune_id: commune?.id } }) : null
       if (!province || !city || !commune || (input.school.neighborhood_id && !neighborhood)) throw new Error('INVALID_GEOGRAPHY')
+      if(input.responsible.phone)await assertPhoneAvailable({phone:input.responsible.phone,first_name:input.responsible.first_name,last_name:input.responsible.last_name},transaction)
+      await assertPhoneAvailable({phone:input.account.phone,first_name:input.account.first_name,last_name:input.account.last_name},transaction)
       const catalog = await transaction.subscriptions.findFirst({ where: { code: input.subscription.subscription_code, is_active: true } })
       if (!catalog) throw new Error('INVALID_SUBSCRIPTION')
       if (!catalog.billing_periods.includes(input.subscription.billing_period)) throw new Error('INVALID_BILLING_PERIOD')
-      if (input.academic.teacher_limit < catalog.min_teachers || (catalog.max_teachers !== null && input.academic.teacher_limit > catalog.max_teachers)) {
+      const fixedQuota = catalog.code === 'LOCAL_TEST'
+        ? Math.max(1, Number(process.env.LOCAL_TEST_TEACHER_QUOTA || 5))
+        : catalog.max_teachers
+      const expectedQuota = catalog.code === 'PROFESSIONAL' ? input.academic.teacher_limit : fixedQuota
+      if (!expectedQuota || expectedQuota < catalog.min_teachers || (catalog.code !== 'PROFESSIONAL' && input.academic.teacher_limit !== expectedQuota)) {
         throw new Error('INVALID_TEACHER_QUOTA')
       }
       const role = await transaction.roles.findUnique({ where: { name: 'ADMIN_GESTIONNAIRE' } })
@@ -89,14 +96,23 @@ export async function finalizeSchool(userId: string, input: OnboardingInput) {
         notification_type: 'school_created', reference_table: 'schools', reference_id: school.id,
       } })
       await transaction.school_creation_drafts.update({ where: { id: draft.id }, data: { status: 'completed', created_school_public_id: school.public_id, updated_at: new Date() } })
-      return { public_id: school.public_id, name: school.name }
+      return { public_id: school.public_id, id:school.id, name: school.name }
     })
-    // Le message ne contient jamais le mot de passe initial ; le fournisseur décide du statut réel.
-    const delivery = await deliverNotification({
-      channel: 'email', to: input.responsible.email, subject: 'Votre école PEDAGO CONTROL',
+    // Les deux canaux utilisent leurs propres modes et ne contiennent jamais le mot de passe initial.
+    const emailDelivery = await deliverNotification({
+      channel: 'email', to: input.account.email, subject: 'Votre école PEDAGO CONTROL',
       text: `${result.name} a été créée. Connectez-vous avec votre adresse professionnelle et le mot de passe transmis par un canal sécurisé.`,
     })
-    return { kind: 'created' as const, public_id: result.public_id, repeated: false, notification_status: delivery.status }
+    const smsDelivery = input.account.phone ? await deliverNotification({
+      channel:'sms',to:input.account.phone,
+      text:`Le compte Admin de ${result.name} est prêt. Utilisez vos identifiants transmis par un canal sécurisé.`,
+    }):null
+    const occurredAt=new Date()
+    await prisma.activity_logs.createMany({data:[
+      {school_id:result.id,user_id:BigInt(userId),activity_type:'school_admin_email',module_name:'school_onboarding',reference_table:'schools',reference_id:result.id,title:'Notification Admin école',description:JSON.stringify({provider:emailDelivery.provider,status:emailDelivery.status,date:occurredAt.toISOString(),request_id:requestId||null})},
+      ...(smsDelivery?[{school_id:result.id,user_id:BigInt(userId),activity_type:'school_admin_sms',module_name:'school_onboarding',reference_table:'schools',reference_id:result.id,title:'Notification Admin école',description:JSON.stringify({provider:smsDelivery.provider,status:smsDelivery.status,date:occurredAt.toISOString(),request_id:requestId||null})}]:[]),
+    ]})
+    return {kind:'created' as const,public_id:result.public_id,repeated:false,notifications:{email:emailDelivery,sms:smsDelivery,request_id:requestId??null,created_at:occurredAt}}
   } catch (error) {
     await prisma.school_creation_drafts.updateMany({ where: { id: draft.id, status: 'creating' }, data: { status: 'draft', updated_at: new Date() } })
     throw error

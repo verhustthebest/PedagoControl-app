@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt'
 import prisma from '../prisma/client'
+import {assertPhoneAvailable,normalizeDrcPhone}from'../security/phone-identity'
 
 export class SchoolStaffError extends Error {
   constructor(message:string, readonly status:number) { super(message) }
@@ -14,8 +15,10 @@ type StaffInput = {
 
 /** Crée un personnel majeur dans l'école courante et applique le quota d'abonnement sous transaction. */
 export async function createSchoolStaff(schoolId:bigint,input:StaffInput) {
+  if(input.phone)input.phone=normalizeDrcPhone(input.phone)
   const passwordHash=await bcrypt.hash(input.password,12)
   return prisma.$transaction(async transaction=>{
+    if(input.phone)await assertPhoneAvailable({phone:input.phone,first_name:input.first_name,last_name:input.last_name,schoolId},transaction)
     const role=await transaction.roles.findUnique({where:{name:input.role}})
     if(!role?.is_active)throw new SchoolStaffError('Ce rôle n’est pas disponible.',400)
     if(input.role==='INFORMATICIEN'){

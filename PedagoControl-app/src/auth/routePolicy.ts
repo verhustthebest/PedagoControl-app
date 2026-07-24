@@ -32,6 +32,17 @@ export function canAccessPath(pathname: string, userRoles: readonly string[]) {
   return allowedRoles !== null && hasAllowedRole(userRoles, allowedRoles)
 }
 
+export function portalForRoles(roles:readonly string[]){
+  if(roles.includes('SUPER_ADMIN'))return'/management/ecoles'
+  if(roles.includes('ADMIN_GESTIONNAIRE'))return'/admin'
+  if(roles.includes('INFORMATICIEN'))return'/informaticien'
+  if(roles.includes('PARENT'))return'/parent'
+  if(roles.includes('PREFET'))return'/prefet/rapports'
+  if(roles.includes('ENSEIGNANT'))return'/enseignant/cahier-texte'
+  if(roles.some(role=>DIRECTION_ROLES.includes(role as typeof DIRECTION_ROLES[number])))return'/directeur/rapports'
+  return'/acces-interdit'
+}
+
 export function protectedRouteDecision(loading: boolean, authenticated: boolean, userRoles: readonly string[], allowedRoles: readonly string[]) {
   if (loading) return 'loading' as const
   if (!authenticated) return 'unauthenticated' as const

@@ -1,6 +1,7 @@
 import type {Response} from 'express'
 import type {AuthenticatedRequest} from '../middleware/auth.middleware'
 import {createSchoolStaff,SchoolStaffError} from '../services/school-staff.service'
+import {PhoneIdentityError}from'../security/phone-identity'
 
 export async function createStaff(request:AuthenticatedRequest,response:Response){
   try{
@@ -8,6 +9,7 @@ export async function createStaff(request:AuthenticatedRequest,response:Response
     return response.status(201).json({staff})
   }catch(error){
     if(error instanceof SchoolStaffError)return response.status(error.status).json({message:error.message})
+    if(error instanceof PhoneIdentityError)return response.status(error.status).json({message:error.message})
     return response.status(400).json({message:'Impossible de créer ce compte.'})
   }
 }

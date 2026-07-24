@@ -10,6 +10,7 @@ const crypto_1 = require("crypto");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const client_1 = require("@prisma/client");
 const client_2 = __importDefault(require("../prisma/client"));
+const phone_identity_1 = require("../security/phone-identity");
 const parental_service_1 = require("./parental.service");
 const otp_provider_service_1 = require("./otp-provider.service");
 const abuse_protection_1 = require("../security/abuse-protection");
@@ -295,7 +296,7 @@ async function finalizeParentRegistration(input) {
     if (!role)
         throw new parental_service_1.ParentalApiError('PARENT role is not configured', 503);
     const email = guardian.email?.trim().toLowerCase() ?? `parent.guardian.${guardian.id}@phone.pedagocontrol.local`;
-    const phone = guardian.phone?.trim() ?? null;
+    const phone = guardian.phone ? (0, phone_identity_1.normalizeDrcPhone)(guardian.phone) : null;
     const duplicate = await client_2.default.users.findFirst({
         where: {
             OR: [
@@ -306,7 +307,7 @@ async function finalizeParentRegistration(input) {
         select: { id: true },
     });
     if (duplicate)
-        throw new parental_service_1.ParentalApiError('A user already uses this email or phone', 409);
+        throw new parental_service_1.ParentalApiError(phone ? phone_identity_1.PHONE_CONFLICT_MESSAGE : 'A user already uses this email', 409);
     const passwordHash = await bcrypt_1.default.hash(password, 10);
     try {
         return await client_2.default.$transaction(async (transaction) => {

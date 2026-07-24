@@ -814,29 +814,6 @@ function renderManagementCell(cell: string) {
   return cell
 }
 
-function ManagementSubscriptions() {
-  return <ManagementDataScreen
-    intro="Suivez les souscriptions des ecoles, les quotas enseignants, les echeances et les renouvellements."
-    actionLabel="Nouvelle souscription"
-    actionTo="/management/ecoles/nouvelle"
-    kpis={[
-      { icon: 'pie', value: '48', label: 'Souscriptions', detail: 'Toutes les ecoles', tone: 'blue' },
-      { icon: 'checkCircle', value: '32', label: 'Actives', detail: '66,7% du parc', tone: 'green' },
-      { icon: 'clock', value: '7', label: 'Bientot expirees', detail: '30 prochains jours', tone: 'orange' },
-      { icon: 'alert', value: '6', label: 'En retard', detail: 'Paiement attendu', tone: 'red' },
-      { icon: 'users', value: '824', label: 'Quotas enseignants', detail: 'Autorises', tone: 'purple' },
-    ]}
-    filters={['Statut', 'Categorie', 'Echeance', 'Province']}
-    columns={['Code', 'Ecole', 'Formule', 'Quota enseignants', 'Periode', 'Echeance', 'Solde', 'Statut']}
-    rows={[
-      ['PED-2026-0001', 'Complexe Scolaire La Reussite', 'Semestriel', '12 / 15', '01/09/2026 - 28/02/2027', '28/02/2027', 'money:205,00 $', 'status:Actif'],
-      ['PED-2026-0002', 'Institut Nzambe Malamu', 'Annuel', '25 / 30', '01/09/2026 - 31/08/2027', '31/08/2027', 'money:0,00 $', 'status:Actif'],
-      ['PED-2026-0003', 'CS Les Elites', 'Semestriel', '10 / 12', '01/09/2026 - 15/06/2026', '15/06/2026', 'money:45,00 $', 'status:Bientot expire'],
-      ['PED-2026-0004', 'EP Lumiere', 'Trimestriel', '5 / 8', '01/03/2026 - 20/05/2026', '20/05/2026', 'money:-120,00 $', 'status:En retard'],
-    ]}
-  />
-}
-
 function ManagementPayments() {
   return <ManagementDataScreen
     intro="Controlez les paiements, soldes, rappels et historiques financiers des ecoles clientes."
@@ -2381,7 +2358,6 @@ export {
   NewSchoolFlow,
   ManagementChapterStructure,
   ManagementProgramValidation,
-  ManagementSubscriptions,
   ManagementPayments,
   ManagementSentPrograms,
   ManagementSendHistory,

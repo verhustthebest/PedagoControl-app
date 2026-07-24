@@ -7,6 +7,7 @@ exports.SchoolStaffError = void 0;
 exports.createSchoolStaff = createSchoolStaff;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const client_1 = __importDefault(require("../prisma/client"));
+const phone_identity_1 = require("../security/phone-identity");
 class SchoolStaffError extends Error {
     constructor(message, status) {
         super(message);
@@ -17,8 +18,12 @@ exports.SchoolStaffError = SchoolStaffError;
 const QUOTA_MESSAGE = 'Impossible de créer un autre compte Enseignant : le quota autorisé par votre abonnement est atteint. Veuillez contacter l’Administrateur PEDAGO CONTROL.';
 /** Crée un personnel majeur dans l'école courante et applique le quota d'abonnement sous transaction. */
 async function createSchoolStaff(schoolId, input) {
+    if (input.phone)
+        input.phone = (0, phone_identity_1.normalizeDrcPhone)(input.phone);
     const passwordHash = await bcrypt_1.default.hash(input.password, 12);
     return client_1.default.$transaction(async (transaction) => {
+        if (input.phone)
+            await (0, phone_identity_1.assertPhoneAvailable)({ phone: input.phone, first_name: input.first_name, last_name: input.last_name, schoolId }, transaction);
         const role = await transaction.roles.findUnique({ where: { name: input.role } });
         if (!role?.is_active)
             throw new SchoolStaffError('Ce rôle n’est pas disponible.', 400);

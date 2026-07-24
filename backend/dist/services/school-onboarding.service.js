@@ -10,6 +10,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const node_crypto_1 = require("node:crypto");
 const client_1 = __importDefault(require("../prisma/client"));
 const notification_delivery_service_1 = require("./notification-delivery.service");
+const phone_identity_1 = require("../security/phone-identity");
 async function saveSchoolDraft(userId, input) {
     const payload = { ...input.data, current_step: input.current_step };
     if (input.draft_id) {
@@ -28,7 +29,7 @@ const listSubscriptionCatalog = () => client_1.default.subscriptions.findMany({
 });
 exports.listSubscriptionCatalog = listSubscriptionCatalog;
 /** Création transactionnelle et idempotente : le brouillon est réclamé avant toute écriture métier. */
-async function finalizeSchool(userId, input) {
+async function finalizeSchool(userId, input, requestId) {
     const draft = await client_1.default.school_creation_drafts.findFirst({ where: { public_id: input.draft_id, created_by_user_id: BigInt(userId) } });
     if (!draft)
         return { kind: 'not_found' };
@@ -46,12 +47,19 @@ async function finalizeSchool(userId, input) {
             const neighborhood = input.school.neighborhood_id ? await transaction.geo_neighborhoods.findFirst({ where: { public_id: input.school.neighborhood_id, commune_id: commune?.id } }) : null;
             if (!province || !city || !commune || (input.school.neighborhood_id && !neighborhood))
                 throw new Error('INVALID_GEOGRAPHY');
+            if (input.responsible.phone)
+                await (0, phone_identity_1.assertPhoneAvailable)({ phone: input.responsible.phone, first_name: input.responsible.first_name, last_name: input.responsible.last_name }, transaction);
+            await (0, phone_identity_1.assertPhoneAvailable)({ phone: input.account.phone, first_name: input.account.first_name, last_name: input.account.last_name }, transaction);
             const catalog = await transaction.subscriptions.findFirst({ where: { code: input.subscription.subscription_code, is_active: true } });
             if (!catalog)
                 throw new Error('INVALID_SUBSCRIPTION');
             if (!catalog.billing_periods.includes(input.subscription.billing_period))
                 throw new Error('INVALID_BILLING_PERIOD');
-            if (input.academic.teacher_limit < catalog.min_teachers || (catalog.max_teachers !== null && input.academic.teacher_limit > catalog.max_teachers)) {
+            const fixedQuota = catalog.code === 'LOCAL_TEST'
+                ? Math.max(1, Number(process.env.LOCAL_TEST_TEACHER_QUOTA || 5))
+                : catalog.max_teachers;
+            const expectedQuota = catalog.code === 'PROFESSIONAL' ? input.academic.teacher_limit : fixedQuota;
+            if (!expectedQuota || expectedQuota < catalog.min_teachers || (catalog.code !== 'PROFESSIONAL' && input.academic.teacher_limit !== expectedQuota)) {
                 throw new Error('INVALID_TEACHER_QUOTA');
             }
             const role = await transaction.roles.findUnique({ where: { name: 'ADMIN_GESTIONNAIRE' } });
@@ -93,14 +101,23 @@ async function finalizeSchool(userId, input) {
                     notification_type: 'school_created', reference_table: 'schools', reference_id: school.id,
                 } });
             await transaction.school_creation_drafts.update({ where: { id: draft.id }, data: { status: 'completed', created_school_public_id: school.public_id, updated_at: new Date() } });
-            return { public_id: school.public_id, name: school.name };
+            return { public_id: school.public_id, id: school.id, name: school.name };
         });
-        // Le message ne contient jamais le mot de passe initial ; le fournisseur décide du statut réel.
-        const delivery = await (0, notification_delivery_service_1.deliverNotification)({
-            channel: 'email', to: input.responsible.email, subject: 'Votre école PEDAGO CONTROL',
+        // Les deux canaux utilisent leurs propres modes et ne contiennent jamais le mot de passe initial.
+        const emailDelivery = await (0, notification_delivery_service_1.deliverNotification)({
+            channel: 'email', to: input.account.email, subject: 'Votre école PEDAGO CONTROL',
             text: `${result.name} a été créée. Connectez-vous avec votre adresse professionnelle et le mot de passe transmis par un canal sécurisé.`,
         });
-        return { kind: 'created', public_id: result.public_id, repeated: false, notification_status: delivery.status };
+        const smsDelivery = input.account.phone ? await (0, notification_delivery_service_1.deliverNotification)({
+            channel: 'sms', to: input.account.phone,
+            text: `Le compte Admin de ${result.name} est prêt. Utilisez vos identifiants transmis par un canal sécurisé.`,
+        }) : null;
+        const occurredAt = new Date();
+        await client_1.default.activity_logs.createMany({ data: [
+                { school_id: result.id, user_id: BigInt(userId), activity_type: 'school_admin_email', module_name: 'school_onboarding', reference_table: 'schools', reference_id: result.id, title: 'Notification Admin école', description: JSON.stringify({ provider: emailDelivery.provider, status: emailDelivery.status, date: occurredAt.toISOString(), request_id: requestId || null }) },
+                ...(smsDelivery ? [{ school_id: result.id, user_id: BigInt(userId), activity_type: 'school_admin_sms', module_name: 'school_onboarding', reference_table: 'schools', reference_id: result.id, title: 'Notification Admin école', description: JSON.stringify({ provider: smsDelivery.provider, status: smsDelivery.status, date: occurredAt.toISOString(), request_id: requestId || null }) }] : []),
+            ] });
+        return { kind: 'created', public_id: result.public_id, repeated: false, notifications: { email: emailDelivery, sms: smsDelivery, request_id: requestId ?? null, created_at: occurredAt } };
     }
     catch (error) {
         await client_1.default.school_creation_drafts.updateMany({ where: { id: draft.id, status: 'creating' }, data: { status: 'draft', updated_at: new Date() } });

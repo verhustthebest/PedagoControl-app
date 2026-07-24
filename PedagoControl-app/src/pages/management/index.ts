@@ -11,11 +11,11 @@ export {
   ManagementSentPrograms,
   ManagementSettings,
   ManagementStatistics,
-  ManagementSubscriptions,
   ManagementSupport,
   ManagementUsers,
 } from '../../components/management'
 export { NewSchoolFlow } from './NewSchoolFlow'
 export { ClientSchools } from './ClientSchools'
+export { ManagementSubscriptions } from './ManagementSubscriptions'
 export { ManagementParentalBillingDetail, ManagementParentalBillingGenerate, ManagementParentalBillingList } from './ManagementParentalBilling'
 export { ManagementNotificationTests } from './ManagementNotificationTests'

@@ -12,6 +12,7 @@ export type AuthUser = {
   school_id: string | null
   roles: string[]
   permissions: string[]
+  modules: { pedagogical_control: true; parental_tracking: boolean }
 }
 
 type JwtPayload = {
@@ -40,6 +41,7 @@ function formatUser(user: {
       role_permissions: Array<{ permissions: { code: string; is_active: boolean } }>
     }
   }>
+  schools?: { school_parental_settings?: { is_enabled:boolean } | null } | null
 }): AuthUser {
   return {
     id: user.id.toString(),
@@ -61,6 +63,10 @@ function formatUser(user: {
           ),
       ),
     ],
+    modules: {
+      pedagogical_control: true,
+      parental_tracking: Boolean(user.schools?.school_parental_settings?.is_enabled),
+    },
   }
 }
 
@@ -74,7 +80,7 @@ export async function loginWithEmailAndPassword(email: string, password: string)
       ],
     },
     include: {
-      schools: { select: { status: true } },
+      schools: { select: { status: true, school_parental_settings: {select:{is_enabled:true}} } },
       user_roles: {
         include: {
           roles: {
@@ -136,7 +142,7 @@ export async function findAuthUserById(userId: string) {
   const user = await prisma.users.findUnique({
     where: { id: BigInt(userId) },
     include: {
-      schools: { select: { status: true } },
+      schools: { select: { status: true, school_parental_settings: {select:{is_enabled:true}} } },
       user_roles: {
         include: {
           roles: {

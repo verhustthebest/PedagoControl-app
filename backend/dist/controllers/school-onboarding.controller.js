@@ -4,9 +4,17 @@ exports.subscriptions = subscriptions;
 exports.saveDraft = saveDraft;
 exports.createSchoolOnboarding = createSchoolOnboarding;
 const school_onboarding_service_1 = require("../services/school-onboarding.service");
+const phone_identity_1 = require("../security/phone-identity");
 async function subscriptions(_request, response) {
     const items = await (0, school_onboarding_service_1.listSubscriptionCatalog)();
-    return response.json({ items: items.map((item) => ({ ...item, monthly_price: item.monthly_price.toString(), annual_price: item.annual_price?.toString() ?? null })) });
+    return response.json({ items: items.map((item) => ({
+            ...item,
+            monthly_price: item.monthly_price.toString(),
+            annual_price: item.annual_price?.toString() ?? null,
+            configured_teacher_limit: item.code === 'LOCAL_TEST'
+                ? Math.max(1, Number(process.env.LOCAL_TEST_TEACHER_QUOTA || 5))
+                : item.max_teachers,
+        })) });
 }
 async function saveDraft(request, response) {
     const draft = await (0, school_onboarding_service_1.saveSchoolDraft)(request.user.id, request.body);
@@ -14,7 +22,7 @@ async function saveDraft(request, response) {
 }
 async function createSchoolOnboarding(request, response) {
     try {
-        const result = await (0, school_onboarding_service_1.finalizeSchool)(request.user.id, request.body);
+        const result = await (0, school_onboarding_service_1.finalizeSchool)(request.user.id, request.body, response.locals.request_id);
         if (result.kind === 'not_found')
             return response.status(404).json({ message: 'Resource not found' });
         if (result.kind === 'conflict')
@@ -22,10 +30,12 @@ async function createSchoolOnboarding(request, response) {
         return response.status(result.repeated ? 200 : 201).json({
             school: { public_id: result.public_id },
             repeated: result.repeated,
-            ...('notification_status' in result ? { notification_status: result.notification_status } : {}),
+            ...('notifications' in result ? { notifications: result.notifications } : {}),
         });
     }
-    catch {
+    catch (error) {
+        if (error instanceof phone_identity_1.PhoneIdentityError)
+            return response.status(error.status).json({ message: error.message });
         return response.status(400).json({ message: 'Unable to create school with the supplied configuration' });
     }
 }

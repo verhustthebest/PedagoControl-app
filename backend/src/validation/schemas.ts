@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { normalizeDrcPhone } from '../security/phone-identity'
 
 const text = (max: number) => z.string().trim().min(1).max(max)
 const nullableText = (max: number) => z.union([text(max), z.literal('').transform(() => null), z.null()])
@@ -27,6 +28,9 @@ export const limit = z.string().regex(/^[1-9]\d*$/).refine((v) => Number(v) <= 1
 export const amount = z.union([z.number().finite().positive(), z.string().regex(/^\d+(?:\.\d{1,2})?$/).refine(v => Number(v) > 0 && Number.isFinite(Number(v)))])
 export const email = z.string().trim().toLowerCase().email().max(254)
 export const phone = z.string().trim().transform(v => v.replace(/[\s().-]/g, '')).pipe(z.string().regex(/^\+?[1-9]\d{6,14}$/))
+export const drcPhone = z.string().trim().transform((value, context) => {
+  try { return normalizeDrcPhone(value) } catch { context.addIssue({ code: 'custom', message: 'Invalid Congolese phone' }); return z.NEVER }
+})
 export const schoolParams = z.object({ schoolId: resourceIdentifier }).strict()
 export const studentParams = z.object({ schoolId: resourceIdentifier, studentId: resourceIdentifier }).strict()
 export const guardianParams = z.object({ schoolId: resourceIdentifier, guardianId: resourceIdentifier }).strict()
@@ -57,6 +61,12 @@ export const itemParams = z.object({ id }).strict()
 export const emptyQuery = z.object({}).strict()
 export const paginationQuery = z.object({ page, limit }).strict()
 export const schoolListQuery = z.object({ page, limit, search: z.string().trim().max(150).optional(), status: z.string().trim().regex(/^[a-z_]{2,30}$/).optional() }).strict()
+export const schoolSubscriptionListQuery = z.object({
+  page, limit, search: z.string().trim().max(150).optional(),
+  status: z.enum(['active', 'expiring_soon', 'overdue', 'expired', 'suspended']).optional(),
+  plan: z.enum(['LOCAL_TEST', 'BASIC', 'GOLD', 'EXTRA', 'PROFESSIONAL']).optional(),
+  billing_period: z.enum(['monthly', 'quarterly', 'annual']).optional(),
+}).strict()
 export const schoolPublicParams = z.object({ schoolId: publicId }).strict()
 export const geographyParentParams = z.object({ parentId: publicId }).strict()
 export const geographyNameBody = z.object({ name: text(120) }).strict()
@@ -66,19 +76,19 @@ const schoolInformation = z.object({
   city_id: publicId, commune_id: publicId, neighborhood_id: publicId.optional(), geographic_reference: nullableText(500).optional(),
 }).strict()
 const adultBirthDate = date.refine(value => isAtLeastYearsOld(value, 18), 'La personne doit être âgée d’au moins 18 ans.')
-const schoolResponsible = z.object({ first_name: text(100), last_name: text(100), birth_date: adultBirthDate, email, phone: phone.optional() }).strict()
-const schoolAcademic = z.object({
+const schoolResponsible = z.object({ first_name: text(100), last_name: text(100), birth_date: adultBirthDate, email, phone: drcPhone.optional() }).strict()
+const schoolAcademicBase = z.object({
   year_name: text(100), start_date: date, end_date: date,
-  teacher_limit: z.number().int().min(1).max(10000),
   parental_enabled: z.boolean(),
 }).strict()
+const schoolAcademic = schoolAcademicBase.extend({ teacher_limit: z.number().int().min(1).max(10000) }).strict()
 const schoolSubscription = z.object({ subscription_code: text(30), billing_period: z.enum(['monthly', 'quarterly', 'annual']) }).strict()
-const schoolAccount = z.object({ first_name: text(100), last_name: text(100), email, phone: phone.optional(), password: z.string().min(10).max(256) }).strict()
+const schoolAccount = z.object({ first_name: text(100), last_name: text(100), email, phone: drcPhone, password: z.string().min(10).max(256) }).strict()
 const draftIdentity = { draft_id: publicId.optional() }
 export const schoolDraftBody = z.discriminatedUnion('current_step', [
   z.object({ ...draftIdentity, current_step:z.literal(1), data:z.object({ school:schoolInformation }).strict() }).strict(),
   z.object({ ...draftIdentity, current_step:z.literal(2), data:z.object({ school:schoolInformation, responsible:schoolResponsible }).strict() }).strict(),
-  z.object({ ...draftIdentity, current_step:z.literal(3), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic }).strict() }).strict(),
+  z.object({ ...draftIdentity, current_step:z.literal(3), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademicBase }).strict() }).strict(),
   z.object({ ...draftIdentity, current_step:z.literal(4), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic, subscription:schoolSubscription }).strict() }).strict(),
   z.object({ ...draftIdentity, current_step:z.literal(5), data:z.object({ school:schoolInformation, responsible:schoolResponsible, academic:schoolAcademic, subscription:schoolSubscription, account:schoolAccount.omit({password:true}) }).strict() }).strict(),
 ])
@@ -88,10 +98,11 @@ export const schoolStaffBody = z.object({
   last_name: text(100),
   birth_date: adultBirthDate,
   email,
-  phone: phone.optional(),
+  phone: drcPhone.optional(),
   password: z.string().min(10).max(256),
   role: z.enum(['PREFET', 'ENSEIGNANT', 'DIRECTEUR', 'PROMOTEUR', 'INFORMATICIEN']),
 }).strict()
+export const phoneIdentityBody = z.object({ phone: drcPhone, first_name: text(100), last_name: text(100) }).strict()
 
 export const settingsBody = z.object({
   is_enabled: z.boolean().optional(), attachment_requires_validation: z.boolean().optional(),
@@ -112,7 +123,7 @@ export const studentListQuery = z.object({ search: z.string().trim().max(200).op
 export const trackingBody = z.object({ enabled: z.boolean() }).strict()
 
 const guardianFields = {
-  first_name: text(100), last_name: text(100), middle_name: nullableText(100).optional(), phone: phone.nullable().optional(), email: email.nullable().optional(),
+  first_name: text(100), last_name: text(100), middle_name: nullableText(100).optional(), phone: drcPhone.nullable().optional(), email: email.nullable().optional(),
   national_id_number: nullableText(100).optional(), occupation: nullableText(150).optional(), address: nullableText(500).optional(),
   preferred_contact_method: z.enum(['email', 'phone', 'sms', 'whatsapp']).nullable().optional(), status: z.enum(['active', 'inactive']).optional(),
 }

@@ -1533,6 +1533,7 @@
 .wizard-next { background: #7dd3fc; color: #0c4a6e; }
 .wizard-create { background: #2563eb; color: #fff; }
 .wizard-button:disabled { cursor: wait; opacity: .65; }
+.subscription-expiring small { color: #111 !important; }
 
 .module-choice {
   display: grid;

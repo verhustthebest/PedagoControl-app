@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import prisma from '../prisma/client'
 import { ParentalApiError } from './parental.service'
+import { normalizeDrcPhone, PHONE_CONFLICT_MESSAGE } from '../security/phone-identity'
 
 const guardianInclude = {
   student_guardians: {
@@ -72,7 +73,9 @@ function normalizeEmail(value: unknown) {
 }
 
 function normalizePhone(value: unknown) {
-  return nullableText(value, 'phone')
+  const phone=nullableText(value,'phone')
+  if(!phone)return null
+  try{return normalizeDrcPhone(phone)}catch{throw new ParentalApiError('Le numéro doit être un numéro congolais valide au format +243.',400)}
 }
 
 function parsePage(value: string | undefined, fallback: number, maximum?: number) {
@@ -192,7 +195,7 @@ export async function createGuardian(schoolIdValue: string, actorUserId: string,
           where: contactDuplicateWhere(schoolId, phone, email),
           select: { id: true },
         })
-        if (duplicate) throw new ParentalApiError('A guardian with this phone or email already exists', 409)
+        if (duplicate) throw new ParentalApiError(phone ? PHONE_CONFLICT_MESSAGE : 'A guardian with this email already exists', 409)
 
         const guardian = await transaction.guardians.create({
           data: {
@@ -258,7 +261,7 @@ export async function updateGuardian(
         where: contactDuplicateWhere(schoolId, phone, email, guardianId),
         select: { id: true },
       })
-      if (duplicate) throw new ParentalApiError('A guardian with this phone or email already exists', 409)
+      if (duplicate) throw new ParentalApiError(phone ? PHONE_CONFLICT_MESSAGE : 'A guardian with this email already exists', 409)
 
       const guardian = await transaction.guardians.update({
         where: { id: guardianId },
