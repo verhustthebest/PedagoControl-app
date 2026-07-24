@@ -77,7 +77,7 @@ export const adminParentalApi = {
   guardian: (schoolId: string, publicId: string) => apiRequest<{ guardian: Guardian }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians/${encodeURIComponent(publicId)}`),
   createGuardian: (schoolId: string, body: Record<string, unknown>) => apiRequest<{ guardian: Guardian }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians`, { method: 'POST', body: JSON.stringify(body) }),
   updateGuardian: (schoolId: string, publicId: string, body: Record<string, unknown>) => apiRequest<{ guardian: Guardian }>(`/parental/schools/${encodeURIComponent(schoolId)}/guardians/${encodeURIComponent(publicId)}`, { method: 'PUT', body: JSON.stringify(body) }),
-  attachStudent: (schoolId: string, studentPublicId: string, guardianInternalId: string, relationshipType: string) => apiRequest(`/parental/schools/${encodeURIComponent(schoolId)}/students/${encodeURIComponent(studentPublicId)}/guardians`, { method: 'POST', body: JSON.stringify({ guardian_id: guardianInternalId, relationship_type: relationshipType }) }),
+  createAttachmentRequest:(schoolId:string,studentPublicId:string,guardianPublicId:string,relationshipType:string)=>apiRequest<{request:AttachmentRequest}>(`/parental/schools/${encodeURIComponent(schoolId)}/attachment-requests`,{method:'POST',body:JSON.stringify({student_id:studentPublicId,guardian_id:guardianPublicId,relationship_type:relationshipType})}),
 }
 
 const totalOf = (payload: { pagination?: { total?: number } }) =>

@@ -4,32 +4,16 @@ export type ReportStatus = 'submitted' | 'validated' | 'rejected' | 'correction_
 export type PrefectDecision = 'validated' | 'rejected' | 'correction_requested'
 
 type BackendUser = {
+  public_id?: string
   first_name?: string
   last_name?: string
   email?: string
 }
 
-type BackendProgramDistribution = {
-  id: string | number
-  planned_periods?: number
-  program_chapters?: { title?: string }
-  program_sub_chapters?: { title?: string } | null
-  annual_programs?: { title?: string }
-}
-
-type BackendTeacherAssignment = {
-  academic_year_subjects?: {
-    subjects?: { name?: string }
-    academic_year_classes?: {
-      school_classes?: { name?: string; parallel?: string | null }
-    }
-  }
-}
-
 export type BackendLessonReport = {
-  id: string | number
-  program_distribution_id: string | number
-  teacher_assignment_id: string | number
+  public_id: string
+  distribution_public_id: string
+  assignment_public_id: string
   actual_date: string
   actual_periods: number
   lesson_status: ReportStatus
@@ -38,11 +22,10 @@ export type BackendLessonReport = {
   exercises_given?: string | null
   homework_given?: string | null
   observations?: string | null
-  users?: BackendUser
-  teacher_assignments?: BackendTeacherAssignment
-  program_distribution?: BackendProgramDistribution
-  lesson_validations?: Array<{ decision: PrefectDecision; validation_comment?: string | null }>
-  lesson_comments?: Array<{ comment_text?: string | null }>
+  teacher?: BackendUser
+  assignment?: { subject?: { public_id:string; name?:string }; class?: { public_id:string; name?:string; parallel?:string|null } }
+  program?: { title?:string; chapter?:string; sub_chapter?:string|null }
+  validations?: Array<{ decision: PrefectDecision; observation?: string | null }>
 }
 
 export type UiLessonReport = {
@@ -98,26 +81,24 @@ function statusLabel(status: ReportStatus) {
 }
 
 export function mapLessonReport(report: BackendLessonReport): UiLessonReport {
-  const rawTeacherName = [report.users?.first_name, report.users?.last_name].filter(Boolean).join(' ')
-  const teacherName = rawTeacherName === 'Enseignant Demo' ? report.users?.email || 'Enseignant' : rawTeacherName || report.users?.email || 'Enseignant'
-  const schoolClass = report.teacher_assignments?.academic_year_subjects?.academic_year_classes?.school_classes
-  const subject = report.teacher_assignments?.academic_year_subjects?.subjects
-  const validation = report.lesson_validations?.[report.lesson_validations.length - 1]
-  const comment = report.lesson_comments?.[report.lesson_comments.length - 1]
+  const teacherName = [report.teacher?.first_name, report.teacher?.last_name].filter(Boolean).join(' ') || 'Enseignant'
+  const schoolClass = report.assignment?.class
+  const subject = report.assignment?.subject
+  const validation = report.validations?.[report.validations.length - 1]
   const status = statusLabel(report.lesson_status)
 
   return {
-    id: `RQC-${String(report.id).padStart(3, '0')}`,
-    rawId: String(report.id),
-    programDistributionId: String(report.program_distribution_id),
-    teacherAssignmentId: String(report.teacher_assignment_id),
+    id: `J-${report.public_id.slice(0, 8).toUpperCase()}`,
+    rawId: report.public_id,
+    programDistributionId: report.distribution_public_id,
+    teacherAssignmentId: report.assignment_public_id,
     date: formatDate(report.actual_date),
     teacher: teacherName,
     className: [schoolClass?.name, schoolClass?.parallel].filter(Boolean).join(' ') || 'Classe',
     subject: subject?.name || 'Matiere',
-    program: report.program_distribution?.annual_programs?.title || 'Programme recu',
-    chapter: report.program_distribution?.program_chapters?.title || 'Chapitre',
-    subChapter: report.program_distribution?.program_sub_chapters?.title || 'Sous-chapitre',
+    program: report.program?.title || 'Programme reçu',
+    chapter: report.program?.chapter || 'Chapitre',
+    subChapter: report.program?.sub_chapter || '',
     periods: report.actual_periods,
     summary: report.lesson_summary,
     objectives: report.objectives_achieved || '',
@@ -125,12 +106,16 @@ export function mapLessonReport(report: BackendLessonReport): UiLessonReport {
     homework: report.homework_given || '',
     observations: report.observations || '',
     status,
-    prefectObservation: validation?.validation_comment || comment?.comment_text || report.observations || 'Aucune observation',
+    prefectObservation: validation?.observation || report.observations || 'Aucune observation',
     decision: validation ? statusLabel(validation.decision) : status === 'Soumis' ? 'En attente' : status,
   }
 }
 
 export const reportsApi = {
+  getTeacherAssignments: async () => {
+    const data = await apiRequest<{ assignments: TeacherLessonAssignment[] }>('/teacher/assignments')
+    return data.assignments
+  },
   getTeacherReports: async () => {
     const data = await apiRequest<{ reports: BackendLessonReport[] }>('/teacher/reports')
     return data.reports.map(mapLessonReport)
@@ -140,8 +125,11 @@ export const reportsApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  getPendingPrefectReports: async () => {
-    const data = await apiRequest<{ reports: BackendLessonReport[] }>('/prefet/reports/pending')
+  updateTeacherReport: (publicId:string,payload:CreateTeacherReportPayload) => apiRequest<{report:BackendLessonReport}>(`/teacher/reports/${encodeURIComponent(publicId)}`,{method:'PATCH',body:JSON.stringify(payload)}),
+  getPendingPrefectReports: async (filters:PrefectReportFilters={}) => {
+    const query=new URLSearchParams()
+    Object.entries(filters).forEach(([key,value])=>{if(value)query.set(key,value)})
+    const data = await apiRequest<{ reports: BackendLessonReport[] }>(`/prefet/reports/pending${query.size?`?${query}`:''}`)
     return data.reports.map(mapLessonReport)
   },
   decidePrefectReport: (id: string, decision: PrefectDecision, observation: string) =>
@@ -157,3 +145,15 @@ export const reportsApi = {
     }
   },
 }
+
+export type TeacherLessonAssignment={
+  public_id:string
+  distribution_public_id:string
+  class:{public_id:string;annual_public_id:string;name:string;parallel?:string|null}
+  subject:{public_id:string;name:string;code?:string|null}
+  program:string
+  chapter:string
+  sub_chapter?:string|null
+  planned_date:string
+}
+export type PrefectReportFilters={date?:string;class_id?:string;teacher_id?:string;subject_id?:string;status?:ReportStatus}

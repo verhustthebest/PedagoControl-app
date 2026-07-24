@@ -312,14 +312,15 @@ export async function linkGuardianToStudent(
   const schoolId = parseId(schoolIdValue, 'schoolId')
   const studentId = parseId(studentIdValue, 'studentId')
   const actorId = parseId(actorUserId, 'actorUserId')
-  const guardianId = parseId(requiredText(input.guardian_id, 'guardian_id'), 'guardian_id')
+  const guardianPublicId = requiredText(input.guardian_id, 'guardian_id')
   const relationshipType = requiredText(input.relationship_type, 'relationship_type')
   const [student, guardian] = await Promise.all([
     prisma.students.findFirst({ where: { id: studentId, school_id: schoolId }, select: { id: true } }),
-    prisma.guardians.findFirst({ where: { id: guardianId, school_id: schoolId }, select: { id: true } }),
+    prisma.guardians.findFirst({ where: { public_id:guardianPublicId, school_id: schoolId }, select: { id: true } }),
   ])
   if (!student) throw new ParentalApiError('Student not found in this school', 404)
   if (!guardian) throw new ParentalApiError('Guardian not found in this school', 404)
+  const guardianId=guardian.id
 
   const existing = await prisma.student_guardians.findUnique({
     where: { student_id_guardian_id: { student_id: studentId, guardian_id: guardianId } },

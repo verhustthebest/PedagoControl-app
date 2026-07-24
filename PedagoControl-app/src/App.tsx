@@ -9,7 +9,9 @@ import { ContributionConfigurationPage, ContributionDueDetailPage, ContributionD
 import { StudentFormPage, StudentListPage, StudentProfilePage } from './pages/admin/students'
 import { GuardianFormPage, GuardianListPage, GuardianProfilePage } from './pages/admin/guardians'
 import { AttachWizardPage, AttachmentRequestDetailPage, AttachmentRequestsPage } from './pages/admin/attachments'
-import { ForbiddenAccess, LoginScreen, PresentationScreen, UnauthenticatedAccess } from './pages/auth'
+import { AdminClassesPage, AdminStaffPage, AdminSubjectsPage } from './pages/admin/academic/AdminAcademicPages'
+import { AdminNotificationsPage, AdminPasswordPage, AdminPhotoPage, AdminProfilePage } from './pages/admin/account/AdminAccountPages'
+import { ForbiddenAccess, InvitationActivation, LoginScreen, ParentActivation, PresentationScreen, UnauthenticatedAccess } from './pages/auth'
 import { AnnualRepartition, Dashboard, EvaluationControl, ProgressTracking, Reports, SchoolPrograms, SupervisionDetail } from './pages/director'
 import { TeacherDashboard, TeacherEvaluations, TeacherPrograms, TeacherProgress, TeacherTextBook } from './pages/enseignant'
 import {
@@ -61,6 +63,8 @@ function App() {
         <Route path="/demarrage" element={<PresentationScreen />} />
         <Route path="/presentation" element={<PresentationScreen />} />
         <Route path="/login" element={<LoginScreen />} />
+        <Route path="/invitation" element={<InvitationActivation />} />
+        <Route path="/activation-parent" element={<ParentActivation />} />
         <Route path="/demo" element={<Navigate to="/login" replace />} />
         <Route path="/non-authentifie" element={<UnauthenticatedAccess />} />
         <Route path="/acces-interdit" element={<ForbiddenAccess />} />
@@ -109,7 +113,7 @@ function App() {
         <Route path="/directeur/*" element={<Navigate to="/directeur" replace />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['PREFET']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['PREFET', 'PREFET_DES_ETUDES']} />}>
         <Route path="/prefet" element={<PrefectLayout title="Dashboard Prefet" subtitle="Pilotage pedagogique et validation des activites scolaires"><PrefectDashboard /></PrefectLayout>} />
         <Route path="/prefet/validations" element={<PrefectLayout title="Validation des progressions" crumb="Validation des progressions"><PrefectValidations /></PrefectLayout>} />
         <Route path="/prefet/progressions/:id" element={<PrefectLayout title="Détail progression" crumb="Détail progression"><PrefectProgressionDetail /></PrefectLayout>} />
@@ -156,6 +160,15 @@ function App() {
           <Route path="/admin/parents/:publicId/attacher" element={<AdminLayout><AttachWizardPage /></AdminLayout>} />
           <Route path="/admin/rattachements/demandes" element={<AdminLayout><AttachmentRequestsPage /></AdminLayout>} />
           <Route path="/admin/rattachements/demandes/:publicId" element={<AdminLayout><AttachmentRequestDetailPage /></AdminLayout>} />
+          <Route path="/admin/classes" element={<AdminLayout><AdminClassesPage /></AdminLayout>} />
+          <Route path="/admin/matieres" element={<AdminLayout><AdminSubjectsPage /></AdminLayout>} />
+          <Route path="/admin/prefet" element={<AdminLayout><AdminStaffPage role="PREFET_DES_ETUDES" /></AdminLayout>} />
+          <Route path="/admin/enseignants" element={<AdminLayout><AdminStaffPage role="ENSEIGNANT" /></AdminLayout>} />
+          <Route path="/admin/notifications" element={<AdminLayout><AdminNotificationsPage /></AdminLayout>} />
+          <Route path="/admin/profil" element={<AdminLayout><AdminProfilePage /></AdminLayout>} />
+          <Route path="/admin/parametres" element={<AdminLayout><AdminProfilePage /></AdminLayout>} />
+          <Route path="/admin/photo" element={<AdminLayout><AdminPhotoPage /></AdminLayout>} />
+          <Route path="/admin/mot-de-passe" element={<AdminLayout><AdminPasswordPage /></AdminLayout>} />
           <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['INFORMATICIEN']} />}>

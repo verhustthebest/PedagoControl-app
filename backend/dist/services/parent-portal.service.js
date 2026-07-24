@@ -8,6 +8,7 @@ exports.getOwnChildJournals = getOwnChildJournals;
 exports.acknowledgeOwnChildJournal = acknowledgeOwnChildJournal;
 exports.getOwnNotifications = getOwnNotifications;
 const client_1 = require("@prisma/client");
+const node_crypto_1 = require("node:crypto");
 const client_2 = __importDefault(require("../prisma/client"));
 const parental_service_1 = require("./parental.service");
 const parental_student_service_1 = require("./parental-student.service");
@@ -59,11 +60,14 @@ async function guardianForUser(userId) {
         throw new parental_service_1.ParentalApiError('Active guardian profile not found', 403);
     return guardian;
 }
-async function accessibleChild(guardianId, studentId) {
+async function accessibleChild(guardianId, studentPublicId) {
+    const studentSelector = /^\d+$/.test(studentPublicId)
+        ? { student_id: BigInt(studentPublicId) }
+        : { students: { public_id: studentPublicId } };
     const link = await client_2.default.student_guardians.findFirst({
         where: {
             guardian_id: guardianId,
-            student_id: studentId,
+            ...studentSelector,
             status: 'active',
             validated_at: { not: null },
             can_view_journal: true,
@@ -127,10 +131,11 @@ async function dailyLessons(academicYearClassId, journalDate) {
     return client_2.default.lesson_sessions.findMany({
         where: {
             actual_date: journalDate,
+            // L'envoi de l'Enseignant publie immédiatement le journal ; le contrôle Préfet reste parallèle.
+            lesson_status: { in: ['submitted', 'validated', 'correction_requested'] },
             teacher_assignments: {
                 academic_year_subjects: { academic_year_class_id: academicYearClassId },
             },
-            lesson_validations: { some: { decision: 'validated' } },
         },
         include: lessonInclude,
         orderBy: [{ actual_start_time: 'asc' }, { id: 'asc' }],
@@ -138,19 +143,17 @@ async function dailyLessons(academicYearClassId, journalDate) {
 }
 function lessonView(lesson) {
     const subject = lesson.teacher_assignments.academic_year_subjects.subjects;
-    const validation = lesson.lesson_validations[0];
     return {
-        lesson_session_id: lesson.id.toString(),
+        lesson_session_id: (0, node_crypto_1.createHmac)('sha256', process.env.PUBLIC_ID_SECRET || process.env.ACCESS_TOKEN_SECRET || 'development-only').update(`parent-lesson:${lesson.id}`).digest('base64url'),
         subject: subject.name,
         teacher: {
-            id: lesson.users.id.toString(),
             first_name: lesson.users.first_name,
             last_name: lesson.users.last_name,
         },
         summary: lesson.lesson_summary,
         homework: lesson.homework_given,
         observations: lesson.observations,
-        validation_status: validation?.decision ?? lesson.lesson_status,
+        validation_status: lesson.lesson_status,
         start_time: lesson.actual_start_time,
         end_time: lesson.actual_end_time,
     };
@@ -182,12 +185,13 @@ async function getOwnChildren(userIdValue) {
         orderBy: { created_at: 'asc' },
     });
     return {
-        guardian_id: guardian.id,
         children: links.map((link) => ({
             relationship_type: link.relationship_type,
             is_primary: link.is_primary,
             student: {
-                ...link.students,
+                public_id: link.students.public_id, matricule: link.students.matricule, first_name: link.students.first_name,
+                last_name: link.students.last_name, middle_name: link.students.middle_name, gender: link.students.gender,
+                birth_date: link.students.birth_date, profile_photo: link.students.profile_photo, status: link.students.status,
                 student_enrollments: link.students.student_enrollments.map((enrollment) => ({
                     ...enrollment,
                     tracking_status: (0, parental_student_service_1.enrollmentTrackingStatus)(enrollment),
@@ -198,12 +202,17 @@ async function getOwnChildren(userIdValue) {
 }
 async function getOwnChildJournals(userIdValue, studentIdValue, dateValue) {
     const userId = parseId(userIdValue, 'userId');
-    const studentId = parseId(studentIdValue, 'studentId');
     const journalDate = parseDate(dateValue);
     const guardian = await guardianForUser(userId);
-    const link = await accessibleChild(guardian.id, studentId);
+    const link = await accessibleChild(guardian.id, studentIdValue);
+    const studentId = link.student_id;
     const enrollment = await effectiveEnrollment(studentId, journalDate);
     const lessons = await dailyLessons(enrollment.academic_year_class_id, journalDate);
+    const controlStatus = lessons.some((lesson) => lesson.lesson_status === 'correction_requested')
+        ? 'correction_requested'
+        : lessons.length > 0 && lessons.every((lesson) => lesson.lesson_status === 'validated')
+            ? 'validated'
+            : 'submitted';
     const acknowledgement = await client_2.default.parent_daily_acknowledgements.findUnique({
         where: {
             guardian_id_student_id_journal_date: {
@@ -226,22 +235,23 @@ async function getOwnChildJournals(userIdValue, studentIdValue, dateValue) {
         },
     });
     return {
-        student: link.students,
+        student: { public_id: link.students.public_id, first_name: link.students.first_name, last_name: link.students.last_name, middle_name: link.students.middle_name, profile_photo: link.students.profile_photo },
         journal_date: journalDate,
+        control_status: controlStatus,
         lessons: lessons.map(lessonView),
         acknowledgement,
     };
 }
 async function acknowledgeOwnChildJournal(userIdValue, studentIdValue, dateValue, metadata) {
     const userId = parseId(userIdValue, 'userId');
-    const studentId = parseId(studentIdValue, 'studentId');
     const journalDate = parseDate(dateValue);
     const guardian = await guardianForUser(userId);
-    await accessibleChild(guardian.id, studentId);
+    const link = await accessibleChild(guardian.id, studentIdValue);
+    const studentId = link.student_id;
     const enrollment = await effectiveEnrollment(studentId, journalDate);
     const lessons = await dailyLessons(enrollment.academic_year_class_id, journalDate);
     if (!lessons.length)
-        throw new parental_service_1.ParentalApiError('No validated or published lessons exist for this date', 409);
+        throw new parental_service_1.ParentalApiError('No published lessons exist for this date', 409);
     const snapshot = lessons.map(lessonView);
     const comment = metadata.comment === undefined || metadata.comment === null
         ? null

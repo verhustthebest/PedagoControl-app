@@ -52,7 +52,7 @@ function normalizeContact(value: unknown, channel: OtpChannel) {
     }
     return email
   }
-  return contact
+  try{return normalizeDrcPhone(contact)}catch{throw new ParentalApiError('contact must be a valid phone number',400)}
 }
 
 async function publicAudit(params: {
@@ -173,8 +173,9 @@ export async function requestParentRegistrationOtp(input: {
     },
   })
 
+  let delivery
   try {
-    await sendRegistrationOtp({
+    delivery=await sendRegistrationOtp({
       channel,
       destination: contact,
       code,
@@ -194,13 +195,14 @@ export async function requestParentRegistrationOtp(input: {
     type: 'parent_otp_requested',
     referenceId: verification.id,
     title: 'Demande OTP inscription Parent',
-    description: `Un OTP d inscription Parent a ete envoye par ${channel}.`,
+    description: JSON.stringify({channel,provider:delivery.provider,status:delivery.status}),
   })
 
   return {
     verification_id: verification.id,
     channel,
     expires_at: expiresAt,
+    delivery,
   }
 }
 
@@ -279,7 +281,7 @@ export async function finalizeParentRegistration(input: {
 }) {
   const token = requiredString(input.registration_token, 'registration_token')
   const password = requiredString(input.password, 'password')
-  if (password.length < 8) throw new ParentalApiError('password must contain at least 8 characters', 400)
+  if(password.length<12||!/[a-z]/.test(password)||!/[A-Z]/.test(password)||!/\d/.test(password)||!(/[^A-Za-z0-9]/.test(password)))throw new ParentalApiError('password does not meet security policy',400)
 
   let actionToken
   try {

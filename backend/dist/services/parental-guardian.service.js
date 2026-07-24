@@ -275,16 +275,17 @@ async function linkGuardianToStudent(schoolIdValue, studentIdValue, actorUserId,
     const schoolId = parseId(schoolIdValue, 'schoolId');
     const studentId = parseId(studentIdValue, 'studentId');
     const actorId = parseId(actorUserId, 'actorUserId');
-    const guardianId = parseId(requiredText(input.guardian_id, 'guardian_id'), 'guardian_id');
+    const guardianPublicId = requiredText(input.guardian_id, 'guardian_id');
     const relationshipType = requiredText(input.relationship_type, 'relationship_type');
     const [student, guardian] = await Promise.all([
         client_2.default.students.findFirst({ where: { id: studentId, school_id: schoolId }, select: { id: true } }),
-        client_2.default.guardians.findFirst({ where: { id: guardianId, school_id: schoolId }, select: { id: true } }),
+        client_2.default.guardians.findFirst({ where: { public_id: guardianPublicId, school_id: schoolId }, select: { id: true } }),
     ]);
     if (!student)
         throw new parental_service_1.ParentalApiError('Student not found in this school', 404);
     if (!guardian)
         throw new parental_service_1.ParentalApiError('Guardian not found in this school', 404);
+    const guardianId = guardian.id;
     const existing = await client_2.default.student_guardians.findUnique({
         where: { student_id_guardian_id: { student_id: studentId, guardian_id: guardianId } },
         select: { id: true },

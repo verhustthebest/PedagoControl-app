@@ -57,7 +57,12 @@ function normalizeContact(value, channel) {
         }
         return email;
     }
-    return contact;
+    try {
+        return (0, phone_identity_1.normalizeDrcPhone)(contact);
+    }
+    catch {
+        throw new parental_service_1.ParentalApiError('contact must be a valid phone number', 400);
+    }
 }
 async function publicAudit(params) {
     const fallback = params.guardianCreatedById
@@ -161,8 +166,9 @@ async function requestParentRegistrationOtp(input) {
             expires_at: expiresAt,
         },
     });
+    let delivery;
     try {
-        await (0, otp_provider_service_1.sendRegistrationOtp)({
+        delivery = await (0, otp_provider_service_1.sendRegistrationOtp)({
             channel,
             destination: contact,
             code,
@@ -182,12 +188,13 @@ async function requestParentRegistrationOtp(input) {
         type: 'parent_otp_requested',
         referenceId: verification.id,
         title: 'Demande OTP inscription Parent',
-        description: `Un OTP d inscription Parent a ete envoye par ${channel}.`,
+        description: JSON.stringify({ channel, provider: delivery.provider, status: delivery.status }),
     });
     return {
         verification_id: verification.id,
         channel,
         expires_at: expiresAt,
+        delivery,
     };
 }
 async function verifyParentRegistrationOtp(input) {
@@ -252,8 +259,8 @@ async function verifyParentRegistrationOtp(input) {
 async function finalizeParentRegistration(input) {
     const token = requiredString(input.registration_token, 'registration_token');
     const password = requiredString(input.password, 'password');
-    if (password.length < 8)
-        throw new parental_service_1.ParentalApiError('password must contain at least 8 characters', 400);
+    if (password.length < 12 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !(/[^A-Za-z0-9]/.test(password)))
+        throw new parental_service_1.ParentalApiError('password does not meet security policy', 400);
     let actionToken;
     try {
         actionToken = await (0, action_token_service_1.consumeActionToken)(token, 'parent_activation');

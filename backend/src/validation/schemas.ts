@@ -42,19 +42,44 @@ export const loginBody = z.object({
   password: z.string().min(1).max(256),
   remember_me: z.boolean().optional().default(false),
 }).strict()
+export const changePasswordBody=z.object({
+  current_password:z.string().min(1).max(256),
+  new_password:z.string().min(12).max(256).regex(/[a-z]/).regex(/[A-Z]/).regex(/\d/).regex(/[^A-Za-z0-9]/),
+  confirmation:z.string().min(1).max(256),
+}).strict().refine(value=>value.new_password===value.confirmation,{path:['confirmation'],message:'Passwords do not match'})
+export const profilePhotoBody=z.object({
+  data_url:z.string().max(750_000).regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/),
+  mime_type:z.enum(['image/jpeg','image/png','image/webp']),
+  file_size:z.number().int().positive().max(500_000),
+}).strict()
+export const acceptStaffInvitationBody=z.object({
+  token:z.string().min(80).max(200),
+  password:z.string().min(12).max(256).regex(/[a-z]/).regex(/[A-Z]/).regex(/\d/).regex(/[^A-Za-z0-9]/),
+  confirmation:z.string().min(1).max(256),
+}).strict().refine(value=>value.password===value.confirmation,{path:['confirmation'],message:'Passwords do not match'})
 export const requestOtpBody = z.object({ school_code: text(50), contact: z.string().trim().max(254), channel: z.enum(['email', 'whatsapp', 'sms']) }).strict()
 export const verifyOtpBody = z.object({ verification_id: id, otp: z.string().regex(/^\d{6}$/) }).strict()
-export const registerParentBody = z.object({ registration_token: z.string().min(16).max(2048), password: z.string().min(8).max(256) }).strict()
+export const registerParentBody = z.object({ registration_token: z.string().min(16).max(2048), password: z.string().min(12).max(256).regex(/[a-z]/).regex(/[A-Z]/).regex(/\d/).regex(/[^A-Za-z0-9]/) }).strict()
 
 export const reportBody = z.object({
-  program_distribution_id: id, teacher_assignment_id: id,
+  program_distribution_id: z.string().min(24).max(500), teacher_assignment_id: z.string().min(24).max(500),
   actual_date: date.optional(), actual_start_time: time.optional(), actual_end_time: time.optional(),
   actual_periods: z.number().int().positive().max(24).optional(), lesson_summary: text(4000),
   objectives_achieved: text(4000).optional(), exercises_given: text(4000).optional(),
   homework_given: text(4000).optional(), observations: text(4000).optional(),
 }).strict()
-export const reportDecisionBody = z.object({ decision: z.enum(['validated', 'rejected', 'correction_requested']), observation: text(4000).optional() }).strict()
-export const reportParams = z.object({ id }).strict()
+export const reportDecisionBody = z.object({ decision: z.enum(['validated', 'correction_requested']), observation: text(4000).optional() }).strict()
+  .superRefine((value, context) => {
+    if (value.decision === 'correction_requested' && !value.observation?.trim()) {
+      context.addIssue({ code: 'custom', path: ['observation'], message: 'Le motif du retour est obligatoire.' })
+    }
+  })
+export const reportParams = z.object({ id: z.string().min(24).max(500) }).strict()
+export const reportQuery = z.object({
+  date: date.optional(), class_id: publicId.optional(), teacher_id: publicId.optional(),
+  subject_id: z.string().min(24).max(500).optional(),
+  status: z.enum(['submitted', 'validated', 'correction_requested']).optional(),
+}).strict()
 
 export const messageBody = z.object({ title: text(200).optional(), message: text(5000), recipient: z.enum(['teachers', 'all_teachers', 'all']).optional() }).strict()
 export const itemParams = z.object({ id }).strict()
@@ -98,10 +123,17 @@ export const schoolStaffBody = z.object({
   last_name: text(100),
   birth_date: adultBirthDate,
   email,
-  phone: drcPhone.optional(),
-  password: z.string().min(10).max(256),
-  role: z.enum(['PREFET', 'ENSEIGNANT', 'DIRECTEUR', 'PROMOTEUR', 'INFORMATICIEN']),
+  phone: drcPhone,
+  role: z.enum(['PREFET_DES_ETUDES', 'ENSEIGNANT', 'DIRECTEUR', 'PROMOTEUR', 'INFORMATICIEN']),
 }).strict()
+export const schoolStaffQuery=z.object({role:z.enum(['PREFET_DES_ETUDES','ENSEIGNANT']).optional(),search:z.string().trim().max(150).optional(),page,limit}).strict()
+export const staffParams=z.object({schoolId:resourceIdentifier,staffId:publicId}).strict()
+export const schoolStaffUpdateBody=z.object({first_name:text(100).optional(),last_name:text(100).optional(),birth_date:adultBirthDate.optional(),email:email.optional(),phone:drcPhone.optional(),is_active:z.boolean().optional()}).strict()
+export const classBody=z.object({name:text(100),level:text(100),section:text(100).optional(),section_other:text(100).optional(),parallel:nullableText(20).optional()}).strict().superRefine((value,context)=>{if(value.section==='Autre'&&!value.section_other)context.addIssue({code:'custom',path:['section_other'],message:'La nouvelle section est obligatoire'})})
+export const classParams=z.object({schoolId:resourceIdentifier,classId:publicId}).strict()
+export const subjectBody=z.object({name:text(150),code:nullableText(50).optional(),description:nullableText(1000).optional(),class_ids:z.array(publicId).min(1).max(100)}).strict()
+export const subjectParams=z.object({schoolId:resourceIdentifier,subjectId:publicId}).strict()
+export const teacherAssignmentBody=z.object({class_subject_ids:z.array(publicId).min(1).max(100)}).strict()
 export const phoneIdentityBody = z.object({ phone: drcPhone, first_name: text(100), last_name: text(100) }).strict()
 
 export const settingsBody = z.object({
@@ -115,7 +147,7 @@ export const subscriptionBody = z.object({ unit_price_per_student: amount, schoo
 const studentFields = {
   first_name: text(100), last_name: text(100), middle_name: text(100), gender: z.enum(['M', 'F', 'm', 'f']).transform(v => v.toUpperCase()),
   birth_date: date, birth_place: text(200), address: text(500), profile_photo: nullableText(2048).optional(),
-  status: z.enum(['active', 'inactive']).optional(), academic_year_class_id: resourceIdentifier.optional(),
+  status: z.enum(['active', 'inactive']).optional(), academic_year_class_id: publicId,
 }
 export const createStudentBody = z.object(studentFields).strict()
 export const updateStudentBody = z.object(studentFields).partial().strict()
@@ -130,7 +162,8 @@ const guardianFields = {
 export const createGuardianBody = z.object(guardianFields).strict()
 export const updateGuardianBody = z.object(guardianFields).partial().strict()
 export const guardianListQuery = z.object({ search: z.string().trim().max(200).optional(), status: z.enum(['active', 'inactive']).optional(), page, limit }).strict()
-export const linkGuardianBody = z.object({ guardian_id: id, relationship_type: text(100), is_primary: z.boolean().optional(), can_receive_alerts: z.boolean().optional(), can_view_journal: z.boolean().optional() }).strict()
+export const linkGuardianBody = z.object({ guardian_id: publicId, relationship_type: text(100), is_primary: z.boolean().optional(), can_receive_alerts: z.boolean().optional(), can_view_journal: z.boolean().optional() }).strict()
+export const attachmentCreateBody=z.object({student_id:publicId,guardian_id:publicId,relationship_type:text(50),request_message:nullableText(1000).optional()}).strict()
 
 export const invoiceGenerateBody = z.object({ billing_month: month }).strict()
 export const invoiceListQuery = z.object({ page, limit, status: z.enum(['draft', 'issued', 'partially_paid', 'paid', 'overdue', 'cancelled']).optional() }).strict()

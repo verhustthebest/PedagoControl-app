@@ -11,9 +11,11 @@ const teachers = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware
 const prefects = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(access_policy_1.PREFECT_ROLES)];
 const supervisors = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(access_policy_1.SUPERVISION_ROLES)];
 router.get('/teacher/reports', ...teachers, lesson_report_controller_1.teacherReports);
+router.get('/teacher/assignments', ...teachers, lesson_report_controller_1.teacherAssignments);
 router.get('/teacher/reports/today', ...teachers, lesson_report_controller_1.teacherReportsToday);
 router.post('/teacher/reports', ...teachers, (0, validate_middleware_1.validate)({ body: schemas_1.reportBody }), lesson_report_controller_1.submitTeacherReport);
-router.get('/prefet/reports/pending', ...prefects, lesson_report_controller_1.prefetReportsPending);
+router.patch('/teacher/reports/:id', ...teachers, (0, validate_middleware_1.validate)({ params: schemas_1.reportParams, body: schemas_1.reportBody }), lesson_report_controller_1.updateTeacherReportController);
+router.get('/prefet/reports/pending', ...prefects, (0, validate_middleware_1.validate)({ query: schemas_1.reportQuery }), lesson_report_controller_1.prefetReportsPending);
 router.patch('/prefet/reports/:id/decision', ...prefects, (0, validate_middleware_1.validate)({ params: schemas_1.reportParams, body: schemas_1.reportDecisionBody }), lesson_report_controller_1.decidePrefetReport);
 router.get('/supervision/reports', ...supervisors, lesson_report_controller_1.supervisionReports);
 exports.default = router;

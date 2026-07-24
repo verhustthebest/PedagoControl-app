@@ -141,7 +141,7 @@ async function ensureClassBelongsToSchool(academicYearClassId: bigint, schoolId:
     where: {
       id: academicYearClassId,
       is_active: true,
-      academic_years: { school_id: schoolId },
+      academic_years: { school_id: schoolId, is_active:true },
       school_classes: { school_id: schoolId },
     },
     select: { id: true },
@@ -277,10 +277,9 @@ export async function createStudent(
   const actorId = parseId(actorUserId, 'actorUserId')
   await ensureSchool(schoolId)
 
-  const academicYearClassId = input.academic_year_class_id
-    ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
-    : undefined
-  if (academicYearClassId) await ensureClassBelongsToSchool(academicYearClassId, schoolId)
+  if(!input.academic_year_class_id)throw new ParentalApiError('Une classe active est obligatoire.',400)
+  const academicYearClassId = await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
+  await ensureClassBelongsToSchool(academicYearClassId, schoolId)
 
   const data = {
     first_name: requiredText(input.first_name, 'first_name'),
@@ -306,7 +305,6 @@ export async function createStudent(
           },
         })
 
-        if (academicYearClassId) {
           await transaction.student_enrollments.create({
             data: {
               student_id: student.id,
@@ -316,7 +314,6 @@ export async function createStudent(
               status: 'active',
             },
           })
-        }
 
         await transaction.activity_logs.create({
           data: activityData({

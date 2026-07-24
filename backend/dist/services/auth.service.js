@@ -23,9 +23,12 @@ function formatUser(user) {
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name,
+        profile_photo: user.profile_photo,
         school_id: user.school_id ? user.school_id.toString() : null,
         school_public_id: user.schools?.public_id ?? null,
         school_name: user.schools?.name ?? null,
+        school_code: user.schools?.code ?? null,
+        school_status: user.schools?.status ?? null,
         roles: user.user_roles
             .filter((userRole) => userRole.roles.is_active)
             .map((userRole) => userRole.roles.name),
@@ -52,7 +55,7 @@ async function loginWithEmailAndPassword(email, password) {
             ],
         },
         include: {
-            schools: { select: { status: true, public_id: true, name: true, school_parental_settings: { select: { is_enabled: true } } } },
+            schools: { select: { status: true, public_id: true, name: true, code: true, school_parental_settings: { select: { is_enabled: true } } } },
             user_roles: {
                 include: {
                     roles: {
@@ -107,7 +110,7 @@ async function findAuthUserById(userId) {
     const user = await client_1.default.users.findUnique({
         where: { id: BigInt(userId) },
         include: {
-            schools: { select: { status: true, public_id: true, name: true, school_parental_settings: { select: { is_enabled: true } } } },
+            schools: { select: { status: true, public_id: true, name: true, code: true, school_parental_settings: { select: { is_enabled: true } } } },
             user_roles: {
                 include: {
                     roles: {
@@ -145,8 +148,8 @@ function verifyAuthToken(token) {
 /** DTO public d'authentification : l'identifiant scolaire interne reste réservé aux contrôles serveur. */
 function publicAuthUser(user) {
     return {
-        id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name,
+        id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_photo: user.profile_photo,
         school_id: user.school_public_id, roles: user.roles, modules: user.modules,
-        school: user.school_public_id ? { public_id: user.school_public_id, name: user.school_name } : null,
+        school: user.school_public_id ? { public_id: user.school_public_id, name: user.school_name, code: user.school_code, status: user.school_status } : null,
     };
 }

@@ -11,7 +11,7 @@ export const PRIVATE_ROUTE_POLICIES = [
   { prefix: '/admin', roles: ['ADMIN_GESTIONNAIRE'] },
   { prefix: '/informaticien', roles: ['INFORMATICIEN'] },
   { prefix: '/parent', roles: ['PARENT'] },
-  { prefix: '/prefet', roles: ['PREFET'] },
+  { prefix: '/prefet', roles: ['PREFET', 'PREFET_DES_ETUDES'] },
   { prefix: '/enseignant', roles: ['ENSEIGNANT'] },
   { prefix: '/directeur', roles: [...DIRECTION_ROLES] },
 ] as const
@@ -37,8 +37,8 @@ export function portalForRoles(roles:readonly string[]){
   if(roles.includes('ADMIN_GESTIONNAIRE'))return'/admin'
   if(roles.includes('INFORMATICIEN'))return'/informaticien'
   if(roles.includes('PARENT'))return'/parent'
-  if(roles.includes('PREFET'))return'/prefet/rapports'
-  if(roles.includes('ENSEIGNANT'))return'/enseignant/cahier-texte'
+  if(roles.some(role=>['PREFET','PREFET_DES_ETUDES'].includes(role)))return'/prefet'
+  if(roles.includes('ENSEIGNANT'))return'/enseignant'
   if(roles.some(role=>DIRECTION_ROLES.includes(role as typeof DIRECTION_ROLES[number])))return'/directeur/rapports'
   return'/acces-interdit'
 }

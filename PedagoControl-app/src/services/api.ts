@@ -21,10 +21,11 @@ export type AuthUser = {
   first_name: string
   last_name: string
   email: string
+  profile_photo?: string | null
   school_id: string | null
   roles: string[]
   modules?: { pedagogical_control: boolean; parental_tracking: boolean }
-  school?: { public_id:string;name:string|null } | null
+  school?: { public_id:string;name:string|null;code?:string|null;status?:string|null } | null
 }
 
 export type LoginResponse = {
@@ -34,7 +35,7 @@ export type LoginResponse = {
   user: AuthUser
   roles: string[]
   school_id: string | null
-  school?: { public_id:string;name:string|null } | null
+  school?: { public_id:string;name:string|null;code?:string|null;status?:string|null } | null
 }
 
 type MemorySession = { accessToken: string | null; csrfToken: string | null; user: AuthUser | null }
@@ -176,4 +177,7 @@ export const authApi = {
   restore: restoreSession,
   logout: () => endSession('/auth/logout'),
   logoutAll: () => endSession('/auth/logout-all'),
+  acceptInvitation:(token:string,password:string,confirmation:string)=>apiRequest<{public_id:string;roles:string[]}>('/auth/invitations/accept',{
+    method:'POST',auth:false,retryAuth:false,body:JSON.stringify({token,password,confirmation}),
+  }),
 }

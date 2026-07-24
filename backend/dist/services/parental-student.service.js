@@ -113,7 +113,7 @@ async function ensureClassBelongsToSchool(academicYearClassId, schoolId) {
         where: {
             id: academicYearClassId,
             is_active: true,
-            academic_years: { school_id: schoolId },
+            academic_years: { school_id: schoolId, is_active: true },
             school_classes: { school_id: schoolId },
         },
         select: { id: true },
@@ -229,11 +229,10 @@ async function createStudent(schoolIdValue, actorUserId, input) {
     const schoolId = parseId(schoolIdValue, 'schoolId');
     const actorId = parseId(actorUserId, 'actorUserId');
     await ensureSchool(schoolId);
-    const academicYearClassId = input.academic_year_class_id
-        ? await resolveAcademicYearClass(input.academic_year_class_id, schoolId)
-        : undefined;
-    if (academicYearClassId)
-        await ensureClassBelongsToSchool(academicYearClassId, schoolId);
+    if (!input.academic_year_class_id)
+        throw new parental_service_1.ParentalApiError('Une classe active est obligatoire.', 400);
+    const academicYearClassId = await resolveAcademicYearClass(input.academic_year_class_id, schoolId);
+    await ensureClassBelongsToSchool(academicYearClassId, schoolId);
     const data = {
         first_name: requiredText(input.first_name, 'first_name'),
         last_name: requiredText(input.last_name, 'last_name'),
@@ -256,17 +255,15 @@ async function createStudent(schoolIdValue, actorUserId, input) {
                         created_by_user_id: actorId,
                     },
                 });
-                if (academicYearClassId) {
-                    await transaction.student_enrollments.create({
-                        data: {
-                            student_id: student.id,
-                            academic_year_class_id: academicYearClassId,
-                            enrolled_by_user_id: actorId,
-                            enrollment_date: utcDateOnly(),
-                            status: 'active',
-                        },
-                    });
-                }
+                await transaction.student_enrollments.create({
+                    data: {
+                        student_id: student.id,
+                        academic_year_class_id: academicYearClassId,
+                        enrolled_by_user_id: actorId,
+                        enrollment_date: utcDateOnly(),
+                        status: 'active',
+                    },
+                });
                 await transaction.activity_logs.create({
                     data: activityData({
                         schoolId,

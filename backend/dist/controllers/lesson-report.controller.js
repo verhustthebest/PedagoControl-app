@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.teacherReports = teacherReports;
 exports.teacherReportsToday = teacherReportsToday;
+exports.teacherAssignments = teacherAssignments;
+exports.updateTeacherReportController = updateTeacherReportController;
 exports.submitTeacherReport = submitTeacherReport;
 exports.prefetReportsPending = prefetReportsPending;
 exports.decidePrefetReport = decidePrefetReport;
@@ -38,6 +40,31 @@ async function teacherReportsToday(request, response) {
         return response.status(500).json({ message: 'Unable to fetch teacher reports today' });
     }
 }
+async function teacherAssignments(request, response) {
+    const user = requireUser(request, response);
+    if (!user)
+        return;
+    try {
+        return response.json({ assignments: await (0, lesson_report_service_1.getTeacherAssignments)(user) });
+    }
+    catch {
+        return response.status(500).json({ message: 'Unable to fetch teacher assignments' });
+    }
+}
+async function updateTeacherReportController(request, response) {
+    const user = requireUser(request, response);
+    if (!user)
+        return;
+    try {
+        const reportId = String(request.params.id);
+        const report = await (0, lesson_report_service_1.updateTeacherReport)(user, reportId, request.body);
+        return response.json({ report });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        return response.status(message.includes('not found') ? 404 : 400).json({ message: 'Requête pédagogique invalide.' });
+    }
+}
 async function submitTeacherReport(request, response) {
     const user = requireUser(request, response);
     if (!user)
@@ -57,7 +84,7 @@ async function prefetReportsPending(request, response) {
     if (!user)
         return;
     try {
-        const reports = await (0, lesson_report_service_1.getPendingReports)(user);
+        const reports = await (0, lesson_report_service_1.getPendingReports)(user, request.query);
         return response.json({ reports });
     }
     catch (error) {

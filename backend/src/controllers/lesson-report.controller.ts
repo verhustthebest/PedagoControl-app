@@ -7,6 +7,8 @@ import {
   getSupervisionReports,
   getTeacherReports,
   getTeacherReportsToday,
+  getTeacherAssignments,
+  updateTeacherReport,
 } from '../services/lesson-report.service'
 
 function requireUser(request: AuthenticatedRequest, response: Response) {
@@ -42,6 +44,29 @@ export async function teacherReportsToday(request: AuthenticatedRequest, respons
   }
 }
 
+export async function teacherAssignments(request: AuthenticatedRequest, response: Response) {
+  const user = requireUser(request, response)
+  if (!user) return
+  try {
+    return response.json({ assignments: await getTeacherAssignments(user) })
+  } catch {
+    return response.status(500).json({ message: 'Unable to fetch teacher assignments' })
+  }
+}
+
+export async function updateTeacherReportController(request: AuthenticatedRequest, response: Response) {
+  const user = requireUser(request, response)
+  if (!user) return
+  try {
+    const reportId = String(request.params.id)
+    const report = await updateTeacherReport(user, reportId, request.body)
+    return response.json({ report })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    return response.status(message.includes('not found') ? 404 : 400).json({ message: 'Requête pédagogique invalide.' })
+  }
+}
+
 export async function submitTeacherReport(request: AuthenticatedRequest, response: Response) {
   const user = requireUser(request, response)
   if (!user) return
@@ -61,7 +86,7 @@ export async function prefetReportsPending(request: AuthenticatedRequest, respon
   if (!user) return
 
   try {
-    const reports = await getPendingReports(user)
+    const reports = await getPendingReports(user, request.query)
     return response.json({ reports })
   } catch (error) {
     return response.status(500).json({ message: 'Unable to fetch pending reports' })

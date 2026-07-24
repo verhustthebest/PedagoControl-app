@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createAttachmentRequest = createAttachmentRequest;
 exports.listAttachmentRequests = listAttachmentRequests;
 exports.getAttachmentRequest = getAttachmentRequest;
 exports.decideAttachmentRequest = decideAttachmentRequest;
@@ -28,6 +29,29 @@ function requestView(request) {
     };
 }
 const include = { guardians: true, students: true, attachment_request_documents: true };
+/** Crée une demande en attente : le portail Parent reste fermé jusqu'à la décision Admin. */
+async function createAttachmentRequest(schoolId, actorId, input) {
+    const school = BigInt(schoolId);
+    const [student, guardian] = await Promise.all([
+        client_1.default.students.findFirst({ where: { public_id: input.student_id, school_id: school, status: 'active' }, select: { id: true } }),
+        client_1.default.guardians.findFirst({ where: { public_id: input.guardian_id, school_id: school, status: 'active' }, select: { id: true } }),
+    ]);
+    if (!student || !guardian)
+        throw new parental_service_1.ParentalApiError('Resource not found', 404);
+    const existing = await client_1.default.attachment_requests.findFirst({ where: { school_id: school, student_id: student.id, guardian_id: guardian.id, status: { in: ['pending', 'approved'] } }, select: { id: true } });
+    if (existing)
+        throw new parental_service_1.ParentalApiError('Une demande active existe déjà pour ce rattachement.', 409);
+    const request = await client_1.default.$transaction(async (transaction) => {
+        const created = await transaction.attachment_requests.create({ data: {
+                school_id: school, student_id: student.id, guardian_id: guardian.id, requested_by_user_id: BigInt(actorId),
+                request_code: `ATT-${(0, crypto_1.randomUUID)()}`, relationship_type: input.relationship_type, status: 'pending',
+                request_message: input.request_message || null,
+            }, include });
+        await transaction.activity_logs.create({ data: { school_id: school, user_id: BigInt(actorId), activity_type: 'attachment_request_created', module_name: 'parental_tracking', reference_table: 'attachment_requests', reference_id: created.id, title: 'Demande de rattachement créée', description: 'La demande attend une décision de l’Admin école.' } });
+        return created;
+    });
+    return requestView(request);
+}
 /** Liste uniquement les demandes appartenant à l'école authentifiée. */
 async function listAttachmentRequests(schoolId, input) {
     const page = Number(input.page || 1), limit = Math.min(Number(input.limit || 20), 100);

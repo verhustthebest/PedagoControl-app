@@ -9,9 +9,12 @@ export type AuthUser = {
   email: string
   first_name: string
   last_name: string
+  profile_photo: string | null
   school_id: string | null
   school_public_id: string | null
   school_name: string | null
+  school_code: string | null
+  school_status: string | null
   roles: string[]
   permissions: string[]
   modules: { pedagogical_control: true; parental_tracking: boolean }
@@ -35,6 +38,7 @@ function formatUser(user: {
   email: string
   first_name: string
   last_name: string
+  profile_photo: string | null
   school_id: bigint | null
   user_roles: Array<{
     roles: {
@@ -43,16 +47,19 @@ function formatUser(user: {
       role_permissions: Array<{ permissions: { code: string; is_active: boolean } }>
     }
   }>
-  schools?: { public_id:string;name:string;school_parental_settings?: { is_enabled:boolean } | null } | null
+  schools?: { public_id:string;name:string;code:string;status:string;school_parental_settings?: { is_enabled:boolean } | null } | null
 }): AuthUser {
   return {
     id: user.id.toString(),
     email: user.email,
     first_name: user.first_name,
     last_name: user.last_name,
+    profile_photo:user.profile_photo,
     school_id: user.school_id ? user.school_id.toString() : null,
     school_public_id:user.schools?.public_id??null,
     school_name:user.schools?.name??null,
+    school_code:user.schools?.code??null,
+    school_status:user.schools?.status??null,
     roles: user.user_roles
       .filter((userRole) => userRole.roles.is_active)
       .map((userRole) => userRole.roles.name),
@@ -84,7 +91,7 @@ export async function loginWithEmailAndPassword(email: string, password: string)
       ],
     },
     include: {
-      schools: { select: { status: true, public_id:true, name:true, school_parental_settings: {select:{is_enabled:true}} } },
+      schools: { select: { status: true, public_id:true, name:true,code:true, school_parental_settings: {select:{is_enabled:true}} } },
       user_roles: {
         include: {
           roles: {
@@ -146,7 +153,7 @@ export async function findAuthUserById(userId: string) {
   const user = await prisma.users.findUnique({
     where: { id: BigInt(userId) },
     include: {
-      schools: { select: { status: true, public_id:true, name:true, school_parental_settings: {select:{is_enabled:true}} } },
+      schools: { select: { status: true, public_id:true, name:true,code:true, school_parental_settings: {select:{is_enabled:true}} } },
       user_roles: {
         include: {
           roles: {
@@ -187,8 +194,8 @@ export function verifyAuthToken(token: string) {
 /** DTO public d'authentification : l'identifiant scolaire interne reste réservé aux contrôles serveur. */
 export function publicAuthUser(user:AuthUser){
   return{
-    id:user.id,email:user.email,first_name:user.first_name,last_name:user.last_name,
+    id:user.id,email:user.email,first_name:user.first_name,last_name:user.last_name,profile_photo:user.profile_photo,
     school_id:user.school_public_id,roles:user.roles,modules:user.modules,
-    school:user.school_public_id?{public_id:user.school_public_id,name:user.school_name}:null,
+    school:user.school_public_id?{public_id:user.school_public_id,name:user.school_name,code:user.school_code,status:user.school_status}:null,
   }
 }

@@ -6,6 +6,8 @@ import {
   supervisionReports,
   teacherReports,
   teacherReportsToday,
+  teacherAssignments,
+  updateTeacherReportController,
 } from '../controllers/lesson-report.controller'
 import {
   authenticateBearerToken,
@@ -18,7 +20,7 @@ import {
   TEACHER_ROLES,
 } from '../security/access-policy'
 import { validate } from '../middleware/validate.middleware'
-import { reportBody, reportDecisionBody, reportParams } from '../validation/schemas'
+import { reportBody, reportDecisionBody, reportParams, reportQuery } from '../validation/schemas'
 
 const router = Router()
 
@@ -27,9 +29,11 @@ const prefects = [authenticateBearerToken, requireSchoolContext(), requireAnyRol
 const supervisors = [authenticateBearerToken, requireSchoolContext(), requireAnyRole(SUPERVISION_ROLES)] as const
 
 router.get('/teacher/reports', ...teachers, teacherReports)
+router.get('/teacher/assignments', ...teachers, teacherAssignments)
 router.get('/teacher/reports/today', ...teachers, teacherReportsToday)
 router.post('/teacher/reports', ...teachers, validate({ body: reportBody }), submitTeacherReport)
-router.get('/prefet/reports/pending', ...prefects, prefetReportsPending)
+router.patch('/teacher/reports/:id', ...teachers, validate({ params: reportParams, body: reportBody }), updateTeacherReportController)
+router.get('/prefet/reports/pending', ...prefects, validate({ query: reportQuery }), prefetReportsPending)
 router.patch('/prefet/reports/:id/decision', ...prefects, validate({ params: reportParams, body: reportDecisionBody }), decidePrefetReport)
 router.get('/supervision/reports', ...supervisors, supervisionReports)
 

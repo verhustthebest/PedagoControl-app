@@ -21,6 +21,28 @@ function requestView(request: any) {
 
 const include = { guardians: true, students: true, attachment_request_documents: true } as const
 
+/** Crée une demande en attente : le portail Parent reste fermé jusqu'à la décision Admin. */
+export async function createAttachmentRequest(schoolId:string,actorId:string,input:{student_id:string;guardian_id:string;relationship_type:string;request_message?:string|null}){
+  const school=BigInt(schoolId)
+  const[student,guardian]=await Promise.all([
+    prisma.students.findFirst({where:{public_id:input.student_id,school_id:school,status:'active'},select:{id:true}}),
+    prisma.guardians.findFirst({where:{public_id:input.guardian_id,school_id:school,status:'active'},select:{id:true}}),
+  ])
+  if(!student||!guardian)throw new ParentalApiError('Resource not found',404)
+  const existing=await prisma.attachment_requests.findFirst({where:{school_id:school,student_id:student.id,guardian_id:guardian.id,status:{in:['pending','approved']}},select:{id:true}})
+  if(existing)throw new ParentalApiError('Une demande active existe déjà pour ce rattachement.',409)
+  const request=await prisma.$transaction(async transaction=>{
+    const created=await transaction.attachment_requests.create({data:{
+      school_id:school,student_id:student.id,guardian_id:guardian.id,requested_by_user_id:BigInt(actorId),
+      request_code:`ATT-${randomUUID()}`,relationship_type:input.relationship_type,status:'pending',
+      request_message:input.request_message||null,
+    },include})
+    await transaction.activity_logs.create({data:{school_id:school,user_id:BigInt(actorId),activity_type:'attachment_request_created',module_name:'parental_tracking',reference_table:'attachment_requests',reference_id:created.id,title:'Demande de rattachement créée',description:'La demande attend une décision de l’Admin école.'}})
+    return created
+  })
+  return requestView(request)
+}
+
 /** Liste uniquement les demandes appartenant à l'école authentifiée. */
 export async function listAttachmentRequests(schoolId: string, input: { status?: string; search?: string; from?: string; to?: string; page?: string; limit?: string }) {
   const page = Number(input.page || 1), limit = Math.min(Number(input.limit || 20), 100)

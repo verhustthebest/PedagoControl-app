@@ -13,7 +13,7 @@ import { messagesApi, notificationsApi } from '../services/notifications'
 import type { AppNotification } from '../services/notifications'
 import { NotificationDeliveryBadge } from './common/NotificationDeliveryBadge'
 import { reportsApi } from '../services/reports'
-import type { PrefectDecision, UiLessonReport } from '../services/reports'
+import type { PrefectDecision, TeacherLessonAssignment, UiLessonReport } from '../services/reports'
 import '../App.css'
 import {
   Avatar,
@@ -1817,7 +1817,7 @@ function PrefectEvaluations() {
 }
 
 function PrefectReports() {
-  const [observation, setObservation] = useState('Conforme au programme prévu. Validation recommandée.')
+  const [observation, setObservation] = useState('')
   const [reports, setReports] = useState<UiLessonReport[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -1825,11 +1825,16 @@ function PrefectReports() {
   const [notice, setNotice] = useState('')
   const [reportSearch, setReportSearch] = useState('')
   const [reportStatus, setReportStatus] = useState('Tous')
+  const [reportDate,setReportDate]=useState('')
+  const [reportClass,setReportClass]=useState('')
+  const [reportTeacher,setReportTeacher]=useState('')
+  const [reportSubject,setReportSubject]=useState('')
   const selectedReport = reports.find((report) => report.rawId === selectedId) || reports[0]
   const filteredReports = reports.filter((report) => {
     const matchesSearch = `${report.teacher} ${report.className} ${report.subject} ${report.chapter} ${report.status}`.toLowerCase().includes(reportSearch.toLowerCase())
     const matchesStatus = reportStatus === 'Tous' || report.status === reportStatus
-    return matchesSearch && matchesStatus
+    const isoDate=report.date.split('/').reverse().join('-')
+    return matchesSearch && matchesStatus && (!reportDate||isoDate===reportDate) && (!reportClass||report.className===reportClass) && (!reportTeacher||report.teacher===reportTeacher) && (!reportSubject||report.subject===reportSubject)
   })
 
   function exportReports() {
@@ -1889,17 +1894,20 @@ function PrefectReports() {
   return (
     <>
       <TeacherStats items={[
-        { icon: 'file', value: '18', label: 'Rapports reçus', detail: 'Aujourd’hui', tone: 'blue' },
-        { icon: 'clock', value: '4', label: 'En attente', detail: 'À décider', tone: 'orange' },
-        { icon: 'checkCircle', value: '12', label: 'Validés', detail: 'Par le Préfet', tone: 'green' },
-        { icon: 'alert', value: '2', label: 'Rejetés', detail: 'Justification requise', tone: 'red' },
-        { icon: 'message', value: '3', label: 'Corrections', detail: 'Demandées', tone: 'purple' },
+        { icon: 'file', value: String(reports.length), label: 'Journaux reçus', detail: 'Données réelles', tone: 'blue' },
+        { icon: 'clock', value: String(reports.filter(item=>item.status==='Soumis').length), label: 'En attente', detail: 'À décider', tone: 'orange' },
+        { icon: 'checkCircle', value: String(reports.filter(item=>item.status==='Valide').length), label: 'Validés', detail: 'Visibles aux Parents', tone: 'green' },
+        { icon: 'message', value: String(reports.filter(item=>item.status==='Correction demandee').length), label: 'Retournés', detail: 'Modifiables par l’Enseignant', tone: 'purple' },
       ]} />
       {notice && <div className="success-toast"><Icon name="checkCircle" /> {notice}</div>}
       <section className="prefect-report-grid">
         <Card title="Rapports reçus des enseignants" className="table-card">
           <div className="toolbar-row">
             <div className="filters">
+              <label><span>Date</span><input type="date" max={localDateInputValue()} value={reportDate} onChange={event=>setReportDate(event.target.value)}/></label>
+              <label><span>Classe</span><select value={reportClass} onChange={event=>setReportClass(event.target.value)}><option value="">Toutes</option>{[...new Set(reports.map(item=>item.className))].map(value=><option key={value}>{value}</option>)}</select></label>
+              <label><span>Enseignant</span><select value={reportTeacher} onChange={event=>setReportTeacher(event.target.value)}><option value="">Tous</option>{[...new Set(reports.map(item=>item.teacher))].map(value=><option key={value}>{value}</option>)}</select></label>
+              <label><span>Matière</span><select value={reportSubject} onChange={event=>setReportSubject(event.target.value)}><option value="">Toutes</option>{[...new Set(reports.map(item=>item.subject))].map(value=><option key={value}>{value}</option>)}</select></label>
               <label><span>Statut</span><select value={reportStatus} onChange={(event) => setReportStatus(event.target.value)}><option>Tous</option><option>Soumis</option><option>Valide</option><option>Rejete</option><option>Correction demandee</option></select></label>
               <label className="search-field"><span>Recherche</span><input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher un rapport..." /><Icon name="search" /></label>
             </div>
@@ -1934,7 +1942,6 @@ function PrefectReports() {
               <div className="prefect-decision-actions visible-actions">
                 <button className="decision-button green" type="button" disabled={loading} onClick={() => void decideReport('validated')}><Icon name="checkCircle" /> Valider</button>
                 <button className="decision-button blue" type="button" disabled={loading} onClick={() => void decideReport('correction_requested')}><Icon name="message" /> Demander correction</button>
-                <button className="decision-button red" type="button" disabled={loading} onClick={() => void decideReport('rejected')}><Icon name="alert" /> Rejeter</button>
               </div>
             </form>
           </Card>
@@ -1947,7 +1954,7 @@ function PrefectReports() {
 }
 
 function PrefectDailyValidationTable({ reports = [], selectedId, onSelect, onDecision }: { reports?: UiLessonReport[]; selectedId?: string; onSelect?: (id: string) => void; onDecision?: (id: string, decision: PrefectDecision) => void }) {
-  return <table><thead><tr><th>Rapport</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Date soumission</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.id} className={report.rawId === selectedId ? 'prefect-selected-row' : ''} onClick={() => { onSelect?.(report.rawId); window.location.assign(`/prefet/rapports/${report.rawId}`) }}><td>{report.id}</td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.date}</td><td><ReportStatusBadge status={report.status} /></td><td><div className="validation-actions visible-actions"><button className="decision-button green" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'validated') }}>Valider</button><button className="decision-button blue" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'correction_requested') }}>Correction</button><button className="decision-button red" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'rejected') }}>Rejeter</button></div></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Journal</th><th>Enseignant</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{reports.map((report) => <tr key={report.id} className={report.rawId === selectedId ? 'prefect-selected-row' : ''} onClick={() => { onSelect?.(report.rawId); window.location.assign(`/prefet/rapports/${encodeURIComponent(report.rawId)}`) }}><td>{report.id}</td><td><Avatar name={report.teacher} small />{report.teacher}</td><td>{report.className}</td><td>{report.subject}</td><td><strong>{report.chapter}</strong><span className="data-line">{report.subChapter}</span></td><td>{report.date}</td><td><ReportStatusBadge status={report.status} /></td><td><div className="validation-actions visible-actions"><button className="decision-button green" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'validated') }}>Valider</button><button className="decision-button blue" type="button" onClick={(event) => { event.stopPropagation(); onDecision?.(report.rawId, 'correction_requested') }}>Retourner</button></div></td></tr>)}</tbody></table>
 }
 
 function ReportDetailBlock({ report }: { report: UiLessonReport }) {
@@ -1957,13 +1964,13 @@ function ReportDetailBlock({ report }: { report: UiLessonReport }) {
 function PrefectReportDetail() {
   const reportId = window.location.pathname.split('/').pop() || ''
   const [report, setReport] = useState<UiLessonReport | null>(null)
-  const [observation, setObservation] = useState('Observation du Préfet.')
+  const [observation, setObservation] = useState('')
   const [message, setMessage] = useState('')
 
   async function load() {
     try {
-      const supervision = await reportsApi.getSupervisionReports()
-      setReport(supervision.reports.find((item) => item.rawId === reportId) || null)
+      const reports = await reportsApi.getPendingPrefectReports()
+      setReport(reports.find((item) => item.rawId === reportId) || null)
     } catch {
       setReport(null)
     }
@@ -1982,7 +1989,7 @@ function PrefectReportDetail() {
     }
   }
 
-  return <section className="prefect-report-grid"><Card title="Détail du rapport" className="span-2">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Rapport réel introuvable.</div>}</Card><Card title="Actions"><form className="prefect-observation-form"><label>Observation<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label><div className="visible-actions"><button className="decision-button green" type="button" disabled={!report} onClick={() => void decide('validated')}>Valider</button><button className="decision-button blue" type="button" disabled={!report} onClick={() => void decide('correction_requested')}>Demander correction</button><button className="decision-button red" type="button" disabled={!report} onClick={() => void decide('rejected')}>Rejeter</button></div></form>{message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}</Card></section>
+  return <section className="prefect-report-grid"><Card title="Détail du journal" className="span-2">{report ? <ReportDetailBlock report={report} /> : <div className="note-box">Journal réel introuvable.</div>}</Card><Card title="Actions"><form className="prefect-observation-form"><label>Motif du retour<textarea value={observation} onChange={(event) => setObservation(event.target.value)} /></label><div className="visible-actions"><button className="decision-button green" type="button" disabled={!report} onClick={() => void decide('validated')}>Valider</button><button className="decision-button blue" type="button" disabled={!report||!observation.trim()} onClick={() => void decide('correction_requested')}>Retourner à l’Enseignant</button></div></form>{message && <div className="success-toast"><Icon name="checkCircle" /> {message}</div>}</Card></section>
 }
 
 function SupervisionDetail() {
@@ -2210,15 +2217,18 @@ function TeacherTextBook() {
   const [reports, setReports] = useState<UiLessonReport[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const reference = reports[0]
+  const [assignments,setAssignments]=useState<TeacherLessonAssignment[]>([])
+  const [selectedAssignment,setSelectedAssignment]=useState('')
+  const [editingReport,setEditingReport]=useState('')
+  const reference=assignments.find(item=>item.distribution_public_id===selectedAssignment)||assignments[0]
 
   async function loadTeacherReports() {
     setLoading(true)
     setError('')
 
     try {
-      const data = await reportsApi.getTeacherReports()
-      setReports(data)
+      const [data,assigned] = await Promise.all([reportsApi.getTeacherReports(),reportsApi.getTeacherAssignments()])
+      setReports(data);setAssignments(assigned);setSelectedAssignment(current=>assigned.some(item=>item.distribution_public_id===current)?current:assigned[0]?.distribution_public_id||'')
     } catch (apiError) {
       setError(apiError instanceof TypeError ? 'Connexion backend indisponible.' : 'Impossible de charger vos rapports.')
       setReports([])
@@ -2235,9 +2245,8 @@ function TeacherTextBook() {
     event.preventDefault()
     const form = event.currentTarget
     const formData = new FormData(form)
-    const reference = reports[0]
     if (!reference) {
-      setError('Aucun programme réel disponible pour soumettre un rapport.')
+      setError('Aucune classe et matière ne vous sont affectées.')
       return
     }
     setLoading(true)
@@ -2245,9 +2254,9 @@ function TeacherTextBook() {
     setMessage('')
 
     try {
-      await reportsApi.createTeacherReport({
-        program_distribution_id: reference.programDistributionId,
-        teacher_assignment_id: reference.teacherAssignmentId,
+      const payload={
+        program_distribution_id: reference.distribution_public_id,
+        teacher_assignment_id: reference.public_id,
         actual_date: String(formData.get('actual_date') || new Date().toISOString().slice(0, 10)),
         actual_periods: Number(formData.get('actual_periods') || 1),
         lesson_summary: String(formData.get('lesson_summary') || ''),
@@ -2255,8 +2264,11 @@ function TeacherTextBook() {
         exercises_given: String(formData.get('exercises_given') || ''),
         homework_given: String(formData.get('homework_given') || ''),
         observations: String(formData.get('observations') || ''),
-      })
-      setMessage('Rapport quotidien soumis au Préfet / Directeur des Études')
+      }
+      if(editingReport)await reportsApi.updateTeacherReport(editingReport,payload)
+      else await reportsApi.createTeacherReport(payload)
+      setEditingReport('')
+      setMessage('Journal soumis au Préfet pour validation.')
       await loadTeacherReports()
     } catch (apiError) {
       if (apiError instanceof TypeError) {
@@ -2273,8 +2285,8 @@ function TeacherTextBook() {
     <>
       <TeacherStats items={[
         { icon: 'calendar', value: localDisplayDate(), label: 'Date du jour', detail: 'Rapport à soumettre', tone: 'blue' },
-        { icon: 'book', value: reference?.chapter || 'Aucun', label: 'Programme reçu', detail: reference ? `${reference.className} - ${reference.subject}` : 'Aucune donnée réelle', tone: 'purple' },
-        { icon: 'clock', value: String(reference?.periods || 0), label: 'Périodes réalisées', detail: 'Dernier rapport réel', tone: 'orange' },
+        { icon: 'book', value: reference?.chapter || 'Aucun', label: 'Programme reçu', detail: reference ? `${reference.class.name} - ${reference.subject.name}` : 'Aucune affectation réelle', tone: 'purple' },
+        { icon: 'clock', value: String(reports[0]?.periods || 0), label: 'Périodes réalisées', detail: 'Dernier rapport réel', tone: 'orange' },
         { icon: 'checkCircle', value: String(reports.filter((report) => report.status === 'Valide').length), label: 'Rapports validés', detail: 'Historique réel', tone: 'green' },
         { icon: 'alert', value: String(reports.filter((report) => report.status === 'Correction demandee').length), label: 'Correction demandée', detail: 'Historique réel', tone: 'red' },
       ]} />
@@ -2284,20 +2296,20 @@ function TeacherTextBook() {
         <div>
           <Card title="Rapport Quotidien de Cours / Pointage">
             <form className="textbook-form" onSubmit={submitDailyReport}>
-              <div className="form-grid two"><label>Programme reçu<input value={reference?.program || 'Aucun programme réel disponible'} readOnly /></label><label>Date du jour<input name="actual_date" type="date" defaultValue={localDateInputValue()} /></label></div>
-              <div className="form-grid three"><label>Classe<input value={reference?.className || ''} readOnly /></label><label>Matière<input value={reference?.subject || ''} readOnly /></label><label>Nombre de périodes réalisées<input name="actual_periods" type="number" min="0" defaultValue={reference?.periods || 1} /></label></div>
-              <div className="form-grid two"><label>Chapitre prévu<input value={reference?.chapter || ''} readOnly /></label><label>Sous-chapitre prévu<input value={reference?.subChapter || ''} readOnly /></label></div>
-              <label>Résumé du cours enseigné<textarea name="lesson_summary" placeholder="Saisir le résumé réel du cours..." /></label>
+              <div className="form-grid two"><label>Affectation réelle<select value={reference?.distribution_public_id||''} onChange={event=>setSelectedAssignment(event.target.value)}>{assignments.map(item=><option key={item.distribution_public_id} value={item.distribution_public_id}>{item.class.name} · {item.subject.name} · {item.chapter}</option>)}</select></label><label>Date<input name="actual_date" type="date" max={localDateInputValue()} defaultValue={localDateInputValue()} required /></label></div>
+              <div className="form-grid three"><label>Classe<input value={reference?.class.name || ''} readOnly /></label><label>Matière<input value={reference?.subject.name || ''} readOnly /></label><label>Nombre de périodes réalisées<input name="actual_periods" type="number" min="1" max="24" defaultValue={1} /></label></div>
+              <div className="form-grid two"><label>Chapitre / leçon<input value={reference?.chapter || ''} readOnly /></label><label>Sous-chapitre<input value={reference?.sub_chapter || ''} readOnly /></label></div>
+              <label>Contenu réalisé<textarea name="lesson_summary" required maxLength={4000} placeholder="Saisir le contenu réellement réalisé..." /></label>
               <div className="form-grid two"><label>Objectifs atteints<textarea name="objectives_achieved" placeholder="Saisir les objectifs atteints..." /></label><label>Observations<textarea name="observations" placeholder="Saisir les observations..." /></label></div>
               <div className="form-grid two"><label>Exercices donnés<textarea name="exercises_given" placeholder="Saisir les exercices donnés..." /></label><label>Devoirs donnés<textarea name="homework_given" placeholder="Saisir les devoirs donnés..." /></label></div>
-              <div className="form-actions"><button type="button" className="secondary-button"><Icon name="file" /> Enregistrer brouillon</button><button type="submit" className="blue-button" disabled={loading || !reference}><Icon name="arrow" /> {loading ? 'Chargement...' : 'Soumettre le rapport'}</button></div>
+              <div className="form-actions"><button type="submit" className="blue-button" disabled={loading || !reference}><Icon name="arrow" /> {loading ? 'Chargement...' : editingReport?'Renvoyer après correction':'Soumettre pour validation'}</button></div>
             </form>
           </Card>
           <div className="note-box teacher-note"><Icon name="info" /> Le rapport quotidien sert au pointage pédagogique et à la validation du Préfet / Directeur des Études.</div>
         </div>
         <aside className="right-column textbook-side">
-          <Card title="Historique de mes rapports" className="table-card">{loading && <div className="note-box"><Icon name="clock" /> Chargement...</div>}<TeacherDailyReportHistory rows={reports} /></Card>
-          <Card title="Programme attendu"><div className="control-box"><span>Chapitre prévu : <b>{reference?.chapter || 'Aucune donnée réelle'}</b></span><span>Sous-chapitre prévu : <b>{reference?.subChapter || 'Aucune donnée réelle'}</b></span><strong><Icon name="checkCircle" /> Données backend</strong><p>{reference ? 'Le formulaire reprend le dernier programme réel reçu.' : 'Aucun rapport réel disponible.'}</p></div></Card>
+          <Card title="Historique de mes rapports" className="table-card">{loading && <div className="note-box"><Icon name="clock" /> Chargement...</div>}<TeacherDailyReportHistory rows={reports} onEdit={report=>{setEditingReport(report.rawId);setSelectedAssignment(report.programDistributionId);setMessage('Complétez les corrections demandées puis renvoyez le journal.')}} /></Card>
+          <Card title="Programme attendu"><div className="control-box"><span>Chapitre prévu : <b>{reference?.chapter || 'Aucune affectation'}</b></span><span>Sous-chapitre prévu : <b>{reference?.sub_chapter || '—'}</b></span><strong><Icon name="checkCircle" /> Affectation réelle</strong><p>{reference ? `${reference.class.name} · ${reference.subject.name}` : 'Aucune affectation active.'}</p></div></Card>
           <Card title="Calendrier de cette semaine"><WeekGrid /></Card>
         </aside>
       </section>
@@ -2305,9 +2317,9 @@ function TeacherTextBook() {
   )
 }
 
-function TeacherDailyReportHistory({ rows = [] }: { rows?: UiLessonReport[] }) {
+function TeacherDailyReportHistory({ rows = [],onEdit }: { rows?: UiLessonReport[];onEdit?:(report:UiLessonReport)=>void }) {
   if (!rows.length) return <div className="note-box"><Icon name="info" /> Aucun rapport soumis</div>
-  return <table><thead><tr><th>Date</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Périodes</th><th>Statut</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{row.date}</td><td>{row.className}</td><td>{row.subject}</td><td>{row.chapter}</td><td>{row.periods}</td><td><ReportStatusBadge status={row.status} /></td></tr>)}</tbody></table>
+  return <table><thead><tr><th>Date</th><th>Classe</th><th>Matière</th><th>Chapitre</th><th>Périodes</th><th>Statut</th><th>Action</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{row.date}</td><td>{row.className}</td><td>{row.subject}</td><td>{row.chapter}</td><td>{row.periods}</td><td><ReportStatusBadge status={row.status} /></td><td>{row.status==='Correction demandee'?<button type="button" className="secondary-button" onClick={()=>onEdit?.(row)}>Modifier</button>:'—'}</td></tr>)}</tbody></table>
 }
 
 function TextBookHistoryTable() {
