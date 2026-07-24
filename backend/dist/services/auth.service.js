@@ -8,6 +8,7 @@ exports.loginWithEmailAndPassword = loginWithEmailAndPassword;
 exports.signAccessToken = signAccessToken;
 exports.findAuthUserById = findAuthUserById;
 exports.verifyAuthToken = verifyAuthToken;
+exports.publicAuthUser = publicAuthUser;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = require("crypto");
@@ -23,6 +24,8 @@ function formatUser(user) {
         first_name: user.first_name,
         last_name: user.last_name,
         school_id: user.school_id ? user.school_id.toString() : null,
+        school_public_id: user.schools?.public_id ?? null,
+        school_name: user.schools?.name ?? null,
         roles: user.user_roles
             .filter((userRole) => userRole.roles.is_active)
             .map((userRole) => userRole.roles.name),
@@ -49,7 +52,7 @@ async function loginWithEmailAndPassword(email, password) {
             ],
         },
         include: {
-            schools: { select: { status: true, school_parental_settings: { select: { is_enabled: true } } } },
+            schools: { select: { status: true, public_id: true, name: true, school_parental_settings: { select: { is_enabled: true } } } },
             user_roles: {
                 include: {
                     roles: {
@@ -104,7 +107,7 @@ async function findAuthUserById(userId) {
     const user = await client_1.default.users.findUnique({
         where: { id: BigInt(userId) },
         include: {
-            schools: { select: { status: true, school_parental_settings: { select: { is_enabled: true } } } },
+            schools: { select: { status: true, public_id: true, name: true, school_parental_settings: { select: { is_enabled: true } } } },
             user_roles: {
                 include: {
                     roles: {
@@ -138,4 +141,12 @@ function verifyAuthToken(token) {
         throw new Error('Invalid access token');
     }
     return payload;
+}
+/** DTO public d'authentification : l'identifiant scolaire interne reste réservé aux contrôles serveur. */
+function publicAuthUser(user) {
+    return {
+        id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name,
+        school_id: user.school_public_id, roles: user.roles, modules: user.modules,
+        school: user.school_public_id ? { public_id: user.school_public_id, name: user.school_name } : null,
+    };
 }

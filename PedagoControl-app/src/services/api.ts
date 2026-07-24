@@ -1,7 +1,6 @@
 const API_URL = import.meta.env?.VITE_API_URL || '/api'
 const LEGACY_AUTH_KEYS = ['controle_pedagogique_token', 'controle_pedagogique_user', 'pedagoMockSession']
 export const AUTH_UNAUTHENTICATED_EVENT = 'pedago:unauthenticated'
-export const AUTH_FORBIDDEN_EVENT = 'pedago:forbidden'
 
 type ApiRequestOptions = RequestInit & { auth?: boolean; retryAuth?: boolean }
 
@@ -25,6 +24,7 @@ export type AuthUser = {
   school_id: string | null
   roles: string[]
   modules?: { pedagogical_control: boolean; parental_tracking: boolean }
+  school?: { public_id:string;name:string|null } | null
 }
 
 export type LoginResponse = {
@@ -34,6 +34,7 @@ export type LoginResponse = {
   user: AuthUser
   roles: string[]
   school_id: string | null
+  school?: { public_id:string;name:string|null } | null
 }
 
 type MemorySession = { accessToken: string | null; csrfToken: string | null; user: AuthUser | null }
@@ -137,9 +138,6 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
       clearMemorySession()
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_UNAUTHENTICATED_EVENT))
       redirect('/non-authentifie')
-    } else if (response.status === 403) {
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_FORBIDDEN_EVENT))
-      redirect('/acces-interdit')
     }
     throw new ApiError(data?.message || 'Erreur API', response.status, data?.request_id, Array.isArray(data?.errors) ? data.errors : [])
   }
@@ -168,9 +166,13 @@ export const authApi = {
       method: 'POST', auth: false, retryAuth: false, credentials: 'include', body: JSON.stringify({ email, password, remember_me: rememberMe }),
     })
     establishMemorySession(response)
-    return response
+    // La redirection repose uniquement sur /auth/me, jamais sur un rôle local ou une ancienne réponse.
+    const verified=await apiRequest<{user:AuthUser;roles:string[];school_id:string|null;school?:LoginResponse['school'];modules?:AuthUser['modules']}>('/auth/me',{retryAuth:false})
+    const session={...response,user:{...verified.user,school_id:verified.school_id,roles:verified.roles,modules:verified.modules??verified.user.modules,school:verified.school??verified.user.school},roles:verified.roles,school_id:verified.school_id,school:verified.school}
+    establishMemorySession(session)
+    return session
   },
-  me: () => apiRequest<{ user: AuthUser; roles: string[]; school_id: string | null }>('/auth/me'),
+  me: () => apiRequest<{ user: AuthUser; roles: string[]; school_id: string | null;school?:LoginResponse['school'];modules?:AuthUser['modules'] }>('/auth/me'),
   restore: restoreSession,
   logout: () => endSession('/auth/logout'),
   logoutAll: () => endSession('/auth/logout-all'),

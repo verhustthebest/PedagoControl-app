@@ -36,7 +36,10 @@ test('authentication tokens are never written to browser storage', () => {
 
 test('login uses credentials include and keeps tokens only in memory', async () => {
   let init: RequestInit | undefined
-  globalThis.fetch = async (_url, options) => { init = options; return json(200, loginResponse) }
+  globalThis.fetch = async (url, options) => {
+    if(String(url).endsWith('/auth/login'))init=options
+    return json(200, String(url).endsWith('/auth/me')?{user,roles:user.roles,school_id:'1'}:loginResponse)
+  }
   await authApi.login('ada@example.com', 'password')
   assert.equal(init?.credentials, 'include')
   assert.equal(getMemorySession().accessToken, 'access-one')
@@ -45,7 +48,10 @@ test('login uses credentials include and keeps tokens only in memory', async () 
 
 test('remember me is sent to the Backend without browser token storage', async () => {
   let body = ''
-  globalThis.fetch = async (_url, options) => { body = String(options?.body); return json(200, loginResponse) }
+  globalThis.fetch = async (url, options) => {
+    if(String(url).endsWith('/auth/login'))body=String(options?.body)
+    return json(200,String(url).endsWith('/auth/me')?{user,roles:user.roles,school_id:'1'}:loginResponse)
+  }
   await authApi.login('ada@example.com', 'password', true)
   assert.equal(JSON.parse(body).remember_me, true)
   assert.equal(getMemorySession().accessToken, 'access-one')
@@ -133,13 +139,16 @@ test('refresh failure during use clears memory and redirects to session-expired 
   assert.equal(redirects.at(-1), '/non-authentifie')
 })
 
-test('403 redirects to access denied without disconnecting', async () => {
+test('ADMIN_GESTIONNAIRE sur /admin conserve sa route lorsqu’une API secondaire répond 403', async () => {
   const redirects = browser()
-  establishMemorySession(loginResponse)
+  const adminUser = { ...user, roles: ["ADMIN_GESTIONNAIRE"], school_id: 'school-public-id' }
+  establishMemorySession({ ...loginResponse, user: adminUser, roles: adminUser.roles, school_id: adminUser.school_id })
+  window.location.pathname = '/admin'
   globalThis.fetch = async () => json(403, {})
-  await assert.rejects(() => apiRequest('/private', {}, 'https://api.example/api'))
-  assert.equal(getMemorySession().user?.id, '1')
-  assert.equal(redirects.at(-1), '/acces-interdit')
+  await assert.rejects(() => apiRequest('/notifications/unread-count', {}, 'https://api.example/api'))
+  assert.deepEqual(getMemorySession().user?.roles, ["ADMIN_GESTIONNAIRE"])
+  assert.equal(window.location.pathname, '/admin')
+  assert.deepEqual(redirects, [])
 })
 
 test('logout sends credentials and CSRF then clears memory immediately', async () => {

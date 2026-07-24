@@ -36,5 +36,5 @@ test('auth me expose rôle et modules du compte Admin école',()=>{
  const auth=read('src/services/auth.service.ts'),controller=read('src/controllers/auth.controller.ts')
  assert.match(auth,/school_parental_settings/)
  assert.match(auth,/parental_tracking:/)
- assert.match(controller,/roles: request\.user\?\.roles/)
+ assert.match(controller,/roles: request\.user\.roles/)
 })

@@ -10,7 +10,7 @@ test('la création finale est transactionnelle et idempotente par brouillon', ()
   assert.match(service, /repeated: true/)
   assert.match(service, /academic_years\.create/)
   assert.match(service, /school_subscriptions\.create/)
-  assert.match(service, /user_roles\.create/)
+  assert.match(service, /user_roles\.upsert/)
 })
 
 test('le brouillon exclut le mot de passe et appartient au SUPER_ADMIN courant', () => {

@@ -15,13 +15,34 @@ test('all Admin routes remain exclusive to ADMIN_GESTIONNAIRE', () => {
   }
 })
 
-test('Admin dashboard handles loading, error and unavailable data states', () => {
+test('Admin dashboard handles loading, error and clean empty states', () => {
   const state = source('src/pages/admin/AdminPageState.tsx')
   const dashboard = source('src/pages/admin/AdminDashboard.tsx')
+  const service = source('src/services/schoolDashboard.ts')
   assert.match(state, /status === 'loading'/)
   assert.match(state, /status === 'error'/)
-  assert.match(state, /Donnée indisponible/)
+  assert.doesNotMatch(dashboard, /Donnée indisponible|mock/i)
+  assert.match(dashboard, /Aucune année active/)
+  assert.match(dashboard, /Aucun abonnement/)
+  assert.match(service, /\/schools\/\$\{encodeURIComponent\(schoolPublicId\)\}\/dashboard/)
   assert.match(dashboard, /Activités récentes/)
+  assert.match(dashboard, /Aucune activité récente\./)
+})
+
+test('cartes Admin exposent toutes les données réelles et les modules', () => {
+  const dashboard = source('src/pages/admin/AdminDashboard.tsx')
+  for (const label of ['École connectée','Année scolaire','Utilisateurs','Élèves','Enseignants','Abonnement principal','Code école','Statut école','Quota enseignants','Contrôle pédagogique','Suivi parental']) {
+    assert.ok(dashboard.includes(label))
+  }
+  assert.match(dashboard, /dashboard\.modules\.parental_tracking/)
+  assert.match(dashboard, /dashboard\.subscription\?\.teacher_limit/)
+})
+
+test('dashboard Admin est responsive sans débordement', () => {
+  const css = source('src/layouts/admin-layout.css')
+  for (const width of ['1024px','768px','375px']) assert.ok(css.includes(width))
+  assert.match(css, /overflow-wrap:anywhere/)
+  assert.match(css, /min-width:0/)
 })
 
 test('parental dashboard displays module state and real API-backed totals', () => {

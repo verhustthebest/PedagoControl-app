@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware'
-import { findAuthUserById, loginWithEmailAndPassword, signAccessToken } from '../services/auth.service'
+import { findAuthUserById, loginWithEmailAndPassword, publicAuthUser, signAccessToken } from '../services/auth.service'
 import {
   clearRefreshCookie, createAuthSession, issueCsrfToken, readRefreshCookie, requestOriginAllowed,
   revokeAllUserSessions, revokeSession, rotateRefreshToken, SessionReuseError, setRefreshCookie,
@@ -44,9 +44,10 @@ export async function login(request: Request, response: Response) {
       token: accessToken,
       accessToken,
       csrfToken: session.csrfToken,
-      user: credentials.user,
+      user: publicAuthUser(credentials.user),
       roles: credentials.roles,
-      school_id: credentials.school_id,
+      school_id: credentials.user.school_public_id,
+      school:credentials.user.school_public_id?{public_id:credentials.user.school_public_id,name:credentials.user.school_name}:null,
     })
   } catch (error) {
     if (error instanceof RateLimitError) {
@@ -126,10 +127,14 @@ export async function logoutAll(request: AuthenticatedRequest, response: Respons
 }
 
 export function me(request: AuthenticatedRequest, response: Response) {
+  if(!request.user)return response.status(401).json({message:'Authentication required'})
+  const user=publicAuthUser(request.user)
   return response.json({
-    user: request.user,
-    roles: request.user?.roles ?? [],
-    permissions: request.user?.permissions ?? [],
-    school_id: request.user?.school_id ?? null,
+    user,
+    roles: request.user.roles,
+    permissions: request.user.permissions,
+    school_id: request.user.school_public_id,
+    school:user.school,
+    modules:request.user.modules,
   })
 }

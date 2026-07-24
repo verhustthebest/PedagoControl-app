@@ -23,9 +23,10 @@ test('quota est à étape 4, fixe hors Professionnel',()=>{
 })
 
 test('ADMIN_GESTIONNAIRE retourne directement à son portail et les modules pilotent le menu',()=>{
- const policy=read('src/auth/routePolicy.ts'),route=read('src/auth/ProtectedRoute.tsx'),navigation=read('src/components/adminGestionnaire/AdminNavigation.tsx')
+ const policy=read('src/auth/routePolicy.ts'),route=read('src/auth/ProtectedRoute.tsx'),login=read('src/components/portalComponents.tsx'),navigation=read('src/components/adminGestionnaire/AdminNavigation.tsx')
  assert.match(policy,/ADMIN_GESTIONNAIRE'\)\)return'\/admin'/)
- assert.match(route,/portalForRoles\(roles\)/)
+ assert.match(login,/portalForRoles\(verifiedSession\.roles\)/)
+ assert.match(route,/decision === 'forbidden'.*\/acces-interdit/)
  assert.match(navigation,/modules\?\.parental_tracking/)
 })
 

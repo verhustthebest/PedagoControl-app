@@ -7,6 +7,7 @@ import startupMockup from '../assets/page-de-demarrage.png'
 import presentationPanel from '../assets/presentation-panel.png'
 import { managementProgramDraft } from '../data/managementPrograms'
 import { authApi, getMemorySession } from '../services/api'
+import { portalForRoles } from '../auth/routePolicy'
 import { prepareManagementProgram, sendProgramToAdminGestionnaire } from '../services/managementProgramService'
 import { messagesApi, notificationsApi } from '../services/notifications'
 import type { AppNotification } from '../services/notifications'
@@ -363,25 +364,14 @@ function LoginScreen() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  function redirectForRoles(roles: string[]) {
-    if (roles.includes('SUPER_ADMIN')) return '/management/ecoles'
-    if (roles.includes('ADMIN_GESTIONNAIRE')) return '/admin'
-    if (roles.includes('INFORMATICIEN')) return '/informaticien'
-    if (roles.includes('PARENT')) return '/parent'
-    if (roles.includes('PREFET')) return '/prefet/rapports'
-    if (roles.includes('ENSEIGNANT')) return '/enseignant/cahier-texte'
-    if (roles.some((role) => ['DIRECTEUR', 'DIRECTION', 'PROMOTEUR', 'DIRECTEUR_ETUDES', 'DIRECTEUR_DES_ETUDES'].includes(role))) return '/directeur/rapports'
-    return '/acces-interdit'
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      const session = await authApi.login(username.trim().toLowerCase(), password, remember)
-      window.location.replace(redirectForRoles(session.roles || session.user.roles))
+      const verifiedSession = await authApi.login(username.trim().toLowerCase(), password, remember)
+      window.location.replace(portalForRoles(verifiedSession.roles))
     } catch (apiError) {
       setError(apiError instanceof Error ? apiError.message : 'Connexion échouée.')
     } finally {

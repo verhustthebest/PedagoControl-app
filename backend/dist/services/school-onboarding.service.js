@@ -93,7 +93,17 @@ async function finalizeSchool(userId, input, requestId) {
                     created_by_user_id: BigInt(userId), updated_by_user_id: BigInt(userId),
                 } });
             const user = await transaction.users.create({ data: { school_id: school.id, first_name: input.account.first_name, last_name: input.account.last_name, email: input.account.email, phone: input.account.phone, password_hash: passwordHash } });
-            await transaction.user_roles.create({ data: { user_id: user.id, role_id: role.id } });
+            await transaction.user_roles.upsert({
+                where: { user_id_role_id: { user_id: user.id, role_id: role.id } },
+                create: { user_id: user.id, role_id: role.id },
+                update: {},
+            });
+            const association = await transaction.users.findFirst({ where: {
+                    id: user.id, school_id: school.id, is_active: true,
+                    user_roles: { some: { role_id: role.id, roles: { name: 'ADMIN_GESTIONNAIRE', is_active: true } } },
+                }, select: { id: true } });
+            if (!association)
+                throw new Error('INVALID_ADMIN_ASSOCIATION');
             await transaction.notifications.create({ data: {
                     recipient_user_id: BigInt(userId), sender_user_id: BigInt(userId),
                     title: 'Nouvelle école créée',

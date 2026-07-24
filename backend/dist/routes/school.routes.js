@@ -11,6 +11,7 @@ const school_staff_controller_1 = require("../controllers/school-staff.controlle
 const schemas_2 = require("../validation/schemas");
 const management_subscription_controller_1 = require("../controllers/management-subscription.controller");
 const phone_identity_controller_1 = require("../controllers/phone-identity.controller");
+const school_dashboard_controller_1 = require("../controllers/school-dashboard.controller");
 const router = (0, express_1.Router)();
 const managementAccess = [auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(access_policy_1.SCHOOL_LIST_ROLES)];
 router.get('/schools', ...managementAccess, (0, validate_middleware_1.validate)({ query: schemas_1.schoolListQuery }), school_controller_1.getSchools);
@@ -20,5 +21,6 @@ router.post('/contacts/phone-check', auth_middleware_1.authenticateBearerToken, 
 router.post('/schools/onboarding/drafts', ...managementAccess, (0, validate_middleware_1.validate)({ body: schemas_1.schoolDraftBody }), school_onboarding_controller_1.saveDraft);
 router.post('/schools/onboarding', ...managementAccess, (0, validate_middleware_1.validate)({ body: schemas_1.schoolOnboardingBody }), school_onboarding_controller_1.createSchoolOnboarding);
 router.post('/schools/:schoolId/staff', auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(['ADMIN_GESTIONNAIRE']), (0, validate_middleware_1.validate)({ params: schemas_1.schoolPublicParams, body: schemas_2.schoolStaffBody }), (0, auth_middleware_1.requireSchoolScope)(), school_staff_controller_1.createStaff);
+router.get('/schools/:schoolId/dashboard', auth_middleware_1.authenticateBearerToken, (0, auth_middleware_1.requireSchoolContext)(), (0, auth_middleware_1.requireAnyRole)(['ADMIN_GESTIONNAIRE']), (0, validate_middleware_1.validate)({ params: schemas_1.schoolPublicParams }), (0, auth_middleware_1.requireSchoolScope)(), school_dashboard_controller_1.schoolDashboard);
 router.get('/schools/:schoolId', ...managementAccess, (0, validate_middleware_1.validate)({ params: schemas_1.schoolPublicParams }), (0, auth_middleware_1.requireSchoolScope)(), school_controller_1.getSchool);
 exports.default = router;

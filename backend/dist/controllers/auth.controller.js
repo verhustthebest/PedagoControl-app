@@ -35,9 +35,10 @@ async function login(request, response) {
             token: accessToken,
             accessToken,
             csrfToken: session.csrfToken,
-            user: credentials.user,
+            user: (0, auth_service_1.publicAuthUser)(credentials.user),
             roles: credentials.roles,
-            school_id: credentials.school_id,
+            school_id: credentials.user.school_public_id,
+            school: credentials.user.school_public_id ? { public_id: credentials.user.school_public_id, name: credentials.user.school_name } : null,
         });
     }
     catch (error) {
@@ -129,10 +130,15 @@ async function logoutAll(request, response) {
     }
 }
 function me(request, response) {
+    if (!request.user)
+        return response.status(401).json({ message: 'Authentication required' });
+    const user = (0, auth_service_1.publicAuthUser)(request.user);
     return response.json({
-        user: request.user,
-        roles: request.user?.roles ?? [],
-        permissions: request.user?.permissions ?? [],
-        school_id: request.user?.school_id ?? null,
+        user,
+        roles: request.user.roles,
+        permissions: request.user.permissions,
+        school_id: request.user.school_public_id,
+        school: user.school,
+        modules: request.user.modules,
     });
 }

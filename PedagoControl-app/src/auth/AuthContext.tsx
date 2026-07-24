@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  AUTH_FORBIDDEN_EVENT, AUTH_UNAUTHENTICATED_EVENT, authApi, cleanupLegacyAuthStorage,
+  AUTH_UNAUTHENTICATED_EVENT, authApi, cleanupLegacyAuthStorage,
   establishMemorySession, type AuthUser, type LoginResponse,
 } from '../services/api'
 
@@ -37,12 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setSessionExpired(true)
     }
-    const forbidden = () => undefined
     window.addEventListener(AUTH_UNAUTHENTICATED_EVENT, unauthenticated)
-    window.addEventListener(AUTH_FORBIDDEN_EVENT, forbidden)
     return () => {
       window.removeEventListener(AUTH_UNAUTHENTICATED_EVENT, unauthenticated)
-      window.removeEventListener(AUTH_FORBIDDEN_EVENT, forbidden)
     }
   }, [])
 

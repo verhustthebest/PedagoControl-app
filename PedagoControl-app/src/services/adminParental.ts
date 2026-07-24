@@ -1,7 +1,7 @@
 import { apiRequest, type AuthUser } from './api'
 
 export type LoadState<T> = { status: 'loading' | 'success' | 'empty' | 'error'; data: T | null; message?: string }
-export type SchoolSummary = { id: string; public_id?: string; name: string; code?: string; status?: string }
+export type SchoolSummary = { public_id: string; name: string | null; code?: string; status?: string }
 export type ParentalSettings = {
   is_enabled: boolean
   enabled_at?: string | null
@@ -93,8 +93,11 @@ export function schoolApiIdentifier(user: AuthUser, school: SchoolSummary | null
 
 export async function loadAdminPortal(user: AuthUser): Promise<AdminPortalData> {
   if (!user.school_id) throw new Error('École associée indisponible')
-  const schoolsPayload = await optional(apiRequest<{ schools: SchoolSummary[] }>('/schools?page=1&limit=1'))
-  const school = schoolsPayload?.schools?.[0] ?? null
+  // /schools est une liste Management. Le portail école utilise exclusivement
+  // l'établissement public déjà contrôlé et retourné par /auth/me.
+  const school: SchoolSummary | null = user.school
+    ? { public_id: user.school.public_id, name: user.school.name }
+    : null
   const schoolId = schoolApiIdentifier(user, school)
   if (!schoolId) throw new Error('École associée indisponible')
 
